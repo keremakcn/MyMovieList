@@ -1,3 +1,8 @@
 .env
-ml-25m/
 __pycache__/
+movies.db
+posters/
+static/posters/
+dist/
+build/
+*.spec
