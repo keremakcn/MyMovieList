@@ -41,7 +41,7 @@ with open("ml-25m/movies.csv", "r", encoding="utf-8") as file:
 
         if match:
             year = int(match.group(1))
-            title = title[:match.start()].strip()
+            title = title[: match.start()].strip()
         else:
             year = None
 
@@ -54,7 +54,7 @@ with open("ml-25m/movies.csv", "r", encoding="utf-8") as file:
             title,
             year,
             genres,
-            tmdb_ids.get(movie_id)
+            tmdb_ids.get(movie_id),
         )
 
 print("Movie catalog imported successfully.")

@@ -13,73 +13,71 @@
 
         <section class="movie-detail-card">
             <h1>{{ movie.title }}</h1>
-            {% if tmdb %}
-    <div class="tmdb-feature">
-        {% if tmdb.poster_url %}
-            <img
-                class="movie-poster"
-                src="{{ tmdb.poster_url }}"
-                alt="Poster for {{ movie.title }}"
-            >
-        {% endif %}
 
-        <div class="tmdb-copy">
-            <h2>Overview</h2>
-
-            {% if tmdb.overview %}
-                <p>{{ tmdb.overview }}</p>
-            {% else %}
-                <p>No overview available.</p>
-            {% endif %}
-
-            {% if tmdb.runtime %}
-                <p><strong>Runtime:</strong> {{ tmdb.runtime }} minutes</p>
-            {% endif %}
-            {% if tmdb.director %}
-    <p><strong>Director:</strong> {{ tmdb.director }}</p>
-{% endif %}
-
-{% if tmdb.cast %}
-    <p><strong>Cast:</strong> {{ tmdb.cast | join(", ") }}</p>
-{% endif %}
-        </div>
-    </div>
-
-    <p class="tmdb-credit">
-        This product uses the TMDB API but is not endorsed or certified by TMDB.
-    </p>
-{% endif %}
-            <div class="detail-info">
-                <p><strong>Year:</strong> {{ movie.year }}</p>
-                <p><strong>Genre:</strong> {{ movie.genre }}</p>
-                <p>
-                    <strong>Status:</strong>
-                    <span class="status-badge {{ movie.status|lower }}">
-                        {{ movie.status }}
-                    </span>
-                </p>
-{% if movie.watched_date %}
-    <p><strong>Watched on:</strong> {{ movie.watched_date }}</p>
-{% endif %}
-                {% if movie.rating %}
-                    <p><strong>Rating:</strong> {{ movie.rating }}/10</p>
+            <div class="movie-header">
+                {% if tmdb and tmdb.poster_url %}
+                    <div class="poster-wrapper">
+                        <img
+                            class="movie-poster"
+                            src="{{ tmdb.poster_url }}"
+                            alt="Poster for {{ movie.title }}"
+                        >
+                        {% if tmdb.score_percent is not none %}
+                            <span class="tmdb-score {{ 'score-high' if tmdb.score_percent >= 70 else ('score-mid' if tmdb.score_percent >= 40 else 'score-low') }}">
+                                {{ tmdb.score_percent }}
+                            </span>
+                        {% endif %}
+                    </div>
                 {% endif %}
 
-                {% if movie.note %}
-                    <p><strong>Note:</strong> {{ movie.note }}</p>
-                {% endif %}
+                <div class="movie-header-badges">
+                    {% include "_info_badges.html" %}
 
-                {% if movie.favorite %}
-                    <p><strong>Favorite:</strong> ❤️</p>
-                {% endif %}
+                    <div class="info-badges">
+                        <span class="info-badge status-{{ movie.status|lower }}">
+                            {{ "✅" if movie.status == "Watched" else "📌" }} {{ movie.status }}
+                        </span>
+
+                        {% if movie.rating %}
+                            <span class="info-badge rating-pill">⭐ {{ movie.rating }}/10</span>
+                        {% endif %}
+
+                        {% if movie.watched_date %}
+                            <span class="info-badge">📆 Watched {{ movie.watched_date }}</span>
+                        {% endif %}
+
+                        {% if movie.favorite %}
+                            <span class="info-badge favorite-pill">❤️ Favorite</span>
+                        {% endif %}
+
+                        <a
+                            class="info-badge info-badge-link"
+                            href="https://www.youtube.com/results?search_query={{ (movie.title ~ ' ' ~ movie.year ~ ' trailer') | urlencode }}"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            ▶ Search Trailer
+                        </a>
+                    </div>
+                </div>
             </div>
 
+            {% include "_tmdb_info.html" %}
+
+            {% if movie.note %}
+                <div class="movie-note-block">
+                    <h2>Note</h2>
+                    <p>{{ movie.note }}</p>
+                </div>
+            {% endif %}
+
             <div class="detail-actions">
-                <a class="edit-link" href="/edit/{{ movie.id }}">
+                <a class="edit-link" href="/edit/{{ movie.id }}?next=/movie/{{ movie.id }}">
                     Edit Rating / Note
                 </a>
 
                 <form action="/status/{{ movie.id }}" method="post">
+                    <input type="hidden" name="next" value="/movie/{{ movie.id }}">
                     {% if movie.status == "Watchlist" %}
                         <button type="submit">Mark as Watched</button>
                     {% else %}
@@ -88,26 +86,23 @@
                 </form>
 
                 <form action="/favorite/{{ movie.id }}" method="post">
+                    <input type="hidden" name="next" value="/movie/{{ movie.id }}">
                     {% if movie.favorite %}
                         <button type="submit">❤️ Remove from Favorites</button>
                     {% else %}
                         <button type="submit">♡ Add to Favorites</button>
                     {% endif %}
                 </form>
-<a
-    class="youtube-link"
-    href="https://www.youtube.com/results?search_query={{ (movie.title ~ ' ' ~ movie.year ~ ' trailer') | urlencode }}"
-    target="_blank"
-    rel="noopener"
->
-    ▶ Search Trailer on YouTube
-</a>
+
                 <form action="/delete/{{ movie.id }}" method="post"
-                      onsubmit="return confirm('Delete this movie?');">
+                      data-confirm="Delete &quot;{{ movie.title }}&quot;? This can't be undone.">
                     <button class="delete-button" type="submit">Delete Movie</button>
                 </form>
             </div>
         </section>
     </main>
+
+    {% include "_confirm_modal.html" %}
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

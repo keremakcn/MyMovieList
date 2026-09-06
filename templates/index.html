@@ -19,10 +19,20 @@
                 </p>
             </div>
 
-            <a class="add-movie-link" href="/add">
-                + Add Movie
-            </a>
+            <div class="header-actions">
+                <a class="settings-link" href="/settings" title="TMDB Settings">⚙ Settings</a>
+                <a class="add-movie-link" href="/add">
+                    + Add Movie
+                </a>
+            </div>
         </header>
+
+        {% if tmdb_token_missing %}
+            <div class="token-banner">
+                <span>⚠ No TMDB token set — posters and movie details won't load.</span>
+                <a href="/settings">Add your token →</a>
+            </div>
+        {% endif %}
 
 
         <section class="stats-grid">
@@ -74,19 +84,36 @@
 
         <section class="filter-bar">
 
-            <div class="filter-group">
-                <a href="/">All</a>
-                <a href="/?status=Watchlist">Watchlist</a>
-                <a href="/?status=Watched">Watched</a>
-                <a href="/?favorite=1">Favorites</a>
+            <div class="filter-row">
+                <span class="filter-label">Show</span>
+                <div class="filter-group">
+                    <a href="/?status=all&sort={{ sort }}" class="{{ 'active-filter' if status_filter == 'all' else '' }}">All</a>
+                    <a href="/?status=Watchlist&sort={{ sort }}" class="{{ 'active-filter' if status_filter == 'Watchlist' else '' }}">Watchlist</a>
+                    <a href="/?status=Watched&sort={{ sort }}" class="{{ 'active-filter' if status_filter == 'Watched' else '' }}">Watched</a>
+                    <a href="/?status=favorite&sort={{ sort }}" class="{{ 'active-filter' if status_filter == 'favorite' else '' }}">Favorites</a>
+                </div>
             </div>
 
-            <div class="filter-group">
-                <a href="/?sort=high">Rating: High → Low</a>
-                <a href="/?sort=low">Rating: Low → High</a>
-                <a href="/?sort=newest">Newest</a>
-                <a href="/?sort=oldest">Oldest</a>
+            <div class="filter-row">
+                <span class="filter-label">Sort by</span>
+                <div class="filter-group">
+                    <a href="/?status={{ status_filter }}&sort=" class="{{ 'active-filter' if not sort else '' }}">Default</a>
+                    <a href="/?status={{ status_filter }}&sort=rating_desc" class="{{ 'active-filter' if sort == 'rating_desc' else '' }}">Rating: High → Low</a>
+                    <a href="/?status={{ status_filter }}&sort=rating_asc" class="{{ 'active-filter' if sort == 'rating_asc' else '' }}">Rating: Low → High</a>
+                    <a href="/?status={{ status_filter }}&sort=tmdb_desc" class="{{ 'active-filter' if sort == 'tmdb_desc' else '' }}">TMDB Score: High → Low</a>
+                    <a href="/?status={{ status_filter }}&sort=tmdb_asc" class="{{ 'active-filter' if sort == 'tmdb_asc' else '' }}">TMDB Score: Low → High</a>
+                    <a href="/?status={{ status_filter }}&sort=year_desc" class="{{ 'active-filter' if sort == 'year_desc' else '' }}">Release Year: Newest</a>
+                    <a href="/?status={{ status_filter }}&sort=year_asc" class="{{ 'active-filter' if sort == 'year_asc' else '' }}">Release Year: Oldest</a>
+                    <a href="/?status={{ status_filter }}&sort=watched_desc" class="{{ 'active-filter' if sort == 'watched_desc' else '' }}">Watched Date: Newest</a>
+                    <a href="/?status={{ status_filter }}&sort=watched_asc" class="{{ 'active-filter' if sort == 'watched_asc' else '' }}">Watched Date: Oldest</a>
+                    <a href="/?status={{ status_filter }}&sort=added_desc" class="{{ 'active-filter' if sort == 'added_desc' else '' }}">Date Added: Newest</a>
+                    <a href="/?status={{ status_filter }}&sort=added_asc" class="{{ 'active-filter' if sort == 'added_asc' else '' }}">Date Added: Oldest</a>
+                </div>
             </div>
+
+            {% if status_filter != "all" or sort %}
+                <a class="filter-reset" href="/">Reset filters</a>
+            {% endif %}
 
         </section>
 
@@ -106,13 +133,21 @@
                 {% for movie in movies %}
 
                     <article class="movie-card">
-                            {% if movie.poster_url %}
-    <img
-        class="movie-card-poster"
-        src="{{ movie.poster_url }}"
-        alt="Poster for {{ movie.title }}"
-    >
+                            {% if movie.poster_path %}
+    <div class="movie-card-poster-wrapper">
+        <img
+            class="movie-card-poster"
+            src="{{ movie.poster_path }}"
+            alt="Poster for {{ movie.title }}"
+        >
+        {% if movie.score_percent is not none %}
+            <span class="tmdb-score tmdb-score-sm {{ 'score-high' if movie.score_percent >= 70 else ('score-mid' if movie.score_percent >= 40 else 'score-low') }}">
+                {{ movie.score_percent }}
+            </span>
+        {% endif %}
+    </div>
 {% endif %}
+                        <div class="movie-card-body">
                         <div class="movie-card-content">
 
                             <div class="movie-card-title">
@@ -167,7 +202,7 @@
 
                             <a
                                 class="edit-link"
-                                href="/edit/{{ movie.id }}"
+                                href="/edit/{{ movie.id }}?next=/"
                             >
                                 Edit
                             </a>
@@ -177,6 +212,7 @@
                                 action="/favorite/{{ movie.id }}"
                                 method="post"
                             >
+                                <input type="hidden" name="next" value="{{ current_url }}">
 
                                 {% if movie.favorite %}
 
@@ -199,6 +235,7 @@
                                 action="/status/{{ movie.id }}"
                                 method="post"
                             >
+                                <input type="hidden" name="next" value="{{ current_url }}">
 
                                 {% if movie.status == "Watchlist" %}
 
@@ -220,8 +257,9 @@
                             <form
                                 action="/delete/{{ movie.id }}"
                                 method="post"
-                                onsubmit="return confirm('Delete this movie?');"
+                                data-confirm="Delete &quot;{{ movie.title }}&quot;? This can't be undone."
                             >
+                                <input type="hidden" name="next" value="{{ current_url }}">
 
                                 <button
                                     class="delete-button"
@@ -234,11 +272,15 @@
 
                         </div>
 
+                        </div>
+
                     </article>
 
                 {% else %}
 
                     <div class="empty-state">
+
+                        <div class="empty-state-icon">🎬</div>
 
                         <h2>Your library is empty</h2>
 
@@ -246,8 +288,8 @@
                             Search for a movie or add one manually to get started.
                         </p>
 
-                        <a class="add-movie-link" href="/add">
-                            + Add Your First Movie
+                        <a class="add-movie-link" href="/search">
+                            + Search for Your First Movie
                         </a>
 
                     </div>
@@ -259,6 +301,7 @@
         </section>
 
 
+        {% include "_confirm_modal.html" %}
         <script src="{{ url_for('static', filename='script.js') }}"></script>
 
     </body>

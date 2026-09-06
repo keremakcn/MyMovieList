@@ -1,0 +1,26 @@
+{# Shared "important info" badge list, styled like MyGameList's game
+   detail badges: monospace, icon + label pills, one per line.
+   Expects `movie` (a movies or movie_catalog row) and `tmdb`
+   (possibly None) in context. Included from movie.html and
+   catalog_movie.html, before the poster/overview block. #}
+<div class="info-badges">
+    {% if movie.year %}
+        <span class="info-badge">📅 Release Year: {{ movie.year }}</span>
+    {% endif %}
+
+    {% if movie.genre %}
+        <span class="info-badge">🎞 Genre: {{ movie.genre }}</span>
+    {% endif %}
+
+    {% if tmdb and tmdb.runtime %}
+        <span class="info-badge">⏱ Runtime: {{ tmdb.runtime }} minutes</span>
+    {% endif %}
+
+    {% if tmdb and tmdb.director %}
+        <span class="info-badge">🎬 Director: {{ tmdb.director }}</span>
+    {% endif %}
+
+    {% if tmdb and tmdb.cast %}
+        <span class="info-badge">🎭 Cast: {{ tmdb.cast | join(", ") }}</span>
+    {% endif %}
+</div>

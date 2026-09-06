@@ -13,6 +13,7 @@
 
         <section class="form-card">
             <h1>Search Movies</h1>
+            <p>Searches TMDB directly, so this needs an internet connection.</p>
 
             <form class="catalog-search-form" action="/search" method="get">
                 <input
@@ -30,22 +31,43 @@
             <section class="search-results">
                 <h2>Results</h2>
 
+                {% if error %}
+                    <p class="form-error">
+                        {{ error }}
+                        {% if "token" in error %}
+                            <a href="/settings">Go to Settings →</a>
+                        {% endif %}
+                    </p>
+                {% endif %}
+
                 {% for movie in results %}
                     <article class="catalog-card">
-                        <h2>
-                            <a href="/catalog_movie/{{ movie.id }}">
-                                {{ movie.title }}
-                            </a>
-                        </h2>
-                        <p>{{ movie.year }} · {{ movie.genre }}</p>
+                        {% if movie.poster_url %}
+                            <img
+                                class="catalog-card-poster"
+                                src="{{ movie.poster_url }}"
+                                alt="Poster for {{ movie.title }}"
+                            >
+                        {% endif %}
 
-                        <form action="/add_from_catalog" method="post">
-                            <input type="hidden" name="movie_id" value="{{ movie.id }}">
-                            <button type="submit">+ Add to Watchlist</button>
-                        </form>
+                        <div class="catalog-card-body">
+                            <h2>
+                                <a href="/catalog_movie/{{ movie.tmdb_id }}">
+                                    {{ movie.title }}
+                                </a>
+                            </h2>
+                            <p>{{ movie.year }}{% if movie.genre %} · {{ movie.genre }}{% endif %}</p>
+
+                            <form action="/add_from_catalog" method="post">
+                                <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
+                                <button type="submit">+ Add to Watchlist</button>
+                            </form>
+                        </div>
                     </article>
                 {% else %}
-                    <p>No movies found.</p>
+                    {% if not error %}
+                        <p>No movies found.</p>
+                    {% endif %}
                 {% endfor %}
             </section>
         {% endif %}

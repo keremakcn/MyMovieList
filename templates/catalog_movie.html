@@ -14,60 +14,28 @@
         <section class="movie-detail-card">
             <h1>{{ movie.title }}</h1>
 
-            {% if tmdb %}
-                <div class="tmdb-feature">
-
-                    {% if tmdb.poster_url %}
+            <div class="movie-header">
+                {% if tmdb and tmdb.poster_url %}
+                    <div class="poster-wrapper">
                         <img
                             class="movie-poster"
                             src="{{ tmdb.poster_url }}"
                             alt="Poster for {{ movie.title }}"
                         >
-                    {% endif %}
-
-                    <div class="tmdb-copy">
-                        <h2>Overview</h2>
-
-                        {% if tmdb.overview %}
-                            <p>{{ tmdb.overview }}</p>
-                        {% else %}
-                            <p>No overview available.</p>
-                        {% endif %}
-
-                        {% if tmdb.runtime %}
-                            <p>
-                                <strong>Runtime:</strong>
-                                {{ tmdb.runtime }} minutes
-                            </p>
-                        {% endif %}
-
-                        {% if tmdb.director %}
-                            <p>
-                                <strong>Director:</strong>
-                                {{ tmdb.director }}
-                            </p>
-                        {% endif %}
-
-                        {% if tmdb.cast %}
-                            <p>
-                                <strong>Cast:</strong>
-                                {{ tmdb.cast | join(", ") }}
-                            </p>
+                        {% if tmdb.score_percent is not none %}
+                            <span class="tmdb-score {{ 'score-high' if tmdb.score_percent >= 70 else ('score-mid' if tmdb.score_percent >= 40 else 'score-low') }}">
+                                {{ tmdb.score_percent }}
+                            </span>
                         {% endif %}
                     </div>
+                {% endif %}
+
+                <div class="movie-header-badges">
+                    {% include "_info_badges.html" %}
                 </div>
-
-                <p class="tmdb-credit">
-                    This product uses the TMDB API but is not endorsed or certified by TMDB.
-                </p>
-            {% else %}
-                <p>Movie details are not available.</p>
-            {% endif %}
-
-            <div class="detail-info">
-                <p><strong>Year:</strong> {{ movie.year }}</p>
-                <p><strong>Genre:</strong> {{ movie.genre }}</p>
             </div>
+
+            {% include "_tmdb_info.html" %}
 
 <div class="detail-actions">
 

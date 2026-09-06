@@ -14,6 +14,10 @@
         <section class="form-card">
             <h1>Add Movie</h1>
 
+            {% if error %}
+                <p class="form-error">{{ error }}</p>
+            {% endif %}
+
             <form class="movie-form" action="/add" method="post">
                 <label for="title">Title</label>
                 <input id="title" type="text" name="title" required>
