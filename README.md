@@ -191,6 +191,24 @@ Planned improvements may include:
 - Movie recommendations
 
 ---
+## 📸 Screenshots
+### Home, Movie Details, Search
+![homepage](screenshots/homepaged.png)
+
+![search](screenshots/search.png)
+
+![movie_details](screenshots/movie_details.png)
+
+![add_notes_andrank](screenshots/add_notes_andrank.png)
+
+
+![add_custom_movie](screenshots/add_custom_movie.png)
+
+![filteredrating](screenshots/filteredrating.png)
+
+![homefilteredwatchlist](screenshots/homefilteredwatchlist.png) 
+
+![homefilteredwatchlist](screenshots/homefilteredwatgced.png) 
 
 ## 📌 Version
 
