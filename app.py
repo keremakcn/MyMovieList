@@ -10,7 +10,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-from flask import Flask, render_template, request, redirect, session, send_from_directory
+from flask import Flask, render_template, request, redirect, send_from_directory
 
 
 # --- Paths: work both as a normal script and as a PyInstaller .exe ---
@@ -84,11 +84,13 @@ app = Flask(
     template_folder=os.path.join(BASE_DIR, "templates"),
     static_folder=os.path.join(BASE_DIR, "static"),
 )
-# Needed for Flask's session cookie (used to store a per-visitor TMDB
-# token, see /settings below). Set FLASK_SECRET_KEY in .env for a
-# stable key across restarts; otherwise a random one is generated
-# each time the app starts (sessions will reset on restart).
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(24)
+# Never let the browser (or the desktop app's embedded WebView2)
+# cache static/style.css and static/script.js. Without this, updating
+# the app and rebuilding the .exe can still show old CSS/JS, because
+# WebView2 keeps its own persistent cache between runs -- there's no
+# "hard refresh" shortcut in a native window like there is in a
+# regular browser tab.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 db = SQL(DB_PATH)
 
@@ -133,6 +135,29 @@ _ensure_column("movies", "director", "TEXT")
 _ensure_column("movies", "cast_list", "TEXT")
 _ensure_column("movies", "score_percent", "INTEGER")
 
+# If a movie somehow got added twice for the same tmdb_id before (a
+# double-click, or two quick form submits racing each other), clean
+# it up now, keeping the oldest row -- otherwise creating the UNIQUE
+# index right below would fail.
+db.execute("""
+    DELETE FROM movies
+    WHERE tmdb_id IS NOT NULL
+    AND id NOT IN (
+        SELECT MIN(id) FROM movies
+        WHERE tmdb_id IS NOT NULL
+        GROUP BY tmdb_id
+    )
+""")
+
+# The real fix: make it impossible at the database level for the same
+# TMDB movie to be added twice, even if two "Add" requests race each
+# other (SQLite treats each NULL as distinct, so manually-added
+# movies -- which have no tmdb_id -- are unaffected).
+try:
+    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_movies_tmdb_id ON movies(tmdb_id)")
+except Exception:
+    pass
+
 # --- TMDB helpers -----------------------------------------------------
 #
 # A tmdb_id's poster/overview/cast almost never changes, so we cache
@@ -146,18 +171,41 @@ _tmdb_cache = {}
 _tmdb_cache_lock = Lock()
 
 
-def get_tmdb_token():
-    """A visitor-supplied token (set via /settings) takes priority
-    over the .env one, so this app can be shared without everyone
-    needing to edit a .env file.
+# A tiny key-value table for app settings that need to persist
+# permanently (right now: the TMDB token) -- not tied to a browser
+# session/cookie, so it survives clearing cookies, private/incognito
+# windows, or opening the app in a different browser.
+db.execute("""
+    CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )
+""")
 
-    IMPORTANT: this reads Flask's `session`, which only works on the
-    main request thread. If you need a token inside a background
-    thread (see attach_posters below), read it once on the main
-    thread and pass it in explicitly -- don't call this function
-    from inside a ThreadPoolExecutor worker.
-    """
-    return session.get("tmdb_token") or os.environ.get("TMDB_ACCESS_TOKEN")
+
+def get_setting(key, default=None):
+    rows = db.execute("SELECT value FROM settings WHERE key = ?", key)
+    return rows[0]["value"] if rows else default
+
+
+def set_setting(key, value):
+    if value is None:
+        db.execute("DELETE FROM settings WHERE key = ?", key)
+    else:
+        db.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            key,
+            value
+        )
+
+
+def get_tmdb_token():
+    """The token saved via /settings takes priority over the .env
+    one. Stored in the database (not a session/cookie), so it's
+    shared across every browser/window and survives cookies being
+    cleared -- appropriate for this being a single-user app."""
+    return get_setting("tmdb_token") or os.environ.get("TMDB_ACCESS_TOKEN")
 
 
 def _fetch_tmdb_movie(tmdb_id, full, token):
@@ -185,10 +233,9 @@ def get_tmdb_data(tmdb_id, full=False, token=None):
     full=True additionally includes: overview, runtime, director, cast
     (used on movie detail pages and when adding a movie to the library).
 
-    token: pass this explicitly when calling from a background thread
-    (Flask's session isn't available there). If omitted, the current
-    request's token is read automatically -- only safe on the main
-    request thread.
+    token: pass this explicitly if you already have it on hand (e.g.
+    to avoid a redundant DB read); otherwise it's looked up via
+    get_tmdb_token() automatically.
     """
     if not tmdb_id:
         return None
@@ -196,9 +243,9 @@ def get_tmdb_data(tmdb_id, full=False, token=None):
     if token is None:
         token = get_tmdb_token()
 
-    # If nobody (this session or .env) has a token right now, don't
-    # touch the cache at all -- we don't want a "no token" miss to
-    # poison the cache for a different visitor who does have one.
+    # If nobody has a token saved right now, don't touch the cache at
+    # all -- we don't want a "no token" miss to poison the cache for
+    # later once a token is added.
     if not token:
         return None
 
@@ -423,18 +470,13 @@ def index():
 def settings():
     if request.method == "POST":
         token = request.form.get("tmdb_token", "").strip()
-
-        if token:
-            session["tmdb_token"] = token
-        else:
-            session.pop("tmdb_token", None)
-
+        set_setting("tmdb_token", token or None)
         return redirect("/")
 
     return render_template(
         "settings.html",
         has_token=bool(get_tmdb_token()),
-        has_session_token=bool(session.get("tmdb_token"))
+        has_saved_token=bool(get_setting("tmdb_token"))
     )
 
 
@@ -575,25 +617,37 @@ def _add_movie_from_catalog(status):
 
     watched_date_clause = "DATE('now')" if status == "Watched" else "NULL"
 
-    db.execute(
-        f"""
-        INSERT INTO movies
-        (title, year, genre, status, watched_date, tmdb_id, poster_path,
-         overview, runtime, director, cast_list, score_percent)
-        VALUES (?, ?, ?, ?, {watched_date_clause}, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        tmdb.get("title"),
-        tmdb.get("year"),
-        tmdb.get("genre"),
-        status,
-        tmdb_id,
-        poster_path,
-        tmdb.get("overview"),
-        tmdb.get("runtime"),
-        tmdb.get("director"),
-        cast_list,
-        tmdb.get("score_percent"),
-    )
+    try:
+        db.execute(
+            f"""
+            INSERT INTO movies
+            (title, year, genre, status, watched_date, tmdb_id, poster_path,
+             overview, runtime, director, cast_list, score_percent)
+            VALUES (?, ?, ?, ?, {watched_date_clause}, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            tmdb.get("title"),
+            tmdb.get("year"),
+            tmdb.get("genre"),
+            status,
+            tmdb_id,
+            poster_path,
+            tmdb.get("overview"),
+            tmdb.get("runtime"),
+            tmdb.get("director"),
+            cast_list,
+            tmdb.get("score_percent"),
+        )
+    except sqlite3.IntegrityError:
+        # Someone else (or a double-click) added this same movie in
+        # the moment between our check above and this INSERT. Rather
+        # than crashing or creating a duplicate, just send them to
+        # the copy that won the race.
+        existing = db.execute(
+            "SELECT id FROM movies WHERE tmdb_id = ?",
+            tmdb_id
+        )
+        if existing:
+            return redirect(f"/movie/{existing[0]['id']}")
 
     return redirect("/")
 

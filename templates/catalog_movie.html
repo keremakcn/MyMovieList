@@ -37,27 +37,42 @@
 
             {% include "_tmdb_info.html" %}
 
+<div class="info-badges">
+    {% if existing %}
+        <span class="info-badge status-{{ existing[0]['status']|lower }}">
+            {{ "✅" if existing[0]["status"] == "Watched" else "📌" }} {{ existing[0]["status"] }}
+        </span>
+
+        {% if existing[0]["favorite"] %}
+            <span class="info-badge favorite-pill">❤️ Favorite</span>
+        {% endif %}
+    {% endif %}
+
+    <a
+        class="info-badge info-badge-link"
+        href="https://www.youtube.com/results?search_query={{ (movie.title ~ ' ' ~ (movie.year or '') ~ ' trailer') | urlencode }}"
+        target="_blank"
+        rel="noopener"
+    >
+        ▶ Search Trailer
+    </a>
+</div>
+
 <div class="detail-actions">
 
     {% if existing %}
 
         {% if existing[0]["status"] == "Watchlist" %}
-            <span class="edit-link">
-                ✓ In Watchlist
-            </span>
-
             <form action="/status/{{ existing[0]['id'] }}" method="post">
+                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
                 <button type="submit">
                     ✓ Mark as Watched
                 </button>
             </form>
 
         {% else %}
-            <span class="edit-link">
-                ✓ Watched
-            </span>
-
             <form action="/status/{{ existing[0]['id'] }}" method="post">
+                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
                 <button type="submit">
                     ↩ Move to Watchlist
                 </button>
@@ -66,17 +81,23 @@
 
         {% if existing[0]["favorite"] %}
             <form action="/favorite/{{ existing[0]['id'] }}" method="post">
+                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
                 <button type="submit">
                     ❤️ Remove from Favorites
                 </button>
             </form>
         {% else %}
             <form action="/favorite/{{ existing[0]['id'] }}" method="post">
+                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
                 <button type="submit">
                     ♡ Add to Favorites
                 </button>
             </form>
         {% endif %}
+
+        <a class="edit-link view-in-library-link" href="/movie/{{ existing[0]['id'] }}">
+            View in Library
+        </a>
 
     {% else %}
 

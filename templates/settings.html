@@ -22,7 +22,7 @@
 
             {% if has_token %}
                 <p class="token-status token-status-ok">
-                    ✓ A token is currently active{{ " (from your session)" if has_session_token else " (from server .env)" }}.
+                    ✓ A token is currently active{{ " (saved)" if has_saved_token else " (from server .env)" }}.
                 </p>
             {% else %}
                 <p class="token-status token-status-missing">
