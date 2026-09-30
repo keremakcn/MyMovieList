@@ -1,10 +1,10 @@
-# Movie Watchlist 2.0
+# Movie Watchlist 3.0
 
 A local-first personal film library for Windows and the browser. Flask + Jinja + SQLite, with a small JavaScript interaction layer and a native pywebview window.
 
-Version 2.0 expands the watchlist into a connected movie discovery application: flexible search filters, filmographies, direct library actions, recoverable removal and a more compact interface.
+Version 3.0 expands the watchlist into a connected movie discovery application: flexible search filters, filmographies, direct library actions, recoverable removal and a more compact interface.
 
-## What's new in 2.0
+## What's new in 3.0
 
 - **Explore:** one search box with Movies, Actors, Directors and Companies checkboxes. Movies, actors and directors start selected. Suggestions, results and pagination respect the selection; press Search to apply changed filters.
 - **One-click collection:** add from search, film details, a person's filmography or a studio's films without leaving the page. Existing entries link to the rating/note editor.
@@ -116,7 +116,7 @@ Open `http://127.0.0.1:5000`. The app is intended for one user on the local mach
 
 ## Desktop
 
-The current 2.0 executable is `dist/MovieWatchlist-Discovery.exe`; its filename is retained for existing workflows. The original `dist/MovieWatchlist.exe` is not overwritten. Close the running app before replacing its executable with an updated build.
+The current 3.0 executable is `dist/MovieWatchlist-Discovery.exe`; its filename is retained for existing workflows. The original `dist/MovieWatchlist.exe` is not overwritten. Close the running app before replacing its executable with an updated build.
 
 To build it:
 
@@ -133,7 +133,7 @@ The desktop server binds to an available loopback port before opening the window
 - Packaged mode: `%APPDATA%\MovieWatchlist\movies.db` and `posters/`.
 - `MOVIE_WATCHLIST_DATA_DIR` overrides the data directory (useful for isolated testing).
 - Before migrating an existing database, the app creates `movies.db.before-v1-<timestamp>.bak` beside it using SQLite's backup API.
-- The application version **2.0** and database schema version **1** are separate: the schema number does not need to match the release name.
+- The application version **3.0** and database schema version **1** are separate: the schema number does not need to match the release name.
 - Migrations run in a transaction and never automatically delete duplicate records. If a legacy database contains duplicate TMDB IDs, the migration stops with a diagnostic so they can be reconciled without losing notes.
 - New records store creation/update timestamps. Older records keep their IDs and original ordering; their unknown creation dates are not invented.
 - Removing a film sets `deleted_at`. Restoring clears it on the same row. Re-adding a removed TMDB movie restores that original entry, including its previous status and personal data.
