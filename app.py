@@ -152,6 +152,7 @@ def create_app(config=None):
                 max(
                     (BASE_DIR / "static/style.css").stat().st_mtime_ns,
                     (BASE_DIR / "static/script.js").stat().st_mtime_ns,
+                    (BASE_DIR / "static/recommendations.js").stat().st_mtime_ns,
                 )
             ),
         )
@@ -837,6 +838,9 @@ def create_app(config=None):
             ),
         )
 
+    from recommendation_routes import register_recommendations
+
+    register_recommendations(app, db, tmdb, download_poster)
     return app
 
 

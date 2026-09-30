@@ -23,6 +23,8 @@
                    {% if request.endpoint == 'index' %} aria-current="page" {% endif %}>Library</a>
                 <a href="/search"
                    {% if request.endpoint in ['search', 'entity', 'catalog_movie'] %} aria-current="page" {% endif %}>Explore</a>
+                <a href="/recommendations"
+                   {% if request.blueprint == 'recommendations' %} aria-current="page" {% endif %}>For you</a>
                 <a href="/settings"
                    {% if request.endpoint == 'settings' %} aria-current="page" {% endif %}>Settings</a>
             </div>

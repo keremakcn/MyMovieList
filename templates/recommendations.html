@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}For you · Movie Watchlist{% endblock %}
+{% block content %}
+    <header class="app-header">
+        <div>
+            <p class="eyebrow">YOUR NEXT GOOD FILM</p>
+            <h1>{{ 'Picked for you' if profile.ready else 'A few places to start' }}</h1>
+            <p>Picked for this session. Reopen the app for a fresh selection shaped by your taste.</p>
+        </div>
+        <a class="edit-link"
+           href="/taste">{{ 'Edit your picks' if onboarding == 'complete' else 'Choose films you love' }}</a>
+    </header>
+    {% if not profile.ready %}
+        <section class="taste-invitation">
+            <h2>Let's get to know your taste</h2>
+            <p>These are starting suggestions. Add and rate films you have seen — including ones you disliked — for more personal picks. Notes are optional and are not analyzed in this version.</p>
+            {% if onboarding not in ["skipped", "complete"] %}<a class="edit-link"
+   href="/taste">Pick a few favorites to get started →</a>{% endif %}
+        </section>
+    {% endif %}
+    <form action="/recommendations/mode"
+          method="post"
+          class="recommendation-controls">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="discovery-mode">How adventurous should your picks be?</label>
+        <select id="discovery-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ label }}</option>{% endfor %}</select>
+        <button type="submit">Apply</button>
+    </form>
+    <section id="recommendation-results" aria-live="polite" aria-busy="true">
+        <p class="empty-state">Finding your next film…</p>
+    </section>
+    <noscript>
+        <p>Enable JavaScript to load recommendations. Your library still works without it.</p>
+    </noscript>
+    {% if dismissed %}
+        <details class="biography">
+            <summary>Hidden suggestions ({{ dismissed|length }})</summary>
+            <p>Hiding a film affects only that film, not its entire genre.</p>
+            {% for film in dismissed %}
+                <form action="/recommendations/restore" method="post" class="hidden-pick">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="movie_id" value="{{ film.tmdb_id }}">
+                    <span>{{ film.title }}</span><button type="submit" class="edit-link">Show again</button>
+                </form>
+            {% endfor %}
+        </details>
+    {% endif %}
+    <p class="tmdb-credit">Your ratings, notes and favorites stay on this device. Suggestions are ranked on your device from a public movie pool. Your preference profile is not sent to TMDB.</p>
+    <script defer
+            src="{{ url_for('static', filename='recommendations.js', v=asset_version) }}"></script>
+{% endblock %}

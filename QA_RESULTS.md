@@ -97,3 +97,23 @@ Browser fixtures verified focused All and dedicated company results. Build succe
 Replaced the type dropdown with four checkbox filters beneath the query. Default: movies, actors and directors. Filter state is encoded in the URL and preserved in pagination, detail return links and autocomplete. A shared person request serves both profession filters. No selection triggers guidance without TMDB requests. Legacy type URLs still work.
 
 23 tests pass, including multiple selected categories across pagination, no selection, excluded network sources and filtered autocomplete. Browser fixtures verified default selections and a director-only query.
+
+
+## Taste onboarding and local recommendations
+
+Schema 2 adds separate survey-like and dismissed-suggestion tables. A pre-migration SQLite backup is created for older libraries; movie metadata remains unchanged. Survey saves are atomic and retry-safe, including concurrent saves. Newly selected films become Watched without inferred rating, favorite or watched date. Existing entries retain every personal field.
+
+The initial recommendation engine uses locally derived genre affinities, evidence shrinkage, director-group independence weighting and consistency-aware confidence. Public candidate requests are identical before and after changing private preferences. No taste-derived IDs or filters are sent to TMDB. Explicit survey searches and selected-film detail requests use the existing API integration. Notes, fine-grained themes, actors and candidate-director matching are not analyzed in this version.
+
+35 Python tests pass. Added coverage: weak single-film evidence, strong repeated signals, contradictory ratings, order independence, negative feedback, diversity, deduplication, survey atomicity/failure/retries/concurrency, unchanged existing personal fields, schema 1 migration and backup, public-request independence, hide/restore, survey search and validation, and offline local-watchlist rendering.
+
+Isolated headless Edge UI checks with deterministic TMDB fixtures passed: 12 choices; preserving picks across browse/search; four picks saved as watched; 10 recommendations; explanation disclosure; hide/Undo; library entries; 390px pages without horizontal overflow; no JavaScript errors. Browser-control tools were unavailable in this session, so this used a separate test browser, not the user's active browser. Test databases and screenshots are under ignored .qa/. No personal library was used for verification.
+Additional headless UI checks passed for Space-key selection, retaining picks after an injected save error, and aborting stale search responses. Python lint and both JavaScript syntax checks pass.
+
+
+## Stable recommendations within an app session
+
+Selections are now cached per recommender/app instance and discovery mode, under a lock. Page reloads do not rerank or refetch a successful pool. A new app process generates a new selection with small local score variation and a repeat penalty for the previous successful session's first ten picks per mode. History is bounded in the existing settings table; there is no schema change or external preference transmission. Limited pools can repeat candidates. Survey edits explicitly invalidate the selection. Current library and dismissal exclusions remain live; added films trigger a queued UI refresh and are replaced without reordering remaining picks.
+
+Added tests cover stable requests and rating changes, same-profile restarts, live exclusion with stable surviving order, sparse-pool fallback, failed-fetch retries, and parallel requests sharing a single generation.
+Session update verified: all 40 Python tests pass. Isolated headless UI checks also passed for page reload/navigation stability, removal after Add to Want to Watch or Not interested, stable ordering of the remaining suggestions, and no JavaScript errors.

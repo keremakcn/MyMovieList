@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from app import create_app, safe_path
+from app import safe_path
 from storage import Database
 from tmdb_client import TMDBClient, TMDBError
 
@@ -33,25 +33,6 @@ MOVIE = {
     },
     "production_companies": [{"id": 174, "name": "Warner Bros."}],
 }
-
-
-@pytest.fixture
-def app(tmp_path, monkeypatch):
-    monkeypatch.delenv("TMDB_ACCESS_TOKEN", raising=False)
-    application = create_app(
-        {
-            "TESTING": True,
-            "SECRET_KEY": "test",
-            "DATA_DIR": str(tmp_path),
-            "DATABASE": str(tmp_path / "test.db"),
-        }
-    )
-    return application
-
-
-@pytest.fixture
-def client(app):
-    return app.test_client()
 
 
 def post(client, url, **values):

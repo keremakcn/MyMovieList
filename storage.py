@@ -43,15 +43,15 @@ class Database:
         os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
         with self.connect() as con:
             version = con.execute("PRAGMA user_version").fetchone()[0]
-            if version > 1:
+            if version > 2:
                 raise RuntimeError("This library was created by a newer app version.")
             has_movies = con.execute(
                 "SELECT 1 FROM sqlite_master WHERE name='movies'"
             ).fetchone()
-            if has_movies and version < 1:
+            if has_movies and version < 2:
                 backup_path = (
                     self.path
-                    + ".before-v1-"
+                    + ".before-v2-"
                     + datetime.now().strftime("%Y%m%d-%H%M%S")
                     + ".bak"
                 )
@@ -100,7 +100,11 @@ class Database:
             con.execute(
                 "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
             )
-            con.execute("PRAGMA user_version=1")
+            con.execute("""CREATE TABLE IF NOT EXISTS recommendation_likes (
+                movie_id INTEGER PRIMARY KEY REFERENCES movies(id), created_at TEXT NOT NULL)""")
+            con.execute("""CREATE TABLE IF NOT EXISTS recommendation_dismissals (
+                tmdb_id INTEGER PRIMARY KEY, title TEXT NOT NULL, created_at TEXT NOT NULL)""")
+            con.execute("PRAGMA user_version=2")
 
     def movie(self, movie_id, include_deleted=False):
         rows = self.query(
@@ -165,3 +169,47 @@ class Database:
                 return False
             con.execute("UPDATE movies SET deleted_at=NULL WHERE id=?", (movie_id,))
             return True
+
+    def save_survey(self, entries, mode):
+        """Atomic and retry-safe: personal columns on existing movies never change."""
+        with self.connect(write=True) as con:
+            chosen = []
+            created = 0
+            for tmdb_id, values in entries:
+                row = con.execute(
+                    "SELECT id FROM movies WHERE tmdb_id=?", (tmdb_id,)
+                ).fetchone()
+                if row:
+                    movie_id = row["id"]
+                    con.execute(
+                        "UPDATE movies SET deleted_at=NULL WHERE id=?", (movie_id,)
+                    )
+                else:
+                    values = dict(
+                        values,
+                        tmdb_id=tmdb_id,
+                        status="Watched",
+                        created_at=utcnow(),
+                        updated_at=utcnow(),
+                    )
+                    columns = ",".join(values)
+                    cur = con.execute(
+                        f"INSERT INTO movies ({columns}) VALUES ({','.join('?' for _ in values)})",
+                        tuple(values.values()),
+                    )
+                    movie_id = cur.lastrowid
+                    created += 1
+                chosen.append(movie_id)
+            con.execute("DELETE FROM recommendation_likes")
+            con.executemany(
+                "INSERT INTO recommendation_likes(movie_id,created_at) VALUES (?,?)",
+                [(mid, utcnow()) for mid in chosen],
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO settings(key,value) VALUES ('recommendation_mode',?)",
+                (mode,),
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO settings(key,value) VALUES ('recommendation_onboarding','complete')"
+            )
+            return created

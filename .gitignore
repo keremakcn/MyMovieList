@@ -25,9 +25,22 @@ __pycache__/
 .coverage.*
 htmlcov/
 coverage.xml
+coverage.json
+junit.xml
+.tox/
+.nox/
+test-results/
+playwright-report/
 .qa/
 
 # Desktop packaging outputs
 dist/
 build/
 *.spec
+
+# Local operating-system and editor temporary files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo

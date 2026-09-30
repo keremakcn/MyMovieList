@@ -1,0 +1,45 @@
+{% if errors %}<div class="form-error" role="status">Some online suggestions could not be loaded. {{ errors|join(" ") }} <button type="button" data-recommendation-retry>Try again</button></div>{% endif %}
+<div class="section-heading">
+    <h2>{{ 'Your next discoveries' if profile.ready else 'Starting suggestions' }}</h2>
+    <span>{{ movies|length }} picks</span>
+</div>
+<div class="results-grid">
+    {% for movie in movies %}
+        <div class="recommendation-item">
+            {% include "_result_card.html" %}
+            <div class="recommendation-context">
+                <details>
+                    <summary>Why this film?</summary>
+                    <p>{{ movie.reason }}</p>
+                </details>
+                <div class="recommendation-actions">
+                    <form action="/add_watched_from_catalog"
+                          method="post"
+                          data-add-movie
+                          data-tmdb-id="{{ movie.tmdb_id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
+                        <input type="hidden" name="next" value="/recommendations">
+                        <button class="edit-link" type="submit">I've seen this</button>
+                    </form>
+                    <form action="/recommendations/dismiss" method="post" data-dismiss-pick>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
+                        <input type="hidden" name="title" value="{{ movie.title }}">
+                        <button class="edit-link" type="submit">Not interested</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% else %}<div class="empty-state"><h2>No new suggestions right now.</h2><p>Try choosing more films, rating your library or showing hidden suggestions again.</p><a href="/taste">Update your picks →</a></div>{% endfor %}
+</div>
+{% if waiting %}
+    <section class="waiting-picks">
+        <h2>Already on your watchlist</h2>
+        <p>A few saved films to consider tonight.</p>
+        <div class="results-grid">
+            {% for film in waiting %}<a class="catalog-card"
+   href="{{ url_for('movie', movie_id=film.id, back='/recommendations') }}"><div><p class="eyebrow">FROM YOUR LIBRARY</p><h2>{{ film.title }}</h2><p>{{ film.genre or 'Saved for later' }}</p></div></a>{% endfor %}
+        </div>
+    </section>
+{% endif %}

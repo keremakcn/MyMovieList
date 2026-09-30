@@ -125,6 +125,7 @@
             const result = await post(form.action, data);
             if (form.matches('[data-add-movie]')) {
                 markAdded(movieId, result);
+                document.dispatchEvent(new CustomEvent("library-movie-added", {detail: {tmdbId: movieId}}));
                 toast(result.created ? (result.status === 'Watched' ? 'Added as watched.' : 'Added to Want to Watch.') : '✓ In your library.');
             } else if (form.matches('[data-delete]')) {
                 const card = form.closest('.movie-card');

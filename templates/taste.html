@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Your taste · Movie Watchlist{% endblock %}
+{% block content %}
+    <header class="explore-header">
+        <p class="eyebrow">A LITTLE ABOUT YOUR TASTE</p>
+        <h1>Which films did you love?</h1>
+        <p>Pick 3–5 films you have seen and enjoyed. You can choose up to 24 or skip for now.</p>
+    </header>
+    <div class="taste-invitation">
+        <strong>Your selections become part of your library.</strong>
+        <p>New picks are added as watched when you continue. Existing entries keep their status, notes, ratings and favorites. We won't assign a rating, favorite or watched date for you. Unselecting a previous pick removes its survey signal, not its library entry.</p>
+    </div>
+    <form class="taste-search" role="search" id="taste-search">
+        <label for="taste-query">Can't see your film? Search by title.</label>
+        <div class="taste-search-row">
+            <input id="taste-query"
+                   name="q"
+                   placeholder="Find a film you loved…"
+                   maxlength="200"
+                   autocomplete="off"><button type="submit">Find films</button><button type="button" class="edit-link" id="taste-browse">Browse selection</button>
+        </div>
+    </form>
+    <p id="taste-status" role="status" aria-live="polite">Loading a varied selection…</p>
+    <div class="taste-grid" id="taste-grid" aria-busy="true"></div>
+    <div class="taste-pagination">
+        <button type="button" class="edit-link" id="taste-more">Show different films</button>
+    </div>
+    <form id="taste-save" action="/taste/save" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <section class="taste-selection">
+            <h2>Your picks <span id="taste-count">{{ selected|length }}</span></h2>
+            <div id="taste-selected" class="entity-chips">{% for film in selected %}<button type="button"
+        data-selected-id="{{ film.tmdb_id }}"
+        data-selected-title="{{ film.title }}">{{ film.title }} ×</button>{% endfor %}</div>
+            <p>Unselected films tell us nothing — you may not have seen them.</p>
+        </section>
+        <label for="taste-mode">What kind of recommendations would you like?</label>
+        <select id="taste-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ label }}</option>{% endfor %}</select>
+        <p id="taste-save-status" role="status"></p>
+        <button type="submit" id="taste-continue">Save picks & continue</button>
+    </form>
+    <form action="/taste/skip" method="post" class="taste-skip">
+        <input type="hidden"
+               name="csrf_token"
+               value="{{ csrf_token() }}"><button type="submit"
+        class="edit-link">Skip for now</button>
+    </form>
+    <noscript>
+        <p>Enable JavaScript to select films, or skip and keep using your library.</p>
+    </noscript>
+    <script defer
+            src="{{ url_for('static', filename='recommendations.js', v=asset_version) }}"></script>
+{% endblock %}

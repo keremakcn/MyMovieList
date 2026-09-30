@@ -1271,3 +1271,47 @@ img.company-logo {
 .search-filter:focus-within { outline: 2px solid #bca2ff; outline-offset: 2px; }
 .search-filter input { width: 15px; height: 15px; margin: 0; padding: 0; accent-color: #a584ff; }
 .filter-help { font-size: .75rem; color: var(--muted); flex-basis: 100%; }
+
+/* Personal recommendations and the short taste survey. */
+.taste-invitation { padding: 20px; margin: 20px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.taste-invitation p:last-child { margin-bottom: 0; }
+.recommendation-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
+.recommendation-controls select { width: auto; }
+.recommendation-item { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.recommendation-item .catalog-card { border: 0; border-radius: 0; }
+.recommendation-context { padding: 0 18px 18px; }
+.recommendation-context summary { color: #c3b4ff; cursor: pointer; font-size: .88rem; }
+.recommendation-context p { margin: 10px 0; }
+.recommendation-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.waiting-picks { margin-top: 40px; }
+.hidden-pick { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin: 8px 0; }
+.taste-search { margin: 24px 0 16px; }
+.taste-search-row { display: flex; gap: 10px; margin-top: 8px; }
+.taste-search-row input { flex: 1; min-width: 0; }
+.taste-search-row button { flex-shrink: 0; }
+.taste-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 16px; }
+.taste-card { position: relative; display: flex; flex-direction: column; gap: 7px; cursor: pointer; padding: 10px; background: var(--surface); border: 2px solid var(--border); border-radius: 12px; margin: 0; }
+.taste-card:has(input:checked) { border-color: var(--primary); background: #302748; }
+.taste-card:focus-within { outline: 2px solid #d4c8ff; outline-offset: 3px; }
+.taste-card input { position: absolute; top: 17px; left: 17px; width: 22px; height: 22px; margin: 0; accent-color: var(--primary); z-index: 1; }
+.taste-poster { aspect-ratio: 2 / 3; display: grid; place-items: center; background: var(--surface-light); border-radius: 6px; overflow: hidden; font-size: 2rem; }
+.taste-poster img { width: 100%; height: 100%; object-fit: cover; }
+.taste-card strong { font-size: .87rem; line-height: 1.4; overflow-wrap: anywhere; }
+.taste-card small { margin-top: auto; }
+.taste-pagination { margin: 20px 0; text-align: center; }
+.taste-selection { margin: 24px 0; }
+.taste-selection p { font-size: .85rem; margin-top: 12px; }
+.taste-selection button { font-weight: 400; min-height: 36px; }
+#taste-mode { max-width: 360px; display: block; margin: 10px 0; }
+.taste-skip { display: inline-block; margin: 14px 0 30px; }
+@media (max-width: 1000px) { .taste-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media (max-width: 600px) {
+    .taste-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+    .taste-search-row { flex-wrap: wrap; }
+    .taste-search-row input { flex-basis: 100%; }
+    .app-nav { flex-wrap: wrap; gap: 8px; }
+    .app-nav > div { flex-wrap: wrap; }
+    .recommendation-controls select { width: 100%; }
+}
+
+.skip-link:not(:focus) { transform: translateY(-200vh); }
