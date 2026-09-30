@@ -9,22 +9,30 @@
     }
     const region = document.getElementById('recommendation-results');
     if (region) {
+        const refreshButton = document.getElementById("refresh-recommendations");
+        const refreshStatus = document.getElementById("recommendation-status");
         let loading = false, refreshPending = false;
-        async function load() {
+        async function load(fresh = false) {
             if (loading) { refreshPending = true; return; }
             loading = true; region.setAttribute('aria-busy', 'true');
+            refreshButton.disabled = true;
+            refreshButton.textContent = fresh ? 'Refreshing…' : 'New suggestions';
+            refreshStatus.textContent = '';
             try {
-                const data = await read(await fetch('/api/recommendations'));
+                const data = await read(await fetch(fresh ? '/api/recommendations/refresh' : '/api/recommendations', fresh ? {method: 'POST', headers: {'X-CSRF-Token': csrf}} : {}));
                 region.innerHTML = data.html; // Escaped same-origin Jinja fragment.
             } catch (error) {
+                if (fresh) { refreshStatus.textContent = error.message; return; }
                 const message = document.createElement('p'); message.className = 'form-error'; message.textContent = error.message;
                 const retry = document.createElement('button'); retry.type = 'button'; retry.dataset.recommendationRetry = ''; retry.textContent = 'Try again';
                 region.replaceChildren(message, retry);
             } finally {
                 loading = false; region.setAttribute('aria-busy', 'false');
+                refreshButton.disabled = false; refreshButton.textContent = 'New suggestions';
                 if (refreshPending) { refreshPending = false; load(); }
             }
         }
+        refreshButton.addEventListener('click', () => { if (!loading) load(true); });
         document.addEventListener('library-movie-added', event => {
             const id = event.detail.tmdbId;
             const card = [...region.querySelectorAll('.library-action')].find(node => node.dataset.tmdbId === String(id))?.closest('.recommendation-item');

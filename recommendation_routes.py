@@ -44,9 +44,10 @@ def register_recommendations(app, db, tmdb, download_poster):
             ),
         )
 
+    @bp.post("/api/recommendations/refresh")
     @bp.get("/api/recommendations")
     def results():
-        data = service.recommend(mode_value())
+        data = service.recommend(mode_value(), refresh=request.method == "POST")
         return jsonify(
             html=render_template(
                 "_recommendations.html", current_url="/recommendations", **data

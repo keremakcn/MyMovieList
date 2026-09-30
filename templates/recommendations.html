@@ -5,7 +5,7 @@
         <div>
             <p class="eyebrow">YOUR NEXT GOOD FILM</p>
             <h1>{{ 'Picked for you' if profile.ready else 'A few places to start' }}</h1>
-            <p>Picked for this session. Reopen the app for a fresh selection shaped by your taste.</p>
+            <p>Picked for you. Choose New suggestions whenever you want a fresh selection.</p>
         </div>
         <a class="edit-link"
            href="/taste">{{ 'Edit your picks' if onboarding == 'complete' else 'Choose films you love' }}</a>
@@ -26,6 +26,8 @@
         <select id="discovery-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ label }}</option>{% endfor %}</select>
         <button type="submit">Apply</button>
     </form>
+    <button type="button" id="refresh-recommendations" disabled>New suggestions</button>
+    <p id="recommendation-status" role="status"></p>
     <section id="recommendation-results" aria-live="polite" aria-busy="true">
         <p class="empty-state">Finding your next film…</p>
     </section>

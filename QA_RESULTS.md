@@ -117,3 +117,22 @@ Selections are now cached per recommender/app instance and discovery mode, under
 
 Added tests cover stable requests and rating changes, same-profile restarts, live exclusion with stable surviving order, sparse-pool fallback, failed-fetch retries, and parallel requests sharing a single generation.
 Session update verified: all 40 Python tests pass. Isolated headless UI checks also passed for page reload/navigation stability, removal after Add to Want to Watch or Not interested, stable ordering of the remaining suggestions, and no JavaScript errors.
+
+
+## Manual recommendation refresh — 2026-10-01
+
+- 42 automated tests passed.
+- Refresh changes the selected mode while retaining library/hidden exclusions and stability on subsequent reads. Other discovery modes retain their selection.
+- A failed candidate fetch preserves the previous selection; refresh requires a CSRF-protected POST.
+- JavaScript syntax, Ruff F checks and diff whitespace checks passed.
+
+
+## Recommendation diversity correction — 2026-10-01
+
+- 46 automated tests passed, using mocked TMDB data.
+- Controlled strong-profile fixture: familiar/balanced/explore produced 8/5/2 familiar-genre films, with no disliked-genre films in the ten picks.
+- Six successive selections from a fixed 100-film pool produced 60 distinct films. Last 50 IDs per mode survive restart.
+- Refresh advances public query pages; modes reuse the pool. Failed fetches preserve the pool, cursor and current selection. Sparse pools fall back to repeats without duplicates.
+- These fixtures verify selection rules, not subjective recommendation quality on live TMDB data.
+
+- Headless Edge with isolated fixtures: five selections showed 50 distinct films; reloads preserved order; simulated HTTP failure preserved cards; no JavaScript errors.

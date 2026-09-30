@@ -1280,8 +1280,6 @@ img.company-logo {
 .recommendation-item { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
 .recommendation-item .catalog-card { border: 0; border-radius: 0; }
 .recommendation-context { padding: 0 18px 18px; }
-.recommendation-context summary { color: #c3b4ff; cursor: pointer; font-size: .88rem; }
-.recommendation-context p { margin: 10px 0; }
 .recommendation-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .waiting-picks { margin-top: 40px; }
 .hidden-pick { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin: 8px 0; }

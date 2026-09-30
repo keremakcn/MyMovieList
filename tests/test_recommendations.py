@@ -347,13 +347,16 @@ def test_session_keeps_sparse_pool_available_and_retries_failed_fetch(app):
     mock_recommendations(app)
     service = app.extensions["recommender"]
     service.previous["balanced"] = {100, 101}
-    service.candidate_pool = lambda: ({100: candidate(100), 101: candidate(101)}, [])
+    service.candidate_pool = lambda **_: (
+        {100: candidate(100), 101: candidate(101)},
+        [],
+    )
     assert len(service.recommend()["movies"]) == 2
     service.invalidate()
-    service.candidate_pool = lambda: ({}, ["Offline"])
+    service.candidate_pool = lambda **_: ({}, ["Offline"])
     assert service.recommend()["errors"] == ["Offline"]
     assert not service.session_picks
-    service.candidate_pool = lambda: ({100: candidate(100)}, [])
+    service.candidate_pool = lambda **_: ({100: candidate(100)}, [])
     assert len(service.recommend()["movies"]) == 1
 
 
@@ -373,3 +376,115 @@ def test_parallel_requests_share_one_session_selection(app):
         results = list(pool.map(lambda _: service.recommend()["movies"], range(4)))
     assert all(result == results[0] for result in results)
     assert len(calls) == 8
+
+
+def test_manual_refresh_changes_only_selected_mode_and_keeps_exclusions(app, client):
+    mock_recommendations(app)
+    service = app.extensions["recommender"]
+    first = service.recommend()["movies"]
+    service.recommend("familiar")
+    db = app.extensions["db"]
+    added, hidden = first[0]["tmdb_id"], first[1]["tmdb_id"]
+    db.add_tmdb(dict(tmdb_id=added, title="Saved", status="Watchlist"))
+    db.execute(
+        "INSERT INTO recommendation_dismissals VALUES (?,?,?)", hidden, "Hidden", "now"
+    )
+    familiar = service.recommend("familiar")["movies"]
+    assert client.post("/api/recommendations/refresh").status_code == 400
+    response = post(client, "/api/recommendations/refresh")
+    assert response.status_code == 200
+    second = service.recommend()["movies"]
+    ids = {m["tmdb_id"] for m in second}
+    assert added not in ids and hidden not in ids
+    assert ids != {m["tmdb_id"] for m in first}
+    assert service.recommend()["movies"] == second
+    assert service.recommend("familiar")["movies"] == familiar
+    assert "Why this film?" not in response.json["html"]
+
+
+def test_failed_manual_refresh_preserves_current_selection(app):
+    mock_recommendations(app)
+    service = app.extensions["recommender"]
+    first = service.recommend()["movies"]
+    service.candidate_pool = lambda **_: ({}, ["Offline"])
+    failed = service.recommend(refresh=True)
+    assert failed["errors"] == ["Offline"]
+    assert failed["movies"] == first
+    assert service.recommend()["movies"] == first
+
+
+def test_modes_have_distinct_familiar_discovery_mix():
+    profile = build_profile(
+        [row(i, rating=10) for i in range(30)]
+        + [row(100 + i, genre="Horror", rating=2) for i in range(30)]
+    )
+    pool = (
+        [candidate(1000 + i, 53) for i in range(60)]
+        + [candidate(2000 + i, 35) for i in range(60)]
+        + [candidate(3000 + i, 99) for i in range(60)]
+        + [candidate(4000 + i, 27) for i in range(60)]
+    )
+    mixes = {}
+    for mode in ("familiar", "balanced", "explore"):
+        picks = rank_candidates(pool, profile, mode=mode, seed="fixed")
+        ids = [m["tmdb_id"] for m in picks]
+        mixes[mode] = sum(1000 <= mid < 2000 for mid in ids)
+        assert not any(4000 <= mid < 5000 for mid in ids)
+    assert mixes == {"familiar": 8, "balanced": 5, "explore": 2}
+
+
+def test_repeated_refresh_does_not_cycle_between_recent_batches(app):
+    service = app.extensions["recommender"]
+    pool = {i: candidate(i, 53 if i % 2 else 35) for i in range(100, 200)}
+    service.candidate_pool = lambda **_: (pool, [])
+    seen = set()
+    for batch in range(6):
+        picks = service.recommend(refresh=batch > 0)["movies"]
+        ids = {m["tmdb_id"] for m in picks}
+        assert len(ids) == 10 and not seen.intersection(ids)
+        seen.update(ids)
+        assert service.recommend()["movies"] == picks
+    import json
+
+    history = json.loads(
+        app.extensions["db"].query(
+            "SELECT value FROM settings WHERE key='recommendation_last_picks'"
+        )[0]["value"]
+    )
+    assert len(history["balanced"]) == 50
+    reopened = Recommender(app.extensions["db"], app.extensions["tmdb"])
+    reopened.candidate_pool = lambda **_: (pool, [])
+    assert not set(history["balanced"]) & {
+        m["tmdb_id"] for m in reopened.recommend()["movies"]
+    }
+
+
+def test_refresh_expands_public_pool_and_failed_fetch_does_not_advance(app):
+    calls = mock_recommendations(app)
+    service = app.extensions["recommender"]
+    service.recommend()
+    original_ids = set(service.public_pool)
+    assert {params["page"] for _, params in calls} == {1}
+    calls.clear()
+    service.recommend("explore")
+    assert not calls  # Modes reuse the same public pool.
+    service.recommend(refresh=True)
+    assert {params["page"] for _, params in calls} == {2}
+    assert set(service.public_pool) > original_ids
+    page = service.pool_page
+    cached = dict(service.public_pool)
+
+    def fail(*args, **kwargs):
+        raise TMDBError("Offline")
+
+    app.extensions["tmdb"].get = fail
+    assert service.recommend(refresh=True)["errors"]
+    assert service.pool_page == page and service.public_pool == cached
+
+
+def test_small_pool_refresh_allows_repeats_without_duplicates(app):
+    service = app.extensions["recommender"]
+    service.candidate_pool = lambda **_: ({i: candidate(i) for i in range(10, 13)}, [])
+    for _ in range(4):
+        picks = service.recommend(refresh=True)["movies"]
+        assert {m["tmdb_id"] for m in picks} == {10, 11, 12}

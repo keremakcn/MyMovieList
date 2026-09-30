@@ -8,10 +8,6 @@
         <div class="recommendation-item">
             {% include "_result_card.html" %}
             <div class="recommendation-context">
-                <details>
-                    <summary>Why this film?</summary>
-                    <p>{{ movie.reason }}</p>
-                </details>
                 <div class="recommendation-actions">
                     <form action="/add_watched_from_catalog"
                           method="post"

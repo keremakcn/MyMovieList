@@ -1,10 +1,27 @@
-# Movie Watchlist 3.0
+# Movie Watchlist 3.1.1
 
 A local-first personal film library for Windows and the browser. Flask + Jinja + SQLite, with a small JavaScript interaction layer and a native pywebview window.
 
-Version 3.0 expands the watchlist into a connected movie discovery application: flexible search filters, filmographies, direct library actions, recoverable removal and a more compact interface.
+Version 3.1.1 improves recommendation variety, makes discovery modes more distinct and adds manual refresh to the personalized recommendations introduced in 3.1.
 
-## What's new in 3.0
+## What's fixed and improved in 3.1.1
+
+- **New suggestions:** refresh recommendations without restarting the app. Normal page reloads keep the current selection.
+- **Fewer repeats:** the candidate pool expands on refresh, and up to 50 recently shown films per mode are held back while alternatives exist.
+- **Distinct discovery modes:** Close to my taste, A little discovery and Surprise me use different familiarity and novelty targets.
+- **Reliable refresh:** library and hidden films stay excluded; failed refreshes preserve the current selection.
+- **Simpler cards:** removed the Why this film explanation panels.
+- **Validation:** 46 automated tests plus isolated browser checks for repeated refreshes and error recovery.
+
+## Introduced in 3.1
+
+- **For you:** personal suggestions based on ratings, favorites and taste selections, ranked locally.
+- **Taste onboarding:** choose films you enjoyed; new selections enter your library as watched without duplicating existing entries.
+- **Session-based discovery:** stable picks while the app is running, with a fresh selection on restart and fewer repeats from the previous session.
+- **Discovery controls:** choose how adventurous your picks should be, add films directly or hide individual suggestions with Undo.
+- **Simple recommendation cards:** focus on the film and its actions without explanation panels.
+
+## Library and discovery features
 
 - **Explore:** one search box with Movies, Actors, Directors and Companies checkboxes. Movies, actors and directors start selected. Suggestions, results and pagination respect the selection; press Search to apply changed filters.
 - **One-click collection:** add from search, film details, a person's filmography or a studio's films without leaving the page. Existing entries link to the rating/note editor.
@@ -23,9 +40,10 @@ Open **For you** to get up to ten suggestions, or choose **Choose films you love
 - Pick 3–5 films you enjoyed (up to 24). On **Save picks & continue**, new films enter the library as **Watched**, with no invented rating, favorite or watched date. Existing entries retain their personal data and status. Previously removed entries are restored with their metadata.
 - Survey likes are separate from favorites and ratings. Editing your picks changes their recommendation signal without deleting library films. Skipping does not add anything.
 - Ratings, favorites and survey likes shape a local genre profile. A single film has limited influence; repeated evidence increases confidence. Related films from the same director count as less independent evidence, and contradictory signals reduce confidence. Low explicit ratings override older survey likes.
-- Picks stay in the same order while the app process is running, including page reloads. Restarting the desktop app creates a fresh selection with a local penalty for the previous session's picks. Limited candidate pools may still repeat films. Adding or hiding a film removes it from the current selection, with replacements taken from the same saved order. Editing survey picks explicitly rebuilds the selection; each discovery mode has its own session selection. In browser mode, restarting the local server starts a new recommendation session.
-- Choose **Close to my taste**, **A little discovery** or **Surprise me**. Ranking balances genre affinity with variety instead of filling the list with near-identical genres.
-- **Why this film?** explains the genre connection without revealing plot details. **Not interested** hides only that film; Undo and **Hidden suggestions → Show again** restore it.
+- Picks stay in the same order while the app process is running, including page reloads, unless you choose **New suggestions**. Restarting the desktop app creates a fresh selection. Up to 50 recently shown film IDs per mode are kept locally; unseen candidates take priority over these recent picks. Limited candidate pools may still repeat films. Adding or hiding a film removes it from the current selection, with replacements taken from the same saved order. Editing survey picks explicitly rebuilds the selection; each discovery mode has its own session selection. In browser mode, restarting the local server starts a new recommendation session.
+- Use **New suggestions** to refresh the current discovery mode at any time. Reloading the page keeps the current selection; reopening the desktop app also creates new picks. Refreshing loads the next page of eight fixed public genre queries and ranks a rolling pool of up to 800 films. Recent picks are held back while unseen alternatives exist; library and hidden films remain excluded. If an online refresh fails, the previous selection stays available. Films can appear again in later sessions if they have not been added or hidden.
+- Choose **Close to my taste**, **A little discovery** or **Surprise me**. With sufficient preference evidence and available candidates, the modes target roughly 8, 5 and 2 familiar-genre films out of ten, respectively. Exploration also receives a higher novelty weight; negative ratings still count against a film. Sparse pools and limited taste evidence soften these distinctions.
+- **Not interested** hides only that film; Undo and **Hidden suggestions → Show again** restore it.
 - Existing library entries are excluded from new discoveries. Up to three Want to Watch entries are shown separately as films to consider tonight.
 
 This first version uses genre-level matching, not plot-twist detection, semantic analysis of notes or a trained machine-learning model. It ranks a bounded public TMDB candidate pool locally; taste-derived IDs, notes, ratings and favorites are not sent to TMDB. Explicit title searches and fetching films you choose to add still use TMDB normally. Without enough consistent evidence, the screen labels results as starting suggestions rather than fully personal picks.
@@ -86,7 +104,7 @@ Choose which categories to search, then add films directly to your watchlist.
 
 ## Quick start
 
-1. Open `dist/MovieWatchlist-Discovery.exe` on Windows, or follow the source instructions below.
+1. Open `dist/MovieWatchlist-v3.1.1.exe` on Windows, or follow the source instructions below.
 2. In **Settings**, save your TMDB **API Read Access Token** to enable discovery.
 3. Open **Explore**, enter a title or name, choose the categories below the search box, then press **Search**.
 4. Use **Add to Want to Watch** on a result or film page. A film already in your library links to its editor instead of creating another entry.
@@ -131,13 +149,13 @@ Open `http://127.0.0.1:5000`. The app is intended for one user on the local mach
 
 ## Desktop
 
-The current 3.0 executable is `dist/MovieWatchlist-Discovery.exe`; its filename is retained for existing workflows. The original `dist/MovieWatchlist.exe` is not overwritten. Close the running app before replacing its executable with an updated build.
+The 3.1.1 release executable is `dist/MovieWatchlist-v3.1.1.exe`. It uses the same existing application data directory, so your library is retained when switching from an older executable. Close the running app before replacing its executable with an updated build.
 
 To build it:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-desktop.txt
-.\.venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --windowed --name MovieWatchlist-Discovery --icon=app_icon.ico --add-data "templates;templates" --add-data "static;static" run_desktop.py
+.\.venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --windowed --name MovieWatchlist-v3.1.1 --icon=app_icon.ico --add-data "templates;templates" --add-data "static;static" run_desktop.py
 ```
 
 The desktop server binds to an available loopback port before opening the window, avoiding fixed-port collisions. Windows needs the Edge WebView2 runtime.
@@ -148,7 +166,7 @@ The desktop server binds to an available loopback port before opening the window
 - Packaged mode: `%APPDATA%\MovieWatchlist\movies.db` and `posters/`.
 - `MOVIE_WATCHLIST_DATA_DIR` overrides the data directory (useful for isolated testing).
 - Before migrating an existing database, the app creates `movies.db.before-v2-<timestamp>.bak` beside it using SQLite's backup API.
-- The application version **3.0** and database schema version **2** are separate: the schema number does not need to match the release name.
+- The application version **3.1.1** and database schema version **2** are separate: the schema number does not need to match the release name.
 - Migrations run in a transaction and never automatically delete duplicate records. If a legacy database contains duplicate TMDB IDs, the migration stops with a diagnostic so they can be reconciled without losing notes.
 - New records store creation/update timestamps. Older records keep their IDs and original ordering; their unknown creation dates are not invented.
 - Removing a film sets `deleted_at`. Restoring clears it on the same row. Re-adding a removed TMDB movie restores that original entry, including its previous status and personal data.
@@ -196,6 +214,6 @@ node --check static/script.js
 node --check static/recommendations.js
 ```
 
-The latest verification passed **40 tests**, covering migration and recovery, duplicate/race handling, request safeguards, caching, discovery navigation, checkbox filtering, autocomplete and pagination. Tests use temporary databases and mocked TMDB responses; they do not modify the personal library. Node.js is only needed for the JavaScript syntax check, not to run the app.
+The latest verification passed **46 tests**, covering migration and recovery, duplicate/race handling, request safeguards, caching, discovery navigation, checkbox filtering, autocomplete and pagination. Tests use temporary databases and mocked TMDB responses; they do not modify the personal library. Node.js is only needed for the JavaScript syntax check, not to run the app.
 
 See [QA_RESULTS.md](QA_RESULTS.md) for verification details and testing limitations.

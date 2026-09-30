@@ -32,6 +32,10 @@ GENRES = {
     37: "Western",
 }
 GENRE_IDS = {name.lower(): key for key, name in GENRES.items()}
+RECENT_LIMIT = 50
+POOL_LIMIT = 800
+POOL_PAGES = 20
+
 MODES = {
     "familiar": "Close to my taste",
     "balanced": "A little discovery",
@@ -107,6 +111,16 @@ def rank_candidates(
 ):
     pool = []
     seen = set(excluded)
+    recent = set(previous)
+    positive_genres = {g for g, value in profile["affinities"].items() if value > 0.05}
+    fit_weight, novelty_weight, familiar_slots, diversity = {
+        "familiar": (2.0, 0.0, 8, 0.20),
+        "balanced": (1.1, 0.35, 5, 0.45),
+        "explore": (0.35, 0.85, 2, 0.70),
+    }.get(mode, (1.1, 0.35, 5, 0.45))
+    if not profile["ready"] and mode == "familiar":
+        familiar_slots = 6
+
     for raw in candidates:
         mid = raw["id"]
         if (
@@ -124,13 +138,20 @@ def rank_candidates(
         quality = (
             ((raw.get("vote_average") or 0) * votes + 6 * 100) / (votes + 100) / 10
         )
-        score = quality * 0.3 + affinity * 2
+        familiarity = len(genres & positive_genres) / max(1, len(genres))
+        negative = sum(min(0, profile["affinities"].get(g, 0)) for g in genres) / max(
+            1, len(genres)
+        )
+        score = (
+            quality * 0.5
+            + max(0, affinity) * fit_weight
+            + negative * 2
+            + novelty_weight * (1 - familiarity)
+        )
         # Small session variation; preference fit and diversity remain dominant.
         if seed:
-            digest = hashlib.sha256(f"{seed}:{mid}".encode()).digest()
+            digest = hashlib.sha256(f"{seed}:{mode}:{mid}".encode()).digest()
             score += int.from_bytes(digest[:4], "big") / (2**32) * 0.1
-        if mid in previous:
-            score -= 0.45
         if affinity > 0.05:
             genre = max(genres, key=lambda g: profile["affinities"].get(g, 0))
             evidence = [
@@ -154,32 +175,39 @@ def rank_candidates(
                 score=score,
                 genres=genres,
                 reason=reason,
+                familiar=familiarity >= 0.5,
+                recent=mid in recent,
+                overlap=0.0,
             )
         )
     selected = []
-    diversity = {"familiar": 0.25, "balanced": 0.6, "explore": 1.0}.get(mode, 0.6)
-    # Low confidence gives variety more influence, never a single-film taste lock.
-    diversity += (1 - profile["confidence"]) * 0.2
+    counts = Counter()
     while pool and len(selected) < limit:
+        # Unshown candidates always precede recent picks. A small pool falls
+        # back to repeats instead of producing empty recommendations.
+        fresh = [item for item in pool if not item["recent"]]
+        eligible = fresh or pool
+        # An explicit familiar/discovery budget makes the modes meaningfully
+        # different, without recommending negatively rated genres for novelty.
+        slot = len(selected) % 10
+        want_familiar = (slot + 1) * familiar_slots // 10 > slot * familiar_slots // 10
+        lane = [item for item in eligible if item["familiar"] == want_familiar]
+        if positive_genres and lane:
+            eligible = lane
 
         def adjusted(item):
-            overlap = max(
-                (
-                    len(item["genres"] & p["genres"])
-                    / max(1, len(item["genres"] | p["genres"]))
-                    for p in selected
-                ),
-                default=0,
-            )
-            genre_repeats = max(
-                (sum(g in p["genres"] for p in selected) for g in item["genres"]),
-                default=0,
-            )
-            return item["score"] - diversity * overlap - 0.09 * genre_repeats
+            repeats = max((counts[g] for g in item["genres"]), default=0)
+            return item["score"] - diversity * item["overlap"] - 0.06 * repeats
 
-        best = max(pool, key=lambda item: (adjusted(item), -item["raw"]["id"]))
+        best = max(eligible, key=lambda item: (adjusted(item), -item["raw"]["id"]))
         pool.remove(best)
         selected.append(best)
+        counts.update(best["genres"])
+        for item in pool:
+            overlap = len(item["genres"] & best["genres"]) / max(
+                1, len(item["genres"] | best["genres"])
+            )
+            item["overlap"] = max(item["overlap"], overlap)
     return [
         dict(movie_summary(item["raw"]), reason=item["reason"]) for item in selected
     ]
@@ -191,13 +219,17 @@ class Recommender:
         self.session_seed = secrets.token_hex(16)
         self.session_picks = {}
         self.session_lock = Lock()
+        self.public_pool = {}
+        self.pool_page = 1
         rows = db.query(
             "SELECT value FROM settings WHERE key='recommendation_last_picks'"
         )
         try:
             history = json.loads(rows[0]["value"]) if rows else {}
             self.previous = {
-                mode: set(ids)
+                mode: [mid for mid in ids if isinstance(mid, int) and mid > 0][
+                    -RECENT_LIMIT:
+                ]
                 for mode, ids in history.items()
                 if mode in MODES and isinstance(ids, list)
             }
@@ -288,7 +320,7 @@ class Recommender:
                 choices.append(movie_summary(row))
         return choices, pages, errors
 
-    def recommend(self, mode="balanced"):
+    def recommend(self, mode="balanced", *, refresh=False):
         library = self.library()
         profile = build_profile(library)
         excluded = {
@@ -304,40 +336,36 @@ class Recommender:
         with self.session_lock:
             cached = self.session_picks.get(mode)
             errors = []
-            if cached is None:
-                candidates, errors = self.candidate_pool()
+            if cached is None or refresh:
+                previous = set(self.previous.get(mode, ()))
+                for picks in self.session_picks.values():
+                    previous.update(m["tmdb_id"] for m in picks[:10])
+                candidates, errors = self.candidate_pool(refresh=refresh)
                 ranked = rank_candidates(
                     list(candidates.values()),
                     profile,
                     excluded,
                     mode,
                     limit=len(candidates),
-                    previous=self.previous.get(mode, set()),
-                    seed=self.session_seed,
+                    previous=previous,
+                    seed=secrets.token_hex(16) if refresh else self.session_seed,
                 )
-                cached = ranked
+                cached = cached if refresh and errors and cached is not None else ranked
                 if ranked and not errors:
                     self.session_picks[mode] = ranked
-                    # Only the last ten picks per mode are retained locally, not an activity log.
-                    with self.db.connect(write=True) as con:
-                        stored = con.execute(
-                            "SELECT value FROM settings WHERE key='recommendation_last_picks'"
-                        ).fetchone()
-                        try:
-                            history = json.loads(stored["value"]) if stored else {}
-                            if not isinstance(history, dict):
-                                history = {}
-                        except (ValueError, TypeError):
-                            history = {}
-                        history = {
-                            key: value for key, value in history.items() if key in MODES
-                        }
-                        history[mode] = [m["tmdb_id"] for m in ranked[:10]]
-                        con.execute(
-                            "INSERT OR REPLACE INTO settings(key,value) VALUES ('recommendation_last_picks',?)",
-                            (json.dumps(history),),
-                        )
             results = [m for m in cached if m["tmdb_id"] not in excluded][:10]
+            if results and not errors:
+                ids = [m["tmdb_id"] for m in results]
+                old = list(self.previous.get(mode, ()))
+                history = ([mid for mid in old if mid not in ids] + ids)[-RECENT_LIMIT:]
+                if history != old:
+                    self.previous[mode] = history
+                    self.db.execute(
+                        "INSERT OR REPLACE INTO settings(key,value) VALUES ('recommendation_last_picks',?)",
+                        json.dumps(
+                            {key: list(value) for key, value in self.previous.items()}
+                        ),
+                    )
 
         # Rank saved watchlist movies locally; no online request per library record.
         waiting = []
@@ -357,7 +385,9 @@ class Recommender:
             errors=errors,
         )
 
-    def candidate_pool(self):
+    def candidate_pool(self, *, refresh=False):
+        if self.public_pool and not refresh:
+            return dict(self.public_pool), []
         # Public candidate pool is identical for every user; no taste-derived
         # movie IDs, genres, scores or favorites are sent to TMDB.
         jobs = []
@@ -375,14 +405,21 @@ class Recommender:
                 (
                     "discover/movie",
                     self.discover_params(
-                        with_genres=genres, page=1, sort_by="popularity.desc"
+                        with_genres=genres,
+                        page=self.pool_page,
+                        sort_by="popularity.desc",
                     ),
                     None,
                 )
             )
         groups, errors = self.fetch_groups(jobs)
-        candidates = {}
+        candidates = dict(self.public_pool)
         for rows, _ in groups:
             for raw in rows:
-                candidates.setdefault(raw["id"], dict(raw))
+                candidates.pop(raw["id"], None)
+                candidates[raw["id"]] = dict(raw)
+        candidates = dict(list(candidates.items())[-POOL_LIMIT:])
+        if not errors:
+            self.public_pool = candidates
+            self.pool_page = self.pool_page % POOL_PAGES + 1
         return candidates, errors
