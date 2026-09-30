@@ -1,88 +1,38 @@
-<!DOCTYPE html>
-
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Edit Movie</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-
-<body>
-    <main class="form-page">
-        <div class="back-links">
-            <a class="back-link" href="/">← Back to Library</a>
-            <a class="back-link" href="/movie/{{ movie.id }}">View Movie Details</a>
-        </div>
-
+{% extends "base.html" %}
+{% block title %}
+    Edit {{ movie.title }}
+{% endblock %}
+{% block content %}
+    <div class="form-page">
+        <a class="back-link" href="{{ next_url }}">← Back</a>
         <section class="form-card">
-            <h1>Edit Movie</h1>
-            <h2>{{ movie.title }}</h2>
-
+            <p class="eyebrow">YOUR PERSPECTIVE</p>
+            <h1>{{ movie.title }}</h1>
             {% if error %}
-                <p class="form-error">{{ error }}</p>
+                <p class="form-error" role="alert">{{ error }}</p>
             {% endif %}
-
-            <form class="movie-form" action="/edit/{{ movie.id }}?next={{ next_url | urlencode }}" method="post">
-                <label for="rating">Rating (1–10)</label>
-                <input
-                    id="rating"
-                    type="number"
-                    name="rating"
-                    min="1"
-                    max="10"
-                    value="{{ movie.rating or '' }}"
-                >
-
-                <label for="watched_date">Watched Date</label>
-                <input
-                    id="watched_date"
-                    type="date"
-                    name="watched_date"
-                    value="{{ movie.watched_date or '' }}"
-                >
-
-                <label for="note">Note</label>
-                <textarea
-                    id="note"
-                    name="note"
-                    rows="5"
-                >{{ movie.note or '' }}</textarea>
-
-                <button type="submit">Save Changes</button>
+            <form class="movie-form"
+                  action="{{ url_for('edit',movie_id=movie.id,next=next_url) }}"
+                  method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label for="rating">Your rating (1–10)</label>
+                <input id="rating"
+                       name="rating"
+                       type="number"
+                       min="1"
+                       max="10"
+                       value="{{ movie.rating or '' }}">
+                <label for="watched_date">Watched date</label>
+                <input id="watched_date"
+                       name="watched_date"
+                       type="date"
+                       value="{{ movie.watched_date or '' }}">
+                <label for="note">Your note</label>
+                <textarea id="note" name="note" rows="7" maxlength="20000">{{ movie.note or '' }}</textarea>
+                <button>Save changes</button>
+                <a class="edit-link" href="{{ next_url }}">Cancel</a>
             </form>
-
-            <div class="quick-actions">
-                <span class="quick-actions-label">Quick actions</span>
-
-                <div class="quick-actions-buttons">
-                    <form action="/status/{{ movie.id }}" method="post">
-                        <input type="hidden" name="next" value="/edit/{{ movie.id }}?next={{ next_url | urlencode }}">
-                        {% if movie.status == "Watchlist" %}
-                            <button type="submit">Mark as Watched</button>
-                        {% else %}
-                            <button type="submit">Move to Watchlist</button>
-                        {% endif %}
-                    </form>
-
-                    <form action="/favorite/{{ movie.id }}" method="post">
-                        <input type="hidden" name="next" value="/edit/{{ movie.id }}?next={{ next_url | urlencode }}">
-                        {% if movie.favorite %}
-                            <button type="submit">❤️ Remove from Favorites</button>
-                        {% else %}
-                            <button type="submit">♡ Add to Favorites</button>
-                        {% endif %}
-                    </form>
-
-                    <form action="/delete/{{ movie.id }}" method="post"
-                          data-confirm="Delete &quot;{{ movie.title }}&quot;? This can't be undone.">
-                        <button class="delete-button" type="submit">Delete Movie</button>
-                    </form>
-                </div>
-            </div>
+            <div class="quick-actions" data-detail-id="{{ movie.id }}">{% include "_library_actions.html" %}</div>
         </section>
-    </main>
-
-    {% include "_confirm_modal.html" %}
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
-</html>
+    </div>
+{% endblock %}

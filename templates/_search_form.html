@@ -1,0 +1,36 @@
+<form action="/search"
+      method="get"
+      class="discover-form"
+      role="search"
+      data-autocomplete>
+    <input type="hidden" name="filters" value="1">
+    <div class="search-input-wrap">
+        <label class="sr-only" for="discover-input">Search TMDB</label>
+        <input id="discover-input"
+               name="q"
+               value="{{ query|default('') }}"
+               placeholder="Search movies, actors, directors or companies…"
+               maxlength="200"
+               required
+               autocomplete="off"
+               role="combobox"
+               aria-autocomplete="list"
+               aria-expanded="false"
+               aria-controls="suggestions">
+        <ul id="suggestions" class="suggestions" role="listbox" hidden>
+        </ul>
+        <span class="sr-only" id="suggestion-status" role="status"></span>
+    </div>
+    <button type="submit">Search</button>
+    <fieldset class="search-filters">
+        <legend>Include in search</legend>
+        {% for value,label in [('movie','Movies'),('actor','Actors'),('director','Directors'),('company','Companies')] %}
+            <label class="search-filter">
+                <input type="checkbox" name="category" value="{{ value }}"
+                       {{ 'checked' if value in selected_categories|default(['movie','actor','director']) }}>
+                <span>{{ label }}</span>
+            </label>
+        {% endfor %}
+        <span class="filter-help" role="status">Choose categories, then Search.</span>
+    </fieldset>
+</form>

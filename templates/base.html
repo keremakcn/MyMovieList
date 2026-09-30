@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <title>
+            {% block title %}
+                Movie Watchlist
+            {% endblock %}
+        </title>
+        <link rel="stylesheet"
+              href="{{ url_for('static', filename='style.css', v=asset_version) }}">
+        <script defer src="{{ url_for('static', filename='script.js', v=asset_version) }}"></script>
+    </head>
+    <body>
+        <a class="skip-link" href="#main">Skip to content</a>
+        <nav class="app-nav" aria-label="Main navigation">
+            <a class="brand" href="/" aria-label="Movie Watchlist home">◈ <span>Movie Watchlist</span>
+            </a>
+            <div>
+                <a href="/"
+                   {% if request.endpoint == 'index' %} aria-current="page" {% endif %}>Library</a>
+                <a href="/search"
+                   {% if request.endpoint in ['search', 'entity', 'catalog_movie'] %} aria-current="page" {% endif %}>Explore</a>
+                <a href="/settings"
+                   {% if request.endpoint == 'settings' %} aria-current="page" {% endif %}>Settings</a>
+            </div>
+        </nav>
+        <main id="main">
+            {% block content %}{% endblock %}
+        </main>
+        <div id="toast-region"
+             class="toast-region"
+             aria-label="Notifications"
+             aria-live="polite"
+             aria-relevant="additions text">
+            {% for message in get_flashed_messages() %}
+                <div class="toast">
+                    <span>{{ message }}</span>
+                    <button type="button" data-dismiss aria-label="Dismiss notification">×</button>
+                </div>
+            {% endfor %}
+        </div>
+        <footer class="app-footer">
+            Your films. Your perspective. <span>Search shortcut: Ctrl / ⌘ K</span>
+        </footer>
+    </body>
+</html>

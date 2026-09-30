@@ -1,130 +1,37 @@
-<!DOCTYPE html>
-
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>{{ movie.title }}</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-
-<body>
-    <main class="movie-detail">
-        <a class="back-link" href="/search">← Back to Search</a>
-
-        <section class="movie-detail-card">
-            <h1>{{ movie.title }}</h1>
-
-            <div class="movie-header">
-                {% if tmdb and tmdb.poster_url %}
-                    <div class="poster-wrapper">
-                        <img
-                            class="movie-poster"
-                            src="{{ tmdb.poster_url }}"
-                            alt="Poster for {{ movie.title }}"
-                        >
-                        {% if tmdb.score_percent is not none %}
-                            <span class="tmdb-score {{ 'score-high' if tmdb.score_percent >= 70 else ('score-mid' if tmdb.score_percent >= 40 else 'score-low') }}">
-                                {{ tmdb.score_percent }}
-                            </span>
-                        {% endif %}
-                    </div>
+{% extends "base.html" %}
+{% block title %}
+    {{ movie.title }} · Explore
+{% endblock %}
+{% block content %}
+    <a class="back-link" href="{{ back_url }}">← Back to explore</a>
+    <section class="movie-detail-card">
+        <p class="eyebrow">MOVIE DETAILS</p>
+        <h1>{{ movie.title }}</h1>
+        <div class="movie-header">
+            {% if tmdb.poster_url %}
+                <img class="movie-poster detail-poster"
+                     src="{{ tmdb.poster_url }}"
+                     alt="Poster for {{ movie.title }}"
+                     width="180"
+                     height="270">
+            {% endif %}
+            <div class="movie-header-badges">
+                {% include "_info_badges.html" %}
+                {% include "_movie_action.html" %}
+                {% if not movie.library %}
+                    <form action="/add_watched_from_catalog"
+                          method="post"
+                          data-add-movie
+                          data-tmdb-id="{{ movie.tmdb_id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
+                        <input type="hidden" name="next" value="{{ current_url }}">
+                        <button class="secondary-button">+ Add as watched</button>
+                    </form>
                 {% endif %}
-
-                <div class="movie-header-badges">
-                    {% include "_info_badges.html" %}
-                </div>
             </div>
-
-            {% include "_tmdb_info.html" %}
-
-<div class="info-badges">
-    {% if existing %}
-        <span class="info-badge status-{{ existing[0]['status']|lower }}">
-            {{ "✅" if existing[0]["status"] == "Watched" else "📌" }} {{ existing[0]["status"] }}
-        </span>
-
-        {% if existing[0]["favorite"] %}
-            <span class="info-badge favorite-pill">❤️ Favorite</span>
-        {% endif %}
-    {% endif %}
-
-    <a
-        class="info-badge info-badge-link"
-        href="https://www.youtube.com/results?search_query={{ (movie.title ~ ' ' ~ (movie.year or '') ~ ' trailer') | urlencode }}"
-        target="_blank"
-        rel="noopener"
-    >
-        ▶ Search Trailer
-    </a>
-</div>
-
-<div class="detail-actions">
-
-    {% if existing %}
-
-        {% if existing[0]["status"] == "Watchlist" %}
-            <form action="/status/{{ existing[0]['id'] }}" method="post">
-                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
-                <button type="submit">
-                    ✓ Mark as Watched
-                </button>
-            </form>
-
-        {% else %}
-            <form action="/status/{{ existing[0]['id'] }}" method="post">
-                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
-                <button type="submit">
-                    ↩ Move to Watchlist
-                </button>
-            </form>
-        {% endif %}
-
-        {% if existing[0]["favorite"] %}
-            <form action="/favorite/{{ existing[0]['id'] }}" method="post">
-                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
-                <button type="submit">
-                    ❤️ Remove from Favorites
-                </button>
-            </form>
-        {% else %}
-            <form action="/favorite/{{ existing[0]['id'] }}" method="post">
-                <input type="hidden" name="next" value="/catalog_movie/{{ movie.id }}">
-                <button type="submit">
-                    ♡ Add to Favorites
-                </button>
-            </form>
-        {% endif %}
-
-        <a class="edit-link view-in-library-link" href="/movie/{{ existing[0]['id'] }}">
-            View in Library
-        </a>
-
-    {% else %}
-
-        <form action="/add_from_catalog" method="post">
-            <input
-                type="hidden"
-                name="movie_id"
-                value="{{ movie.id }}"
-            >
-            <button type="submit">
-                + Add to Watchlist
-            </button>
-        </form>
-<form action="/add_watched_from_catalog" method="post">
-    <input
-        type="hidden"
-        name="movie_id"
-        value="{{ movie.id }}"
-    >
-    <button type="submit">
-        + Add to Watched
-    </button>
-</form>
-    {% endif %}
-
-</div>
-        </section>
-    </main>
-</body>
-</html>
+        </div>
+        {% include "_tmdb_info.html" %}
+        {% include "_entities.html" %}
+    </section>
+{% endblock %}

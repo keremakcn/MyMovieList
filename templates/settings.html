@@ -1,74 +1,44 @@
-<!DOCTYPE html>
-
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Settings — Movie Watchlist</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-
-<body>
-    <main class="form-page">
-        <a class="back-link" href="/">← Back to Watchlist</a>
-
+{% extends "base.html" %}
+{% block title %}
+    Settings · Movie Watchlist
+{% endblock %}
+{% block content %}
+    <div class="form-page">
+        <p class="eyebrow">YOUR WORKSPACE</p>
+        <h1>Settings</h1>
         <section class="form-card">
-            <h1>TMDB Settings</h1>
-            <p>
-                Posters, overviews, cast, and directors are pulled from
-                <strong>The Movie Database (TMDB)</strong>. Paste your own
-                API Read Access Token below to enable this.
-            </p>
-
-            {% if has_token %}
-                <p class="token-status token-status-ok">
-                    ✓ A token is currently active{{ " (saved)" if has_saved_token else " (from server .env)" }}.
-                </p>
-            {% else %}
-                <p class="token-status token-status-missing">
-                    ⚠ No token set yet — movie details won't load until you add one.
-                </p>
-            {% endif %}
-
+            <h2>Connect to TMDB</h2>
+            <p>Explore movies, people and production studios. Your saved library works without a connection.</p>
+            <p class="token-status {{ 'token-status-ok' if has_token else 'token-status-missing' }}">{{ '✓ A TMDB token is configured.' if has_token else 'No TMDB token configured.' }}</p>
             <form class="movie-form" action="/settings" method="post">
-                <label for="tmdb_token">TMDB API Read Access Token</label>
-                <input
-                    id="tmdb_token"
-                    type="password"
-                    name="tmdb_token"
-                    placeholder="eyJhbGciOiJIUzI1NiJ9..."
-                    autocomplete="off"
-                >
-                <button type="submit">Save Token</button>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label for="tmdb_token">API Read Access Token</label>
+                <input id="tmdb_token"
+                       name="tmdb_token"
+                       type="password"
+                       autocomplete="off"
+                       placeholder="Paste a new token">
+                <small>Leave blank to keep your current token.</small>
+                <button>Save token</button>
             </form>
-
+            {% if has_saved_token %}
+                <form action="/settings" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="clear_token" value="1">
+                    <button class="secondary-button">Remove saved token</button>
+                </form>
+            {% endif %}
             <div class="settings-help">
-                <h2>Don't have a token yet?</h2>
-                <ol>
-                    <li>
-                        Create a free TMDB account:
-                        <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">
-                            themoviedb.org/signup
-                        </a>
-                    </li>
-                    <li>
-                        Go to your
-                        <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">
-                            account API settings
-                        </a>
-                        and request an API key (choose "Developer").
-                    </li>
-                    <li>
-                        Copy the <strong>"API Read Access Token"</strong> (a long string,
-                        <em>not</em> the short API key) and paste it above.
-                    </li>
-                </ol>
-                <p class="settings-note">
-                    Your token is stored only in your browser's session cookie —
-                    it is never saved to the app's database.
-                </p>
+                <h2>Where to find your token</h2>
+                <p>Create a TMDB account and copy your <strong>API Read Access Token</strong> from <a href="https://www.themoviedb.org/settings/api"
+    target="_blank"
+    rel="noopener noreferrer">TMDB API settings</a>.</p>
+                <p class="settings-note">The saved token is stored in your local application database, not in browser cookies. Keep database backups private. An environment token is used as a fallback.</p>
             </div>
         </section>
-    </main>
-</body>
-</html>
+        <section class="settings-help">
+            <h2>Your library stays yours</h2>
+            <p>Removed films are kept in <a href="/?status=trash">Recently removed</a>, with their notes, ratings and original order. Database upgrades create a backup before changing the schema.</p>
+        </section>
+    </div>
+{% endblock %}

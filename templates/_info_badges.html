@@ -1,26 +1,18 @@
-{# Shared "important info" badge list, styled like MyGameList's game
-   detail badges: monospace, icon + label pills, one per line.
-   Expects `movie` (a movies or movie_catalog row) and `tmdb`
-   (possibly None) in context. Included from movie.html and
-   catalog_movie.html, before the poster/overview block. #}
 <div class="info-badges">
     {% if movie.year %}
-        <span class="info-badge">📅 Release Year: {{ movie.year }}</span>
+        <span class="info-badge">{{ movie.year }}</span>
     {% endif %}
-
     {% if movie.genre %}
-        <span class="info-badge">🎞 Genre: {{ movie.genre }}</span>
+        <span class="info-badge">{{ movie.genre }}</span>
     {% endif %}
-
-    {% if tmdb and tmdb.runtime %}
-        <span class="info-badge">⏱ Runtime: {{ tmdb.runtime }} minutes</span>
+    {% if tmdb.runtime %}
+        <span class="info-badge">{{ tmdb.runtime }} min</span>
     {% endif %}
-
-    {% if tmdb and tmdb.director %}
-        <span class="info-badge">🎬 Director: {{ tmdb.director }}</span>
+    {% if tmdb.score_percent is not none %}
+        <span class="info-badge">TMDB {{ tmdb.score_percent }}%</span>
     {% endif %}
-
-    {% if tmdb and tmdb.cast %}
-        <span class="info-badge">🎭 Cast: {{ tmdb.cast | join(", ") }}</span>
-    {% endif %}
+    <a class="info-badge info-badge-link"
+       href="https://www.youtube.com/results?search_query={{ (movie.title ~ ' trailer')|urlencode }}"
+       target="_blank"
+       rel="noopener noreferrer">▶ Find trailer</a>
 </div>

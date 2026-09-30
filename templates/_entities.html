@@ -1,0 +1,15 @@
+{% if tmdb.entities %}
+    <section class="entity-links" aria-label="Explore cast, crew and companies">
+        {% for key,label in [('directors','Directed by'),('cast','Cast'),('writers','Writing'),('producers','Producers'),('companies','Production companies')] %}
+            {% if tmdb.entities.get(key) %}
+                <h2>{{ label }}</h2>
+                <div class="entity-chips">
+                    {% for person in tmdb.entities[key] %}
+                        <a href="{{ url_for('entity', kind='company' if key == 'companies' else 'person', entity_id=person.id, back=current_url) }}"
+                           {% if person.role %} title="{{ person.role }}" {% endif %}>{{ person.name }}</a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </section>
+{% endif %}

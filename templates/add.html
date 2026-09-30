@@ -1,48 +1,50 @@
-<!DOCTYPE html>
-
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Add Movie</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-
-<body>
-    <main class="form-page">
-        <a class="back-link" href="/">← Back to Watchlist</a>
-
+{% extends "base.html" %}
+{% block title %}
+    Add a movie
+{% endblock %}
+{% block content %}
+    <div class="form-page">
+        <a class="back-link" href="/">← Back to library</a>
         <section class="form-card">
-            <h1>Add Movie</h1>
-
+            <p class="eyebrow">MAKE IT YOURS</p>
+            <h1>Add a movie</h1>
+            <p>For a poster and film details, <a href="/search">find it on TMDB</a>. Or add your own entry here.</p>
             {% if error %}
-                <p class="form-error">{{ error }}</p>
+                <p class="form-error" role="alert">{{ error }}</p>
             {% endif %}
-
             <form class="movie-form" action="/add" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label for="title">Title</label>
-                <input id="title" type="text" name="title" required>
-
-                <label for="year">Year</label>
-                <input id="year" type="number" name="year">
-
-                <label for="genre">Genre</label>
-                <input id="genre" type="text" name="genre">
-
+                <input id="title"
+                       name="title"
+                       maxlength="300"
+                       required
+                       value="{{ values.get('title', '') }}">
+                <label for="year">Release year</label>
+                <input id="year"
+                       name="year"
+                       type="number"
+                       min="1800"
+                       max="2200"
+                       value="{{ values.get('year', '') }}">
+                <label for="genre">Genres</label>
+                <input id="genre" name="genre" value="{{ values.get('genre', '') }}">
                 <label for="status">Status</label>
                 <select id="status" name="status">
-                    <option value="Watchlist">Watchlist</option>
-                    <option value="Watched">Watched</option>
+                    <option value="Watchlist">Want to watch</option>
+                    <option value="Watched" {{ 'selected' if values.get("status")=='Watched' }}>Watched</option>
                 </select>
-
-                <label for="rating">Rating (1–10)</label>
-                <input id="rating" type="number" name="rating" min="1" max="10">
-
-                <label for="note">Note</label>
-                <textarea id="note" name="note" rows="5"></textarea>
-
-                <button type="submit">Add Movie</button>
+                <label for="rating">Your rating (1–10)</label>
+                <input id="rating"
+                       name="rating"
+                       type="number"
+                       min="1"
+                       max="10"
+                       value="{{ values.get('rating', '') }}">
+                <label for="note">Your note</label>
+                <textarea id="note" name="note" rows="5" maxlength="20000">{{ values.get('note','') }}</textarea>
+                <button>Add to library</button>
             </form>
         </section>
-    </main>
-</body>
-</html>
+    </div>
+{% endblock %}

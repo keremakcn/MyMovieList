@@ -1,0 +1,31 @@
+<article class="catalog-card">
+    <a class="result-image"
+       href="{{ url_for('catalog_movie', tmdb_id=movie.tmdb_id, back=current_url) }}"
+       tabindex="-1"
+       aria-hidden="true">
+        {% if movie.poster_url %}
+            <img class="catalog-card-poster"
+                 src="{{ movie.poster_url }}"
+                 alt=""
+                 width="92"
+                 height="138"
+                 loading="lazy"
+                 decoding="async">
+        {% else %}
+            <span class="poster-placeholder">◈</span>
+        {% endif %}
+    </a>
+    <div class="catalog-card-body">
+        <p class="eyebrow">MOVIE ·
+            {{ movie.year or 'Release date unknown' }}
+            {% if movie.score_percent is not none %}
+                · TMDB {{ movie.score_percent }}%
+            {% endif %}
+        </p>
+        <h2>
+            <a href="{{ url_for('catalog_movie', tmdb_id=movie.tmdb_id, back=current_url) }}">{{ movie.title }}</a>
+        </h2>
+        <p class="result-overview">{{ movie.overview or 'No overview available.' }}</p>
+        {% include "_movie_action.html" %}
+    </div>
+</article>

@@ -1,20 +1,5 @@
-{# Overview text only -- the poster now lives in the shared
-   _movie_header.html block (next to the info badges), not here.
-   Expects `movie` and `tmdb` in context. #}
-{% if tmdb %}
-    <div class="tmdb-copy">
-        <h2>Overview</h2>
-
-        {% if tmdb.overview %}
-            <p>{{ tmdb.overview }}</p>
-        {% else %}
-            <p>No overview available.</p>
-        {% endif %}
-    </div>
-
-    <p class="tmdb-credit">
-        This product uses the TMDB API but is not endorsed or certified by TMDB.
-    </p>
-{% else %}
-    <p>Movie details are not available.</p>
-{% endif %}
+<section class="tmdb-copy">
+    <h2>Overview</h2>
+    <p>{{ tmdb.overview or 'No overview available.' }}</p>
+</section>
+<p class="tmdb-credit">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>

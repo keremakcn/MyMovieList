@@ -1,913 +1,850 @@
+"""Movie Watchlist: local library and TMDB discovery, shared by web and desktop."""
+
 import json
 import os
-import sqlite3
+import secrets
 import sys
-import time
-
-from datetime import datetime
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
+from itertools import zip_longest
+from datetime import date, datetime
+from pathlib import Path
 from threading import Lock
-from urllib.error import HTTPError, URLError
-from urllib.parse import quote
-from urllib.request import Request, urlopen
+from urllib.parse import urlsplit, urlencode
+from urllib.request import urlopen
 
-from flask import Flask, render_template, request, redirect, send_from_directory
-
-
-# --- Paths: work both as a normal script and as a PyInstaller .exe ---
-#
-# BASE_DIR is where the *bundled, read-only* app files live (templates,
-# static/style.css, static/script.js). When running from source this
-# is just the folder app.py is in; when frozen into a PyInstaller
-# --onefile .exe, it's a temporary extraction folder (sys._MEIPASS)
-# that gets wiped after the program exits -- so nothing the user needs
-# to keep (the database, downloaded posters) can live there.
-#
-# DATA_DIR is where the app *writes* things that must survive between
-# runs: the SQLite database and downloaded poster images. From source
-# this is also just the app folder (convenient for development); when
-# frozen it's a MovieWatchlist folder under the user's AppData, which
-# always exists and is always writable, no matter where the .exe was
-# double-clicked from.
-
-def _get_base_dir():
-    if getattr(sys, "frozen", False):
-        return sys._MEIPASS
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-def _get_data_dir():
-    if getattr(sys, "frozen", False):
-        root = os.environ.get("APPDATA") or os.path.expanduser("~")
-        data_dir = os.path.join(root, "MovieWatchlist")
-    else:
-        data_dir = os.path.dirname(os.path.abspath(__file__))
-    os.makedirs(data_dir, exist_ok=True)
-    return data_dir
-
-
-BASE_DIR = _get_base_dir()
-DATA_DIR = _get_data_dir()
-DB_PATH = os.path.join(DATA_DIR, "movies.db")
-POSTERS_DIR = os.path.join(DATA_DIR, "posters")
-
-
-class SQL:
-    """A tiny stand-in for the cs50 library's SQL class, covering just
-    what this app uses: db.execute(query, *params). SELECT statements
-    return a list of dict-like rows (row["column"] works); anything
-    else just runs and commits. Swapped in instead of cs50 so the app
-    has one less third-party dependency to fight with when packaging
-    into a .exe (cs50 is meant for Harvard's CS50 course environment,
-    not for distributing a standalone app)."""
-
-    def __init__(self, path):
-        self._path = path
-
-    def execute(self, query, *params):
-        con = sqlite3.connect(self._path)
-        con.row_factory = sqlite3.Row
-        try:
-            cur = con.cursor()
-            cur.execute(query, params)
-
-            if query.strip().split(None, 1)[0].upper() in ("SELECT", "PRAGMA"):
-                return [dict(row) for row in cur.fetchall()]
-
-            con.commit()
-            return cur.rowcount
-        finally:
-            con.close()
-
-
-app = Flask(
-    __name__,
-    template_folder=os.path.join(BASE_DIR, "templates"),
-    static_folder=os.path.join(BASE_DIR, "static"),
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
 )
-# Never let the browser (or the desktop app's embedded WebView2)
-# cache static/style.css and static/script.js. Without this, updating
-# the app and rebuilding the .exe can still show old CSS/JS, because
-# WebView2 keeps its own persistent cache between runs -- there's no
-# "hard refresh" shortcut in a native window like there is in a
-# regular browser tab.
-app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+from storage import Database, utcnow
+from tmdb_client import TMDBClient, TMDBError, image_url, movie_details, movie_summary
 
-db = SQL(DB_PATH)
-
-# Base schema, for a completely fresh install (a brand-new DATA_DIR
-# with no movies.db yet -- e.g. the first time someone runs the .exe).
-db.execute("""
-    CREATE TABLE IF NOT EXISTS movies (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        year INTEGER,
-        genre TEXT,
-        status TEXT NOT NULL DEFAULT 'Watchlist',
-        rating INTEGER,
-        note TEXT,
-        favorite INTEGER NOT NULL DEFAULT 0,
-        watched_date TEXT,
-        catalog_id INTEGER
-    )
-""")
-
-
-def _ensure_column(table, column, coltype):
-    """Add a column to an existing table if it isn't there yet, so
-    upgrading from an older version of this app doesn't require
-    manually editing the database. Just tries the ALTER TABLE and
-    ignores the error if the column is already there."""
-    try:
-        db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
-    except Exception:
-        pass
-
-
-# `movies` caches everything needed to display a library entry
-# (poster, overview, runtime, director, cast, TMDB score) locally, so
-# it renders even with no internet connection -- only searching for
-# new movies needs to reach TMDB.
-_ensure_column("movies", "tmdb_id", "INTEGER")
-_ensure_column("movies", "poster_path", "TEXT")
-_ensure_column("movies", "overview", "TEXT")
-_ensure_column("movies", "runtime", "INTEGER")
-_ensure_column("movies", "director", "TEXT")
-_ensure_column("movies", "cast_list", "TEXT")
-_ensure_column("movies", "score_percent", "INTEGER")
-
-# If a movie somehow got added twice for the same tmdb_id before (a
-# double-click, or two quick form submits racing each other), clean
-# it up now, keeping the oldest row -- otherwise creating the UNIQUE
-# index right below would fail.
-db.execute("""
-    DELETE FROM movies
-    WHERE tmdb_id IS NOT NULL
-    AND id NOT IN (
-        SELECT MIN(id) FROM movies
-        WHERE tmdb_id IS NOT NULL
-        GROUP BY tmdb_id
-    )
-""")
-
-# The real fix: make it impossible at the database level for the same
-# TMDB movie to be added twice, even if two "Add" requests race each
-# other (SQLite treats each NULL as distinct, so manually-added
-# movies -- which have no tmdb_id -- are unaffected).
-try:
-    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_movies_tmdb_id ON movies(tmdb_id)")
-except Exception:
-    pass
-
-# --- TMDB helpers -----------------------------------------------------
-#
-# A tmdb_id's poster/overview/cast almost never changes, so we cache
-# responses in memory for a while instead of hitting the TMDB API on
-# every single page load. This also lets the index page (which needs
-# a poster for every movie in the list) fetch them in parallel instead
-# of one HTTP request at a time.
-
-_TMDB_CACHE_TTL_SECONDS = 6 * 60 * 60  # 6 hours
-_tmdb_cache = {}
-_tmdb_cache_lock = Lock()
-
-
-# A tiny key-value table for app settings that need to persist
-# permanently (right now: the TMDB token) -- not tied to a browser
-# session/cookie, so it survives clearing cookies, private/incognito
-# windows, or opening the app in a different browser.
-db.execute("""
-    CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT
-    )
-""")
-
-
-def get_setting(key, default=None):
-    rows = db.execute("SELECT value FROM settings WHERE key = ?", key)
-    return rows[0]["value"] if rows else default
-
-
-def set_setting(key, value):
-    if value is None:
-        db.execute("DELETE FROM settings WHERE key = ?", key)
-    else:
-        db.execute(
-            "INSERT INTO settings (key, value) VALUES (?, ?) "
-            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-            key,
-            value
+BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+DEFAULT_DATA_DIR = (
+    Path(os.environ.get("APPDATA", str(Path.home()))) / "MovieWatchlist"
+    if getattr(sys, "frozen", False)
+    else BASE_DIR
+)
+SORTS = {
+    "": "Library order",
+    "added_desc": "Recently added",
+    "added_asc": "First added",
+    "rating_desc": "Your rating: high to low",
+    "rating_asc": "Your rating: low to high",
+    "tmdb_desc": "TMDB score: high to low",
+    "tmdb_asc": "TMDB score: low to high",
+    "year_desc": "Release year: newest",
+    "year_asc": "Release year: oldest",
+    "watched_desc": "Recently watched",
+    "watched_asc": "Watched: oldest",
+}
+SORT_SQL = {
+    "": "CASE WHEN favorite=1 THEN 1 WHEN status='Watched' THEN 2 ELSE 3 END, id DESC",
+    "added_desc": "id DESC",
+    "added_asc": "id ASC",
+}
+for field, column in [
+    ("rating", "rating"),
+    ("tmdb", "score_percent"),
+    ("year", "year"),
+    ("watched", "watched_date"),
+]:
+    for direction in ("asc", "desc"):
+        SORT_SQL[f"{field}_{direction}"] = (
+            f"({column} IS NULL), {column} {direction}, id DESC"
         )
 
 
-def get_tmdb_token():
-    """The token saved via /settings takes priority over the .env
-    one. Stored in the database (not a session/cookie), so it's
-    shared across every browser/window and survives cookies being
-    cleared -- appropriate for this being a single-user app."""
-    return get_setting("tmdb_token") or os.environ.get("TMDB_ACCESS_TOKEN")
-
-
-def _fetch_tmdb_movie(tmdb_id, full, token):
-    if not tmdb_id or not token:
-        return None
-
-    append = "&append_to_response=credits" if full else ""
-
-    api_request = Request(
-        f"https://api.themoviedb.org/3/movie/{tmdb_id}?language=en-US{append}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-
-    try:
-        with urlopen(api_request, timeout=5) as response:
-            return json.load(response)
-    except (HTTPError, URLError, TimeoutError):
-        return None
-
-
-def get_tmdb_data(tmdb_id, full=False, token=None):
-    """Return TMDB info for a movie, cached in memory for a while.
-
-    Always includes: poster_url, score_percent, title, year, genre.
-    full=True additionally includes: overview, runtime, director, cast
-    (used on movie detail pages and when adding a movie to the library).
-
-    token: pass this explicitly if you already have it on hand (e.g.
-    to avoid a redundant DB read); otherwise it's looked up via
-    get_tmdb_token() automatically.
-    """
-    if not tmdb_id:
-        return None
-
-    if token is None:
-        token = get_tmdb_token()
-
-    # If nobody has a token saved right now, don't touch the cache at
-    # all -- we don't want a "no token" miss to poison the cache for
-    # later once a token is added.
-    if not token:
-        return None
-
-    cache_key = (tmdb_id, full)
-    now = time.time()
-
-    with _tmdb_cache_lock:
-        cached = _tmdb_cache.get(cache_key)
-        if cached and now - cached["time"] < _TMDB_CACHE_TTL_SECONDS:
-            return cached["data"]
-
-    data = _fetch_tmdb_movie(tmdb_id, full, token)
-    result = None
-
-    if data is not None:
-        poster_path = data.get("poster_path")
-        poster_size = "w500" if full else "w342"
-        vote_average = data.get("vote_average")
-        release_date = data.get("release_date", "") or ""
-
-        result = {
-            "poster_url": (
-                f"https://image.tmdb.org/t/p/{poster_size}{poster_path}"
-                if poster_path
-                else None
-            ),
-            # A 0-100 "score" like MyGameList/Metacritic, rounded from
-            # TMDB's 0-10 vote_average. None if TMDB has no votes yet.
-            "score_percent": (
-                round(vote_average * 10)
-                if vote_average
-                else None
-            ),
-            "title": data.get("title"),
-            "year": int(release_date[:4]) if release_date[:4].isdigit() else None,
-            "genre": ", ".join(g["name"] for g in data.get("genres", [])) or None
-        }
-
-        if full:
-            credits = data.get("credits", {})
-
-            result["overview"] = data.get("overview")
-            result["runtime"] = data.get("runtime")
-            result["director"] = next(
-                (
-                    person["name"]
-                    for person in credits.get("crew", [])
-                    if person.get("job") == "Director"
-                ),
-                None
-            )
-            result["cast"] = [
-                person["name"]
-                for person in credits.get("cast", [])[:5]
-            ]
-
-    # Cache the result (including failures, briefly) so a slow/down
-    # TMDB API doesn't get hammered on every request.
-    with _tmdb_cache_lock:
-        _tmdb_cache[cache_key] = {"data": result, "time": now}
-
-    return result
-
-
-def cache_poster_locally(tmdb_id, poster_url):
-    """Download a TMDB poster once and save it under DATA_DIR/posters,
-    so it (and everything else about a library movie) can still be
-    displayed with no internet connection later. Returns a local URL
-    like '/posters/603.jpg', or None if there's no poster or the
-    download fails (in which case the app falls back to showing no
-    poster, rather than failing to add the movie)."""
-    if not poster_url:
-        return None
-
-    try:
-        os.makedirs(POSTERS_DIR, exist_ok=True)
-        filename = f"{tmdb_id}.jpg"
-        local_path = os.path.join(POSTERS_DIR, filename)
-
-        if not os.path.exists(local_path):
-            with urlopen(poster_url, timeout=8) as response:
-                image_bytes = response.read()
-            with open(local_path, "wb") as f:
-                f.write(image_bytes)
-
-        return f"/posters/{filename}"
-    except (HTTPError, URLError, TimeoutError, OSError):
-        return None
-
-
-_genre_map_cache = {"data": None, "time": 0}
-_GENRE_MAP_TTL_SECONDS = 24 * 60 * 60  # TMDB's genre list barely changes
-
-
-def get_tmdb_genre_map(token):
-    """id -> name for TMDB's movie genres (e.g. 28 -> 'Action'). Only
-    needed to label genres in *search results*, since /search/movie
-    only returns genre_ids, not names."""
-    now = time.time()
-
-    if _genre_map_cache["data"] and now - _genre_map_cache["time"] < _GENRE_MAP_TTL_SECONDS:
-        return _genre_map_cache["data"]
-
-    mapping = {}
-
-    if token:
-        api_request = Request(
-            "https://api.themoviedb.org/3/genre/movie/list?language=en-US",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        try:
-            with urlopen(api_request, timeout=5) as response:
-                data = json.load(response)
-            mapping = {g["id"]: g["name"] for g in data.get("genres", [])}
-        except (HTTPError, URLError, TimeoutError):
-            pass
-
-    _genre_map_cache["data"] = mapping
-    _genre_map_cache["time"] = now
-    return mapping
-
-
-@app.route("/posters/<path:filename>")
-def poster_file(filename):
-    """Serve downloaded posters from DATA_DIR/posters. These live
-    outside the bundled static/ folder because, when packaged as a
-    .exe, static/ is inside the read-only (and temporary) PyInstaller
-    bundle -- posters need to be somewhere that persists between
-    runs."""
-    return send_from_directory(POSTERS_DIR, filename)
-
-
-@app.route("/")
-def index():
-    status_filter = request.args.get("status", "all")
-    sort = request.args.get("sort", "")
-
-    # No more join to movie_catalog -- each library movie now carries
-    # its own cached poster/score directly, so this reads entirely
-    # from local data (works with no internet connection).
-    query = "SELECT * FROM movies"
-    params = []
-
-    if status_filter == "Watchlist":
-        query += " WHERE status = ?"
-        params.append("Watchlist")
-    elif status_filter == "Watched":
-        query += " WHERE status = ?"
-        params.append("Watched")
-    elif status_filter == "favorite":
-        query += " WHERE favorite = 1"
-    # status_filter == "all" (or anything unrecognized): no WHERE clause
-
-    sort_clauses = {
-        "rating_desc": "rating DESC",
-        "rating_asc": "rating ASC",
-        "year_desc": "year DESC",
-        "year_asc": "year ASC",
-        # NULL watched_date (never watched) always sorts last here,
-        # regardless of direction, so unwatched movies don't jumble
-        # in with a "watched date" sort.
-        "watched_desc": "(watched_date IS NULL), watched_date DESC",
-        "watched_asc": "(watched_date IS NULL), watched_date ASC",
-        # Same NULL-last treatment for manually-added movies with no
-        # cached TMDB score.
-        "tmdb_desc": "(score_percent IS NULL), score_percent DESC",
-        "tmdb_asc": "(score_percent IS NULL), score_percent ASC",
-        "added_desc": "id DESC",
-        "added_asc": "id ASC",
-    }
-
-    if sort in sort_clauses:
-        query += f" ORDER BY {sort_clauses[sort]}"
-    else:
-        sort = ""
-        query += """
-            ORDER BY
-                CASE
-                    WHEN favorite = 1 THEN 1
-                    WHEN status = 'Watched' THEN 2
-                    WHEN status = 'Watchlist' THEN 3
-                    ELSE 4
-                END,
-                id DESC
-        """
-
-    movies = db.execute(query, *params)
-
-    watchlist_movies = db.execute(
-        "SELECT COUNT(*) AS total FROM movies WHERE status = ?",
-        "Watchlist"
-    )[0]["total"]
-
-    watched_movies = db.execute(
-        "SELECT COUNT(*) AS total FROM movies WHERE status = ?",
-        "Watched"
-    )[0]["total"]
-
-    favorite_movies = db.execute(
-        "SELECT COUNT(*) AS total FROM movies WHERE favorite = 1"
-    )[0]["total"]
-
-    average_rating = db.execute(
-        "SELECT ROUND(AVG(rating), 1) AS average_rating FROM movies WHERE rating IS NOT NULL"
-    )[0]["average_rating"]
-
-    return render_template(
-        "index.html",
-        movies=movies,
-        watchlist_movies=watchlist_movies,
-        watched_movies=watched_movies,
-        favorite_movies=favorite_movies,
-        average_rating=average_rating,
-        tmdb_token_missing=not bool(get_tmdb_token()),
-        status_filter=status_filter,
-        sort=sort,
-        current_url=f"/?status={status_filter}&sort={sort}"
-    )
-
-
-@app.route("/settings", methods=["GET", "POST"])
-def settings():
-    if request.method == "POST":
-        token = request.form.get("tmdb_token", "").strip()
-        set_setting("tmdb_token", token or None)
-        return redirect("/")
-
-    return render_template(
-        "settings.html",
-        has_token=bool(get_tmdb_token()),
-        has_saved_token=bool(get_setting("tmdb_token"))
-    )
-
-
-@app.route("/add", methods=["GET", "POST"])
-def add():
-    if request.method == "POST":
-        title = request.form.get("title", "").strip()
-        genre = request.form.get("genre", "").strip() or None
-        status = request.form.get("status")
-        note = request.form.get("note", "").strip() or None
-
-        if not title:
-            return render_template("add.html", error="Title is required.")
-
-        if status not in ("Watchlist", "Watched"):
-            status = "Watchlist"
-
-        year_raw = request.form.get("year", "").strip()
-        year = None
-        if year_raw:
-            try:
-                year = int(year_raw)
-            except ValueError:
-                year = None
-
-        rating_raw = request.form.get("rating", "").strip()
-        rating = None
-        if rating_raw:
-            try:
-                rating = int(rating_raw)
-                if not 1 <= rating <= 10:
-                    rating = None
-            except ValueError:
-                rating = None
-
-        db.execute(
-            """
-            INSERT INTO movies
-            (title, year, genre, status, rating, note)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            title,
-            year,
-            genre,
-            status,
-            rating,
-            note,
-        )
-
-        return redirect("/")
-
-    return render_template("add.html")
-
-
-@app.route("/search")
-def search():
-    query = request.args.get("q", "").strip()
-    results = []
-    error = None
-
-    if query:
-        token = get_tmdb_token()
-
-        if not token:
-            error = "Add your TMDB token in Settings to search for movies."
-        else:
-            genre_map = get_tmdb_genre_map(token)
-
-            api_request = Request(
-                f"https://api.themoviedb.org/3/search/movie"
-                f"?query={quote(query)}&language=en-US&include_adult=false",
-                headers={"Authorization": f"Bearer {token}"}
-            )
-
-            try:
-                with urlopen(api_request, timeout=8) as response:
-                    data = json.load(response)
-
-                for m in data.get("results", [])[:20]:
-                    release_date = m.get("release_date", "") or ""
-                    poster_path = m.get("poster_path")
-
-                    results.append({
-                        "tmdb_id": m["id"],
-                        "title": m.get("title"),
-                        "year": (
-                            int(release_date[:4])
-                            if release_date[:4].isdigit()
-                            else None
-                        ),
-                        "genre": ", ".join(
-                            genre_map[g]
-                            for g in m.get("genre_ids", [])
-                            if g in genre_map
-                        ),
-                        "poster_url": (
-                            f"https://image.tmdb.org/t/p/w185{poster_path}"
-                            if poster_path
-                            else None
-                        )
-                    })
-            except (HTTPError, URLError, TimeoutError):
-                error = "Couldn't reach TMDB. Check your internet connection."
-
-    return render_template(
-        "search.html",
-        results=results,
-        query=query,
-        error=error
-    )
-def _add_movie_from_catalog(status):
-    """Add a movie (found via live TMDB search) to the library. Fetches
-    full details from TMDB once, downloads the poster to disk, and
-    stores everything in the `movies` row -- so this movie can be
-    displayed later with no internet connection at all."""
-    tmdb_id_raw = request.form.get("movie_id")
-
-    try:
-        tmdb_id = int(tmdb_id_raw)
-    except (TypeError, ValueError):
-        return redirect("/search")
-
-    existing = db.execute(
-        "SELECT id FROM movies WHERE tmdb_id = ?",
-        tmdb_id
-    )
-
-    if existing:
-        return redirect(f"/movie/{existing[0]['id']}")
-
-    tmdb = get_tmdb_data(tmdb_id, full=True)
-
-    if not tmdb:
-        return redirect("/search")
-
-    poster_path = cache_poster_locally(tmdb_id, tmdb.get("poster_url"))
-    cast_list = ", ".join(tmdb.get("cast") or []) or None
-
-    watched_date_clause = "DATE('now')" if status == "Watched" else "NULL"
-
-    try:
-        db.execute(
-            f"""
-            INSERT INTO movies
-            (title, year, genre, status, watched_date, tmdb_id, poster_path,
-             overview, runtime, director, cast_list, score_percent)
-            VALUES (?, ?, ?, ?, {watched_date_clause}, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            tmdb.get("title"),
-            tmdb.get("year"),
-            tmdb.get("genre"),
-            status,
-            tmdb_id,
-            poster_path,
-            tmdb.get("overview"),
-            tmdb.get("runtime"),
-            tmdb.get("director"),
-            cast_list,
-            tmdb.get("score_percent"),
-        )
-    except sqlite3.IntegrityError:
-        # Someone else (or a double-click) added this same movie in
-        # the moment between our check above and this INSERT. Rather
-        # than crashing or creating a duplicate, just send them to
-        # the copy that won the race.
-        existing = db.execute(
-            "SELECT id FROM movies WHERE tmdb_id = ?",
-            tmdb_id
-        )
-        if existing:
-            return redirect(f"/movie/{existing[0]['id']}")
-
-    return redirect("/")
-
-
-@app.route("/add_from_catalog", methods=["POST"])
-def add_from_catalog():
-    return _add_movie_from_catalog("Watchlist")
-
-
-@app.route("/add_watched_from_catalog", methods=["POST"])
-def add_watched_from_catalog():
-    return _add_movie_from_catalog("Watched")
-
-
-@app.route("/edit/<int:movie_id>", methods=["GET", "POST"])
-def edit(movie_id):
-    movies = db.execute(
-        "SELECT * FROM movies WHERE id = ?",
-        movie_id
-    )
-
-    if not movies:
-        return redirect("/")
-
-    movie = movies[0]
-
-    # Remember where the person came from (the library, or this
-    # movie's detail page) so Save/Cancel can send them back there
-    # instead of always landing on the detail page.
-    next_url = request.args.get("next", "")
-    if not next_url.startswith("/") or next_url.startswith("//"):
-        next_url = f"/movie/{movie_id}"
-
-    if request.method == "POST":
-        rating_raw = request.form.get("rating", "").strip()
-        rating = None
-        if rating_raw:
-            try:
-                rating = int(rating_raw)
-                if not 1 <= rating <= 10:
-                    return render_template(
-                        "edit.html", movie=movie, next_url=next_url,
-                        error="Rating must be between 1 and 10."
-                    )
-            except ValueError:
-                return render_template(
-                    "edit.html", movie=movie, next_url=next_url,
-                    error="Rating must be a number."
-                )
-
-        note = request.form.get("note", "").strip() or None
-
-        watched_date_raw = request.form.get("watched_date", "").strip()
-        watched_date = None
-        if watched_date_raw:
-            try:
-                datetime.strptime(watched_date_raw, "%Y-%m-%d")
-                watched_date = watched_date_raw
-            except ValueError:
-                return render_template(
-                    "edit.html", movie=movie, next_url=next_url,
-                    error="Watched date must be a valid date."
-                )
-
-        db.execute(
-            """
-            UPDATE movies
-            SET rating = ?, note = ?, watched_date = ?
-            WHERE id = ?
-            """,
-            rating,
-            note,
-            watched_date,
-            movie_id
-        )
-
-        return redirect(next_url)
-
-    return render_template("edit.html", movie=movie, next_url=next_url)
-
-
-def safe_next(default="/"):
-    """Read a `next` value from the request (form field or query
-    string) and use it as a redirect target, but only if it's a
-    same-site path -- otherwise fall back to `default`. Used so
-    actions triggered from the library (with filters/sort in the
-    URL) or from a movie's detail page redirect back to wherever the
-    person actually was, instead of always bouncing to a plain "/"."""
-    next_url = request.values.get("next", "")
-    if not next_url.startswith("/") or next_url.startswith("//"):
+def safe_path(value, default="/"):
+    if (
+        not value
+        or not value.startswith("/")
+        or value.startswith("//")
+        or "\\" in value
+        or any(ord(c) < 32 for c in value)
+    ):
         return default
-    return next_url
+    parts = urlsplit(value)
+    return value if not parts.scheme and not parts.netloc else default
 
 
-@app.route("/favorite/<int:movie_id>", methods=["POST"])
-def favorite(movie_id):
-    movies = db.execute(
-        "SELECT favorite, status FROM movies WHERE id = ?",
-        movie_id
+def create_app(config=None):
+    app = Flask(
+        __name__,
+        template_folder=str(BASE_DIR / "templates"),
+        static_folder=str(BASE_DIR / "static"),
     )
-
-    if not movies:
-        return redirect("/")
-
-    movie = movies[0]
-    new_value = 0 if movie["favorite"] else 1
-
-    if new_value == 1:
-        db.execute(
-            """
-            UPDATE movies
-            SET favorite = 1,
-                status = 'Watched',
-                watched_date = DATE('now')
-            WHERE id = ?
-            """,
-            movie_id
-        )
-    else:
-        db.execute(
-            "UPDATE movies SET favorite = 0 WHERE id = ?",
-            movie_id
-        )
-
-    return redirect(safe_next())
-
-@app.route("/status/<int:movie_id>", methods=["POST"])
-def change_status(movie_id):
-    movies = db.execute(
-        "SELECT status FROM movies WHERE id = ?",
-        movie_id
+    data_dir = Path(os.environ.get("MOVIE_WATCHLIST_DATA_DIR", DEFAULT_DATA_DIR))
+    load_dotenv(data_dir / ".env")
+    app.config.update(
+        SECRET_KEY=os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32),
+        DATA_DIR=str(data_dir),
+        DATABASE=str(data_dir / "movies.db"),
+        MAX_CONTENT_LENGTH=1024 * 1024,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Strict",
+        TRUSTED_HOSTS=["localhost", "127.0.0.1", "[::1]"],
     )
+    if config:
+        app.config.update(config)
+    db = Database(app.config["DATABASE"])
+    db.migrate()
+    app.extensions["db"] = db
+    locks = [Lock() for _ in range(32)]
 
-    if not movies:
-        return redirect("/")
-
-    movie = movies[0]
-
-    if movie["status"] == "Watchlist":
-        db.execute(
-            """
-            UPDATE movies
-            SET status = ?, watched_date = DATE('now')
-            WHERE id = ?
-            """,
-            "Watched",
-            movie_id
-        )
-    else:
-        db.execute(
-            """
-            UPDATE movies
-            SET status = ?, watched_date = NULL
-            WHERE id = ?
-            """,
-            "Watchlist",
-            movie_id
+    def get_token():
+        rows = db.query("SELECT value FROM settings WHERE key='tmdb_token'")
+        return (
+            rows[0]["value"]
+            if rows and rows[0]["value"]
+            else os.environ.get("TMDB_ACCESS_TOKEN")
         )
 
-    return redirect(safe_next())
+    tmdb = TMDBClient(get_token)
+    app.extensions["tmdb"] = tmdb
+    app.jinja_env.filters["safe_back"] = safe_path
+
+    def csrf_token():
+        if "csrf_token" not in session:
+            session["csrf_token"] = secrets.token_urlsafe(32)
+        return session["csrf_token"]
+
+    def wants_json():
+        return (
+            request.path.startswith("/api/")
+            or request.headers.get("Accept") == "application/json"
+        )
+
+    @app.context_processor
+    def shared_context():
+        def page_url(page):
+            args = request.args.to_dict(flat=False)
+            args.update(request.view_args or {})
+            args["page"] = page
+            return url_for(request.endpoint, **args)
+
+        # Keep one return destination; do not recursively embed an entire browsing history.
+        navigation_args = [
+            (key, value)
+            for key, value in request.args.items(multi=True)
+            if key not in ("back", "next")
+        ]
+        current_url = request.path + (
+            "?" + urlencode(navigation_args) if navigation_args else ""
+        )
+        return dict(
+            csrf_token=csrf_token,
+            current_url=current_url,
+            page_url=page_url,
+            entity_page_url=page_url,
+            back_url=safe_path(request.args.get("back"), "/search"),
+            asset_version=str(
+                max(
+                    (BASE_DIR / "static/style.css").stat().st_mtime_ns,
+                    (BASE_DIR / "static/script.js").stat().st_mtime_ns,
+                )
+            ),
+        )
+
+    @app.before_request
+    def protect_writes():
+        if request.method == "POST":
+            supplied = request.headers.get("X-CSRF-Token") or request.form.get(
+                "csrf_token", ""
+            )
+            if not supplied or not secrets.compare_digest(
+                supplied, session.get("csrf_token", "")
+            ):
+                abort(400, "This page has expired. Refresh it and try again.")
+            origin = request.headers.get("Origin")
+            if origin and origin != request.host_url.rstrip("/"):
+                abort(403, "This request came from another site.")
+
+    @app.after_request
+    def security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; img-src 'self' https://image.tmdb.org data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        )
+        if request.endpoint != "static" and request.endpoint != "poster_file":
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.errorhandler(TMDBError)
+    def tmdb_error(error):
+        if wants_json():
+            return jsonify(error=str(error)), error.status
+        return render_template("error.html", message=str(error)), error.status
+
+    from werkzeug.exceptions import HTTPException, SecurityError
+
+    @app.errorhandler(HTTPException)
+    def http_error(error):
+        if isinstance(error, SecurityError):
+            return "Untrusted host.", 400
+        if wants_json():
+            return jsonify(error=error.description), error.code
+        return render_template("error.html", message=error.description), error.code
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        message = "Something went wrong. Your library is safe. Please try again."
+        if wants_json():
+            return jsonify(error=message), 500
+        return render_template("error.html", message=message), 500
+
+    def integer(value, default=1, maximum=500):
+        try:
+            return max(1, min(int(value), maximum))
+        except (ValueError, TypeError):
+            return default
+
+    def annotate(movies):
+        membership = db.membership([m["tmdb_id"] for m in movies])
+        for movie in movies:
+            movie["library"] = membership.get(movie["tmdb_id"])
+        return movies
+
+    def unique_movies(items):
+        seen, result = set(), []
+        for item in items:
+            if item.get("id") and item["id"] not in seen:
+                seen.add(item["id"])
+                result.append(movie_summary(item))
+        return result
+
+    @app.get("/")
+    def index():
+        status = request.args.get("status", "all")
+        status = (
+            status
+            if status in ("all", "Watchlist", "Watched", "favorite", "trash")
+            else "all"
+        )
+        sort = request.args.get("sort", "")
+        sort = sort if sort in SORT_SQL else ""
+        query = request.args.get("q", "").strip()[:200]
+        clauses = [
+            "deleted_at IS NOT NULL" if status == "trash" else "deleted_at IS NULL"
+        ]
+        params = []
+        if status in ("Watchlist", "Watched"):
+            clauses.append("status=?")
+            params.append(status)
+        elif status == "favorite":
+            clauses.append("favorite=1")
+        if query:
+            clauses.append("title LIKE ? ESCAPE '\\'")
+            params.append(
+                "%"
+                + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                + "%"
+            )
+        where = " AND ".join(clauses)
+        count = db.query("SELECT COUNT(*) total FROM movies WHERE " + where, *params)[
+            0
+        ]["total"]
+        pages = max(1, (count + 35) // 36)
+        page = integer(request.args.get("page"), maximum=pages)
+        movies = db.query(
+            "SELECT * FROM movies WHERE "
+            + where
+            + " ORDER BY "
+            + SORT_SQL[sort]
+            + " LIMIT 36 OFFSET ?",
+            *params,
+            (page - 1) * 36,
+        )
+        stats = db.query(
+            "SELECT COALESCE(SUM(status='Watchlist'),0) watchlist, COALESCE(SUM(status='Watched'),0) watched, COALESCE(SUM(favorite=1),0) favorites, ROUND(AVG(rating),1) average FROM movies WHERE deleted_at IS NULL"
+        )[0]
+        return render_template(
+            "index.html",
+            movies=movies,
+            stats=stats,
+            status_filter=status,
+            sort=sort,
+            sorts=SORTS,
+            query=query,
+            count=count,
+            page=page,
+            pages=pages,
+            tmdb_token_missing=not bool(get_token()),
+        )
+
+    def profession(department):
+        return {
+            "Acting": "Actor",
+            "Directing": "Director",
+            "Production": "Producer",
+            "Writing": "Writer",
+            "Sound": "Sound",
+            "Camera": "Cinematographer",
+            "Editing": "Editor",
+        }.get(department, department or "Film professional")
+
+    def selected_categories():
+        allowed = ("movie", "actor", "director", "company")
+        if "filters" in request.args:
+            return [key for key in allowed if key in request.args.getlist("category")]
+        return {
+            "movie": ["movie"],
+            "person": ["actor", "director"],
+            "company": ["company"],
+        }.get(request.args.get("type"), ["movie", "actor", "director"])
+
+    def search_data(query, kind, page, categories=None):
+        if kind == "all":
+            # All shares the same role filter and cache as Actors & Directors.
+            categories = (
+                categories if categories is not None else ["movie", "actor", "director"]
+            )
+            sources = []
+            if "movie" in categories:
+                sources.append(("movie", "Movies"))
+            if "actor" in categories or "director" in categories:
+                sources.append(("person", "Actors & Directors"))
+            if "company" in categories:
+                sources.append(("company", "Companies"))
+            if not sources:
+                return dict(results=[], page=page, pages=0, total=0, warnings=[])
+            groups, warnings, failures = [], [], []
+            with ThreadPoolExecutor(max_workers=len(sources)) as pool:
+                searches = [
+                    (label, pool.submit(search_data, query, source, page, categories))
+                    for source, label in sources
+                ]
+                for label, future in searches:
+                    try:
+                        groups.append(future.result())
+                    except TMDBError as exc:
+                        failures.append(exc)
+                        warnings.append(f"{label}: {exc}")
+            if not groups:
+                raise failures[0]
+            results = [
+                item
+                for row in zip_longest(*(group["results"] for group in groups))
+                for item in row
+                if item is not None
+            ]
+            return dict(
+                results=results,
+                page=page,
+                pages=max(group["pages"] for group in groups),
+                total=len(results),
+                warnings=warnings,
+            )
+        if kind not in ("movie", "person", "company"):
+            abort(400, "Choose All, Movies, Actors & Directors or Companies.")
+        departments = ()
+        if kind == "person":
+            categories = categories if categories is not None else ["actor", "director"]
+            departments = tuple(
+                role
+                for key, role in (("actor", "Acting"), ("director", "Directing"))
+                if key in categories
+            )
+        source = kind
+        params = dict(query=query, page=page)
+        if kind != "company":
+            params.update(language="en-US", include_adult="false")
+        data = tmdb.get("search/" + source, **params)
+        if kind == "movie":
+            results = annotate(unique_movies(data.get("results", [])))
+        else:
+            results, seen = [], set()
+            for item in data.get("results", []):
+                if departments and item.get("known_for_department") not in departments:
+                    continue
+                if item["id"] in seen:
+                    continue
+                seen.add(item["id"])
+                results.append(
+                    dict(
+                        id=item["id"],
+                        name=item["name"],
+                        role_label=profession(item.get("known_for_department"))
+                        if source == "person"
+                        else "Company",
+                        image=image_url(
+                            item.get("profile_path") or item.get("logo_path"), "w185"
+                        ),
+                        description=", ".join(
+                            m.get("title", "")
+                            for m in item.get("known_for", [])
+                            if m.get("media_type") == "movie"
+                        ),
+                    )
+                )
+        for result in results:
+            result["kind"] = source
+        return dict(
+            results=results,
+            page=page,
+            pages=min(data.get("total_pages", 1), 500),
+            total=len(results) if departments else data.get("total_results", 0),
+            warnings=[],
+        )
+
+    @app.get("/search")
+    def search():
+        query = request.args.get("q", "").strip()[:200]
+        kind = request.args.get("type", "all")
+        if kind not in ("all", "movie", "person", "company"):
+            kind = "all"
+        data, error = dict(results=[], page=1, pages=0, total=0, warnings=[]), None
+        selected = selected_categories()
+        if "filters" in request.args:
+            kind = "all"
+        if query and not selected:
+            error = "Select at least one category to search."
+        elif query:
+            try:
+                data = search_data(
+                    query, kind, integer(request.args.get("page")), selected
+                )
+            except TMDBError as exc:
+                error = str(exc)
+        return render_template(
+            "search.html",
+            query=query,
+            kind=kind,
+            selected_categories=selected,
+            error=error,
+            **data,
+        )
+
+    @app.get("/api/suggestions")
+    def suggestions():
+        query = request.args.get("q", "").strip()[:200]
+        if len(query) < 2:
+            return jsonify(results=[])
+        kind = request.args.get("type", "all")
+        if "filters" in request.args:
+            kind = "all"
+        data = search_data(query, kind, 1, selected_categories())
+        return jsonify(
+            results=[
+                dict(
+                    label=m.get("title") or m.get("name"),
+                    subtitle=m.get("role_label", "Movie")
+                    + (
+                        " · " + str(m.get("year") or m.get("description"))
+                        if m.get("year") or m.get("description")
+                        else ""
+                    ),
+                    url=url_for("catalog_movie", tmdb_id=m["tmdb_id"])
+                    if m["kind"] == "movie"
+                    else url_for("entity", kind=m["kind"], entity_id=m["id"]),
+                )
+                for m in data["results"][:6]
+            ]
+        )
+
+    def download_poster(tmdb_id, remote):
+        if not remote:
+            return None
+        folder = Path(app.config["DATA_DIR"]) / "posters"
+        folder.mkdir(parents=True, exist_ok=True)
+        target = folder / f"{tmdb_id}.jpg"
+        if target.exists():
+            return f"/posters/{target.name}"
+        temp = None
+        try:
+            with urlopen(remote, timeout=5) as response:
+                image = response.read(5 * 1024 * 1024 + 1)
+                if len(image) > 5 * 1024 * 1024 or not response.headers.get(
+                    "Content-Type", ""
+                ).startswith("image/"):
+                    return remote
+            with tempfile.NamedTemporaryFile(dir=folder, delete=False) as output:
+                temp = Path(output.name)
+                output.write(image)
+            os.replace(temp, target)
+            return f"/posters/{target.name}"
+        except OSError:
+            return remote
+        finally:
+            if temp and temp.exists():
+                temp.unlink()
+
+    @app.get("/posters/<path:filename>")
+    def poster_file(filename):
+        return send_from_directory(
+            Path(app.config["DATA_DIR"]) / "posters", filename, max_age=86400
+        )
+
+    def add_from_tmdb(status):
+        try:
+            tmdb_id = int(request.form.get("movie_id", ""))
+            if tmdb_id < 1:
+                raise ValueError
+        except ValueError:
+            abort(400, "Choose a valid movie.")
+        with locks[tmdb_id % len(locks)]:
+            existing = db.query("SELECT * FROM movies WHERE tmdb_id=?", tmdb_id)
+            if existing:
+                db.restore(existing[0]["id"])
+                movie_id, created = existing[0]["id"], False
+            else:
+                details = movie_details(
+                    tmdb.get(
+                        f"movie/{tmdb_id}",
+                        language="en-US",
+                        append_to_response="credits",
+                    )
+                )
+                values = {
+                    k: details.get(k)
+                    for k in (
+                        "title",
+                        "year",
+                        "genre",
+                        "overview",
+                        "runtime",
+                        "director",
+                        "score_percent",
+                    )
+                }
+                values.update(
+                    tmdb_id=tmdb_id,
+                    status=status,
+                    watched_date=date.today().isoformat()
+                    if status == "Watched"
+                    else None,
+                    poster_path=download_poster(tmdb_id, details["poster_url"]),
+                    cast_list=", ".join(details["cast"]),
+                    entities_json=json.dumps(details["entities"]),
+                )
+                movie_id, created = db.add_tmdb(values)
+        if wants_json():
+            return jsonify(
+                id=movie_id,
+                created=created,
+                status=db.movie(movie_id)["status"],
+                edit_url=url_for(
+                    "edit", movie_id=movie_id, next=safe_path(request.form.get("next"))
+                ),
+            )
+        flash(
+            "Movie added to your library."
+            if created
+            else "Movie is already in your library."
+        )
+        return redirect(safe_path(request.form.get("next"), f"/movie/{movie_id}"))
+
+    @app.post("/add_from_catalog")
+    def add_from_catalog():
+        return add_from_tmdb("Watchlist")
+
+    @app.post("/add_watched_from_catalog")
+    def add_watched_from_catalog():
+        return add_from_tmdb("Watched")
+
+    @app.get("/catalog_movie/<int:tmdb_id>")
+    def catalog_movie(tmdb_id):
+        details = movie_details(
+            tmdb.get(f"movie/{tmdb_id}", language="en-US", append_to_response="credits")
+        )
+        details["library"] = db.membership([tmdb_id]).get(tmdb_id)
+        return render_template("catalog_movie.html", movie=details, tmdb=details)
+
+    @app.get("/movie/<int:movie_id>")
+    def movie(movie_id):
+        row = db.movie(movie_id)
+        if not row:
+            abort(404, "This movie is not in your active library.")
+        details = dict(
+            row,
+            poster_url=row["poster_path"],
+            cast=(row["cast_list"] or "").split(", "),
+            entities=json.loads(row["entities_json"] or "{}"),
+        )
+        return render_template("movie.html", movie=row, tmdb=details)
+
+    @app.post("/movie/<int:movie_id>/refresh")
+    def refresh_movie(movie_id):
+        row = db.movie(movie_id)
+        if not row or not row["tmdb_id"]:
+            abort(404)
+        tmdb.invalidate(f"movie/{row['tmdb_id']}")
+        details = movie_details(
+            tmdb.get(
+                f"movie/{row['tmdb_id']}",
+                language="en-US",
+                append_to_response="credits",
+            )
+        )
+        db.execute(
+            "UPDATE movies SET entities_json=?, overview=?, runtime=?, director=?, cast_list=?, score_percent=?, poster_path=? WHERE id=? AND deleted_at IS NULL",
+            json.dumps(details["entities"]),
+            details["overview"],
+            details["runtime"],
+            details["director"],
+            ", ".join(details["cast"]),
+            details["score_percent"],
+            download_poster(row["tmdb_id"], details["poster_url"]),
+            movie_id,
+        )
+        flash("Movie information updated. Your notes and rating are unchanged.")
+        return redirect(url_for("movie", movie_id=movie_id))
+
+    @app.get("/explore/<kind>/<int:entity_id>")
+    def entity(kind, entity_id):
+        if kind not in ("person", "company"):
+            abort(404)
+        page = integer(request.args.get("page"))
+        profile = tmdb.get(
+            f"{kind}/{entity_id}",
+            **(
+                {"language": "en-US", "append_to_response": "movie_credits"}
+                if kind == "person"
+                else {}
+            ),
+        )
+        if kind == "person":
+            credits = profile.get("movie_credits", {})
+            items = credits.get("cast", []) + credits.get("crew", [])
+            items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
+            all_movies = unique_movies(items)
+            total = len(all_movies)
+            pages = max(1, (total + 23) // 24)
+            page = min(page, pages)
+            movies = all_movies[(page - 1) * 24 : page * 24]
+        else:
+            data = tmdb.get(
+                "discover/movie",
+                with_companies=entity_id,
+                language="en-US",
+                include_adult="false",
+                sort_by="popularity.desc",
+                page=page,
+            )
+            movies = unique_movies(data.get("results", []))
+            pages, total = (
+                min(data.get("total_pages", 1), 500),
+                data.get("total_results", 0),
+            )
+        return render_template(
+            "entity.html",
+            profile=profile,
+            role_label=profession(profile.get("known_for_department"))
+            if kind == "person"
+            else "Company",
+            kind=kind,
+            entity_id=entity_id,
+            movies=annotate(movies),
+            page=page,
+            pages=pages,
+            total=total,
+            profile_image=image_url(
+                profile.get("profile_path") or profile.get("logo_path")
+            ),
+        )
+
+    def validate_form(form, manual=False):
+        values = dict(
+            note=form.get("note", "").strip() or None,
+            watched_date=form.get("watched_date", "").strip() or None,
+            rating=None,
+        )
+        if len(values["note"] or "") > 20000:
+            raise ValueError("Keep notes under 20,000 characters.")
+        if form.get("rating", "").strip():
+            try:
+                values["rating"] = int(form["rating"])
+            except ValueError:
+                raise ValueError("Rating must be a whole number from 1 to 10.")
+            if not 1 <= values["rating"] <= 10:
+                raise ValueError("Rating must be between 1 and 10.")
+        if values["watched_date"]:
+            try:
+                datetime.strptime(values["watched_date"], "%Y-%m-%d")
+            except ValueError:
+                raise ValueError("Enter a valid watched date.")
+        if manual:
+            values.update(
+                title=form.get("title", "").strip(),
+                genre=form.get("genre", "").strip() or None,
+                year=None,
+                status=form.get("status", "Watchlist"),
+            )
+            if not values["title"] or len(values["title"]) > 300:
+                raise ValueError("Enter a title of 1–300 characters.")
+            if values["status"] not in ("Watchlist", "Watched"):
+                raise ValueError("Choose a valid status.")
+            if form.get("year", "").strip():
+                try:
+                    values["year"] = int(form["year"])
+                except ValueError:
+                    raise ValueError("Enter a valid release year.")
+                if not 1800 <= values["year"] <= 2200:
+                    raise ValueError("Release year must be between 1800 and 2200.")
+            if values["status"] == "Watched" and not values["watched_date"]:
+                values["watched_date"] = date.today().isoformat()
+        return values
+
+    @app.route("/add", methods=["GET", "POST"])
+    def add():
+        error = None
+        if request.method == "POST":
+            try:
+                values = validate_form(request.form, manual=True)
+                values.update(created_at=utcnow(), updated_at=utcnow())
+                with db.connect(write=True) as con:
+                    cur = con.execute(
+                        "INSERT INTO movies ("
+                        + ",".join(values)
+                        + ") VALUES ("
+                        + ",".join("?" for _ in values)
+                        + ")",
+                        tuple(values.values()),
+                    )
+                    movie_id = cur.lastrowid
+                return redirect(url_for("movie", movie_id=movie_id))
+            except ValueError as exc:
+                error = str(exc)
+        return render_template(
+            "add.html", error=error, values=request.form
+        ), 422 if error else 200
+
+    @app.route("/edit/<int:movie_id>", methods=["GET", "POST"])
+    def edit(movie_id):
+        row = db.movie(movie_id)
+        if not row:
+            abort(404)
+        next_url = safe_path(request.args.get("next"), f"/movie/{movie_id}")
+        error = None
+        if request.method == "POST":
+            try:
+                values = validate_form(request.form)
+                db.execute(
+                    "UPDATE movies SET rating=?,note=?,watched_date=?,updated_at=? WHERE id=? AND deleted_at IS NULL",
+                    values["rating"],
+                    values["note"],
+                    values["watched_date"],
+                    utcnow(),
+                    movie_id,
+                )
+                flash("Changes saved.")
+                return redirect(next_url)
+            except ValueError as exc:
+                error = str(exc)
+                row.update(
+                    {
+                        k: request.form.get(k, "")
+                        for k in ("rating", "note", "watched_date")
+                    }
+                )
+        return render_template(
+            "edit.html", movie=row, next_url=next_url, error=error
+        ), 422 if error else 200
+
+    def mutation_result(movie_id):
+        row = db.movie(movie_id)
+        if not row:
+            abort(404)
+        if wants_json():
+            return jsonify(
+                id=movie_id,
+                status=row["status"],
+                favorite=row["favorite"],
+                watched_date=row["watched_date"],
+            )
+        return redirect(safe_path(request.form.get("next")))
+
+    @app.post("/favorite/<int:movie_id>")
+    def favorite(movie_id):
+        value = request.form.get("value")
+        if value not in ("0", "1"):
+            abort(400, "Choose the desired favorite state.")
+        db.execute(
+            "UPDATE movies SET favorite=?,updated_at=? WHERE id=? AND deleted_at IS NULL",
+            int(value),
+            utcnow(),
+            movie_id,
+        )
+        return mutation_result(movie_id)
+
+    @app.post("/status/<int:movie_id>")
+    def change_status(movie_id):
+        value = request.form.get("value")
+        if value not in ("Watchlist", "Watched"):
+            abort(400, "Choose a valid watch status.")
+        db.execute(
+            "UPDATE movies SET status=?, watched_date=CASE WHEN ?='Watched' THEN COALESCE(watched_date,?) ELSE NULL END, updated_at=? WHERE id=? AND deleted_at IS NULL",
+            value,
+            value,
+            date.today().isoformat(),
+            utcnow(),
+            movie_id,
+        )
+        return mutation_result(movie_id)
+
+    @app.post("/delete/<int:movie_id>")
+    def delete(movie_id):
+        marker = db.remove(movie_id)
+        if not marker:
+            abort(404)
+        if wants_json():
+            return jsonify(id=movie_id, marker=marker)
+        flash("Movie removed. You can restore it from Recently removed.")
+        return redirect(safe_path(request.form.get("next")))
+
+    @app.post("/restore/<int:movie_id>")
+    def restore(movie_id):
+        if not db.restore(movie_id, request.form.get("marker")):
+            abort(
+                409,
+                "This movie changed since that notification. Restore it from Recently removed.",
+            )
+        if wants_json():
+            return jsonify(id=movie_id)
+        flash("Movie restored with its original notes, rating and position.")
+        return redirect(safe_path(request.form.get("next")))
+
+    @app.route("/settings", methods=["GET", "POST"])
+    def settings():
+        if request.method == "POST":
+            token = request.form.get("tmdb_token", "").strip()
+            if token:
+                db.execute(
+                    "INSERT INTO settings(key,value) VALUES('tmdb_token',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                    token,
+                )
+            elif request.form.get("clear_token") == "1":
+                db.execute("DELETE FROM settings WHERE key='tmdb_token'")
+            flash("Settings saved.")
+            return redirect(url_for("settings"))
+        return render_template(
+            "settings.html",
+            has_token=bool(get_token()),
+            has_saved_token=bool(
+                db.query("SELECT 1 FROM settings WHERE key='tmdb_token'")
+            ),
+        )
+
+    return app
 
 
-@app.route("/delete/<int:movie_id>", methods=["POST"])
-def delete(movie_id):
-    db.execute(
-        "DELETE FROM movies WHERE id = ?",
-        movie_id
-    )
-
-    return redirect(safe_next())
-
-
-@app.route("/movie/<int:movie_id>")
-def movie(movie_id):
-    movies = db.execute(
-        "SELECT * FROM movies WHERE id = ?",
-        movie_id
-    )
-
-    if not movies:
-        return redirect("/")
-
-    movie = movies[0]
-
-    # Everything here comes from the movie's own cached columns --
-    # no TMDB request, so this page works with no internet connection
-    # for any movie that was added through search.
-    tmdb = None
-    if movie["poster_path"] or movie["overview"]:
-        tmdb = {
-            "poster_url": movie["poster_path"],
-            "overview": movie["overview"],
-            "runtime": movie["runtime"],
-            "director": movie["director"],
-            "cast": movie["cast_list"].split(", ") if movie["cast_list"] else [],
-            "score_percent": movie["score_percent"],
-        }
-
-    return render_template("movie.html", movie=movie, tmdb=tmdb)
-@app.route("/catalog_movie/<int:tmdb_id>")
-def catalog_movie(tmdb_id):
-    # This is a live preview of a movie found via search, *before*
-    # it's added to the library -- so unlike movie(), this always
-    # needs to reach TMDB and requires internet.
-    tmdb = get_tmdb_data(tmdb_id, full=True)
-
-    if not tmdb:
-        return redirect("/search")
-
-    movie = {
-        "id": tmdb_id,
-        "title": tmdb.get("title"),
-        "year": tmdb.get("year"),
-        "genre": tmdb.get("genre"),
-    }
-
-    existing = db.execute(
-        "SELECT id, status, favorite FROM movies WHERE tmdb_id = ?",
-        tmdb_id
-    )
-
-    return render_template(
-        "catalog_movie.html",
-        movie=movie,
-        tmdb=tmdb,
-        existing=existing
-    )
-
-
-# --- Launcher -----------------------------------------------------
-#
-# This block only runs when the script is executed directly
-# (`python app.py`, or the packaged .exe double-clicked) -- not when
-# imported by `flask run` or a WSGI server. It's what turns this into
-# a self-contained desktop app: starts a real (non-dev) server and
-# opens the browser to it automatically, so there's no URL to type
-# and no separate "flask run" step to remember.
 if __name__ == "__main__":
     import threading
     import webbrowser
+    from waitress import serve
 
-    HOST = "127.0.0.1"
-    PORT = 5000
-
-    def _open_browser():
-        webbrowser.open(f"http://{HOST}:{PORT}")
-
-    # Small delay so the browser doesn't try to connect before the
-    # server has actually started listening.
-    threading.Timer(1.0, _open_browser).start()
-
-    try:
-        from waitress import serve
-        print(f"Movie Watchlist is running at http://{HOST}:{PORT}")
-        print("Close this window to stop the app.")
-        serve(app, host=HOST, port=PORT)
-    except ImportError:
-        # Waitress isn't installed (e.g. running from source without
-        # having run `pip install waitress` yet) -- fall back to
-        # Flask's built-in server so `python app.py` still works.
-        print("waitress not installed -- using Flask's built-in server.")
-        print("Run 'pip install waitress' for a more robust server.")
-        app.run(host=HOST, port=PORT)
+    application = create_app()
+    threading.Timer(1, lambda: webbrowser.open("http://127.0.0.1:5000")).start()
+    serve(application, host="127.0.0.1", port=5000)

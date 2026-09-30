@@ -1,76 +1,79 @@
-<!DOCTYPE html>
-
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Search Movies</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-
-<body>
-    <main class="search-page">
-        <a class="back-link" href="/">← Back to Watchlist</a>
-
-        <section class="form-card">
-            <h1>Search Movies</h1>
-            <p>Searches TMDB directly, so this needs an internet connection.</p>
-
-            <form class="catalog-search-form" action="/search" method="get">
-                <input
-                    type="text"
-                    name="q"
-                    placeholder="Search for a movie"
-                    value="{{ query }}"
-                    required
-                >
-                <button type="submit">Search</button>
-            </form>
-        </section>
-
-        {% if query %}
-            <section class="search-results">
-                <h2>Results</h2>
-
-                {% if error %}
-                    <p class="form-error">
-                        {{ error }}
-                        {% if "token" in error %}
-                            <a href="/settings">Go to Settings →</a>
-                        {% endif %}
-                    </p>
-                {% endif %}
-
-                {% for movie in results %}
-                    <article class="catalog-card">
-                        {% if movie.poster_url %}
-                            <img
-                                class="catalog-card-poster"
-                                src="{{ movie.poster_url }}"
-                                alt="Poster for {{ movie.title }}"
-                            >
-                        {% endif %}
-
-                        <div class="catalog-card-body">
-                            <h2>
-                                <a href="/catalog_movie/{{ movie.tmdb_id }}">
-                                    {{ movie.title }}
-                                </a>
-                            </h2>
-                            <p>{{ movie.year }}{% if movie.genre %} · {{ movie.genre }}{% endif %}</p>
-
-                            <form action="/add_from_catalog" method="post">
-                                <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
-                                <button type="submit">+ Add to Watchlist</button>
-                            </form>
-                        </div>
-                    </article>
-                {% else %}
-                    {% if not error %}
-                        <p>No movies found.</p>
+{% extends "base.html" %}
+{% block title %}
+    Explore · Movie Watchlist
+{% endblock %}
+{% block content %}
+    <header class="explore-header">
+        <p class="eyebrow">ONE GOOD FILM LEADS TO ANOTHER</p>
+        <h1>What will you discover?</h1>
+        <p>Find movies, actors and directors. Choose Companies to explore studios.</p>
+    </header>
+    {% include "_search_form.html" %}
+    <section class="search-results" aria-label="Search results">
+        {% if error %}
+            <div class="form-error" role="alert">
+                {{ error }} <a href="/settings">Settings</a>
+            </div>
+        {% elif query %}
+            {% for warning in warnings %}
+                <p class="form-error" role="status">{{ warning }} Showing the other available results. Try again to load everything.</p>
+            {% endfor %}
+            <div class="section-heading">
+                <h2>Results for “{{ query }}”</h2>
+                <span>{{ total }} {{ 'matches on this page' if kind in ['all', 'person'] else ('available results' if warnings else 'results') }}</span>
+            </div>
+            {% if kind in ['all', 'person'] and pages > 1 %}
+                <p class="muted">Filtered by primary profession. Other matches may appear on the next page.</p>
+            {% endif %}
+            <div class="results-grid">
+                {% for result in results %}
+                    {% if result.kind=="movie" %}
+                        {% with movie=result %}
+                            {% include "_result_card.html" %}
+                        {% endwith %}
+                    {% else %}
+                        <article class="catalog-card entity-result">
+                            <a class="entity-result-image"
+                               href="{{ url_for('entity',kind=result.kind,entity_id=result.id,back=current_url) }}"
+                               tabindex="-1"
+                               aria-hidden="true">
+                                {% if result.image %}
+                                    <img src="{{ result.image }}"
+                                         class="{{ 'company-logo' if result.kind=='company' }}"
+                                         alt=""
+                                         width="92"
+                                         height="120"
+                                         loading="lazy">
+                                {% else %}
+                                    <span class="poster-placeholder">{{ '◎' if result.kind=='person' else '◈' }}</span>
+                                {% endif %}
+                            </a>
+                            <div>
+                                <p class="eyebrow">{{ result.role_label|upper }}</p>
+                                <h2>
+                                    <a href="{{ url_for('entity',kind=result.kind,entity_id=result.id,back=current_url) }}">{{ result.name }}</a>
+                                </h2>
+                                <p>{{ result.description }}</p>
+                                <a href="{{ url_for('entity',kind=result.kind,entity_id=result.id,back=current_url) }}">View films →</a>
+                            </div>
+                        </article>
                     {% endif %}
+                {% else %}
+                    <div class="empty-state">
+                        <h2>{{ 'No matches on this page.' if kind in ['all', 'person'] and pages > 1 else 'No results found.' }}</h2>
+                        <p>Try a different spelling or search type.</p>
+                    </div>
                 {% endfor %}
-            </section>
+            </div>
+            {% include "_pagination.html" %}
+        {% else %}
+            <div class="explore-intro">
+                <span>01 / MOVIES</span>
+                <span>02 / ACTORS &amp; DIRECTORS</span>
+                <span>03 / COMPANIES</span>
+                <p>Start with a title, a familiar face, or a studio you love.</p>
+            </div>
         {% endif %}
-    </main>
-</body>
-</html>
+    </section>
+    <p class="tmdb-credit">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+{% endblock %}

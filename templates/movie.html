@@ -1,108 +1,44 @@
-<!DOCTYPE html>
-
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>{{ movie.title }}</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-
-<body>
-    <main class="movie-detail">
-        <a class="back-link" href="/">← Back to Watchlist</a>
-
-        <section class="movie-detail-card">
-            <h1>{{ movie.title }}</h1>
-
-            <div class="movie-header">
-                {% if tmdb and tmdb.poster_url %}
-                    <div class="poster-wrapper">
-                        <img
-                            class="movie-poster"
-                            src="{{ tmdb.poster_url }}"
-                            alt="Poster for {{ movie.title }}"
-                        >
-                        {% if tmdb.score_percent is not none %}
-                            <span class="tmdb-score {{ 'score-high' if tmdb.score_percent >= 70 else ('score-mid' if tmdb.score_percent >= 40 else 'score-low') }}">
-                                {{ tmdb.score_percent }}
-                            </span>
-                        {% endif %}
-                    </div>
-                {% endif %}
-
-                <div class="movie-header-badges">
-                    {% include "_info_badges.html" %}
-
-                    <div class="info-badges">
-                        <span class="info-badge status-{{ movie.status|lower }}">
-                            {{ "✅" if movie.status == "Watched" else "📌" }} {{ movie.status }}
-                        </span>
-
-                        {% if movie.rating %}
-                            <span class="info-badge rating-pill">⭐ {{ movie.rating }}/10</span>
-                        {% endif %}
-
-                        {% if movie.watched_date %}
-                            <span class="info-badge">📆 Watched {{ movie.watched_date }}</span>
-                        {% endif %}
-
-                        {% if movie.favorite %}
-                            <span class="info-badge favorite-pill">❤️ Favorite</span>
-                        {% endif %}
-
-                        <a
-                            class="info-badge info-badge-link"
-                            href="https://www.youtube.com/results?search_query={{ (movie.title ~ ' ' ~ movie.year ~ ' trailer') | urlencode }}"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            ▶ Search Trailer
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            {% include "_tmdb_info.html" %}
-
-            {% if movie.note %}
-                <div class="movie-note-block">
-                    <h2>Note</h2>
-                    <p>{{ movie.note }}</p>
-                </div>
+{% extends "base.html" %}
+{% block title %}
+    {{ movie.title }} · Your library
+{% endblock %}
+{% block content %}
+    <a class="back-link" href="{{ request.args.get('back')|safe_back }}">← Back to library</a>
+    <section class="movie-detail-card" data-detail-id="{{ movie.id }}">
+        <p class="eyebrow">IN YOUR LIBRARY</p>
+        <h1>{{ movie.title }}</h1>
+        <div class="movie-header">
+            {% if tmdb.poster_url %}
+                <img class="movie-poster detail-poster"
+                     src="{{ tmdb.poster_url }}"
+                     alt="Poster for {{ movie.title }}"
+                     width="180"
+                     height="270">
             {% endif %}
-
-            <div class="detail-actions">
-                <a class="edit-link" href="/edit/{{ movie.id }}?next=/movie/{{ movie.id }}">
-                    Edit Rating / Note
-                </a>
-
-                <form action="/status/{{ movie.id }}" method="post">
-                    <input type="hidden" name="next" value="/movie/{{ movie.id }}">
-                    {% if movie.status == "Watchlist" %}
-                        <button type="submit">Mark as Watched</button>
-                    {% else %}
-                        <button type="submit">Move to Watchlist</button>
-                    {% endif %}
-                </form>
-
-                <form action="/favorite/{{ movie.id }}" method="post">
-                    <input type="hidden" name="next" value="/movie/{{ movie.id }}">
-                    {% if movie.favorite %}
-                        <button type="submit">❤️ Remove from Favorites</button>
-                    {% else %}
-                        <button type="submit">♡ Add to Favorites</button>
-                    {% endif %}
-                </form>
-
-                <form action="/delete/{{ movie.id }}" method="post"
-                      data-confirm="Delete &quot;{{ movie.title }}&quot;? This can't be undone.">
-                    <button class="delete-button" type="submit">Delete Movie</button>
-                </form>
+            <div class="movie-header-badges">
+                {% include "_info_badges.html" %}
+                <span class="status-badge {{ movie.status|lower }}">{{ 'Want to watch' if movie.status=='Watchlist' else 'Watched' }}</span>
+                <p>{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else 'No rating yet' }}</p>
+                <p data-watched-date {{ "hidden" if not movie.watched_date }}>Watched {{ movie.watched_date or "" }}</p>
             </div>
-        </section>
-    </main>
-
-    {% include "_confirm_modal.html" %}
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
-</html>
+        </div>
+        {% include "_library_actions.html" %}
+        {% if movie.note %}
+            <section class="movie-note-block" id="note" tabindex="-1" aria-labelledby="note-title">
+                <h2 id="note-title">Your note</h2>
+                <p>{{ movie.note }}</p>
+            </section>
+        {% endif %}
+        {% include "_tmdb_info.html" %}
+        {% include "_entities.html" %}
+        {% if movie.tmdb_id %}
+            <form class="refresh-form"
+                  action="/movie/{{ movie.id }}/refresh"
+                  method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="secondary-button">{{ 'Load actors & companies' if not tmdb.entities else 'Refresh movie information' }}</button>
+                <small>Requires internet. Keeps your personal notes and rating.</small>
+            </form>
+        {% endif %}
+    </section>
+{% endblock %}

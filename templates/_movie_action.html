@@ -1,0 +1,13 @@
+<div class="library-action" data-tmdb-id="{{ movie.tmdb_id }}">
+    {% if movie.library %}
+        <a class="in-library"
+           href="{{ url_for('edit', movie_id=movie.library.id, next=current_url) }}">✓ Already in your library — Click to edit</a>
+    {% else %}
+        <form action="/add_from_catalog" method="post" data-add-movie>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
+            <input type="hidden" name="next" value="{{ current_url }}">
+            <button type="submit">+ Add to Want to Watch</button>
+        </form>
+    {% endif %}
+</div>
