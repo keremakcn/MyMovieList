@@ -86,9 +86,12 @@
         if (version !== libraryVersion) return false;
         if (replace) {
             const fresh = html.getElementById('library-results');
+            if (!fresh) throw new Error('Could not refresh your library. Please try again.');
             document.getElementById('library-results').replaceWith(fresh);
         }
         document.querySelector('.stats-grid')?.replaceWith(html.querySelector('.stats-grid'));
+        const status = document.getElementById('library-update-status');
+        if (status) status.textContent = html.querySelector('.section-heading > span')?.textContent || 'Library updated.';
         return true;
     }
 
@@ -117,6 +120,7 @@
         pendingForms.add(form);
         if (movieId) pendingMovies.add(movieId);
         const buttons = [...form.querySelectorAll('button')];
+        const restoreFocus = form.contains(document.activeElement);
         const label = buttons[0]?.textContent;
         buttons.forEach(button => button.disabled = true);
         form.setAttribute('aria-busy', 'true');
@@ -125,15 +129,16 @@
             const result = await post(form.action, data);
             if (form.matches('[data-add-movie]')) {
                 markAdded(movieId, result);
-                document.dispatchEvent(new CustomEvent("library-movie-added", {detail: {tmdbId: movieId}}));
+                document.dispatchEvent(new CustomEvent("library-movie-added", {detail: {tmdbId: movieId, restoreFocus}}));
                 toast(result.created ? (result.status === 'Watched' ? 'Added as watched.' : 'Added to Want to Watch.') : '✓ In your library.');
             } else if (form.matches('[data-delete]')) {
                 const card = form.closest('.movie-card');
                 const detail = document.querySelector('[data-detail-id]');
+                let nextCardId;
                 if (card) {
                     const next = card.nextElementSibling || card.previousElementSibling;
+                    nextCardId = next?.dataset.movieId;
                     card.remove();
-                    next?.querySelector('a,button')?.focus();
                 } else if (detail) {
                     detail.hidden = true;
                     const notice = document.createElement('section');
@@ -160,12 +165,21 @@
                 const notification = toast('Movie removed.', undo);
                 if (!card) notification.querySelector('button').focus();
                 await refreshLibrary();
+                if (card && restoreFocus) {
+                    const target = document.querySelector(`[data-movie-id="${nextCardId}"] h2 a`)
+                        || document.querySelector('#library-results .section-heading h2');
+                    target?.focus();
+                }
             } else {
                 if (document.getElementById('library-results')) {
                     const cardId = form.closest('.movie-card')?.dataset.movieId;
                     const action = form.action.includes('/favorite/') ? 'favorite' : 'status';
                     await refreshLibrary();
-                    document.querySelector(`[data-movie-id="${cardId}"] form[action^="/${action}/"] button`)?.focus();
+                    if (restoreFocus) {
+                        const target = document.querySelector(`[data-movie-id="${cardId}"] form[action^="/${action}/"] button`)
+                            || document.querySelector('#library-results .section-heading h2');
+                        target?.focus();
+                    }
                 } else {
                     // Detail forms retain the editable note instead of reloading unsaved input.
                     const favoriteAction = form.action.includes('/favorite/');
@@ -206,9 +220,12 @@
 
     const libraryForm = document.querySelector('[data-library-filter]');
     if (libraryForm) {
+        libraryForm.querySelector('[data-auto-hide]')?.setAttribute('hidden', '');
         const input = libraryForm.elements.q;
         let debounce;
+        let filterRevision = 0;
         const run = async () => {
+            const revision = ++filterRevision;
             const url = new URL('/', location.origin);
             new FormData(libraryForm).forEach((value, key) => url.searchParams.set(key, value));
             input.setAttribute('aria-busy', 'true');
@@ -226,10 +243,11 @@
             } catch (error) {
                 if (error.name !== 'AbortError') toast(error.message);
             } finally {
-                input.removeAttribute('aria-busy');
+                if (revision === filterRevision) input.removeAttribute('aria-busy');
             }
         };
         input.addEventListener('input', () => {
+            ++filterRevision;
             clearTimeout(debounce);
             libraryController?.abort();
             ++libraryVersion;
@@ -247,6 +265,13 @@
             run();
         });
         addEventListener('popstate', () => location.reload());
+    }
+
+    // Keep native form submission available when JavaScript is disabled.
+    const modeForm = document.querySelector('.recommendation-controls');
+    if (modeForm) {
+        modeForm.querySelector('[data-auto-hide]')?.setAttribute('hidden', '');
+        modeForm.elements.mode.addEventListener('change', () => modeForm.requestSubmit());
     }
 
     const searchForm = document.querySelector('[data-autocomplete]');

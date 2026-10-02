@@ -28,6 +28,7 @@ from flask import (
 )
 from storage import Database, utcnow
 from tmdb_client import TMDBClient, TMDBError, image_url, movie_details, movie_summary
+from version import APP_VERSION
 
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 DEFAULT_DATA_DIR = (
@@ -143,6 +144,7 @@ def create_app(config=None):
             "?" + urlencode(navigation_args) if navigation_args else ""
         )
         return dict(
+            app_version=APP_VERSION,
             csrf_token=csrf_token,
             current_url=current_url,
             page_url=page_url,

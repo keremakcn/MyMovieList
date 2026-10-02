@@ -1,4 +1,18 @@
-# Verification — Discovery edition
+# Verification — Movie Watchlist v3.2.0
+
+Verified on Windows, 2026-10-02. All test writes used isolated databases. The release continues using the existing AppData library; it adds no schema migration and does not merge the earlier frontend preview's separate data.
+
+- **48 automated tests passed**, including two new desktop launcher checks simulating packaged execution: default AppData selection and explicit data-directory override. Existing notes, ratings, favorites and row metadata remained intact.
+- Ruff F checks and both JavaScript syntax checks passed.
+- The frontend suite covers ten desktop routes and 320, 390, 768 and 1024 CSS-pixel widths, card alignment, long titles, missing posters, deletion/Undo, editor removal, taste selection focus and keyboard autocomplete.
+- The release uses one shared version value for its footer, window title and build name.
+- The public release ZIP contains only the executable and release notes. Personal databases, credentials and poster files are excluded.
+
+Physical phone testing, mobile Safari and a full screen-reader audit remain outside this verification. Online flows use mocked TMDB responses during testing; live service availability is not guaranteed by these checks.
+
+## Historical verification — Discovery edition
+
+The following records describe earlier versions, including card expansion that has since been replaced by a fixed single-line note preview.
 
 Verified on Windows, 2026-09-29 / 2026-09-30. Test writes used isolated temporary databases and `.qa/`; the original project library remained at 6 movies, schema version 0. Its migration will run on the first normal launch, with an automatic backup.
 

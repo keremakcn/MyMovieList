@@ -1,3 +1,4 @@
+{% from "_icons.html" import icon %}
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -15,21 +16,25 @@
     </head>
     <body>
         <a class="skip-link" href="#main">Skip to content</a>
-        <nav class="app-nav" aria-label="Main navigation">
-            <a class="brand" href="/" aria-label="Movie Watchlist home">◈ <span>Movie Watchlist</span>
-            </a>
-            <div>
+        <aside class="sidebar">
+            <a class="brand" href="/" aria-label="Movie Watchlist home"><span class="brand-symbol">{{ icon('film', 23) }}</span><span>Movie<span class="brand-second">Watchlist<span class="brand-dot">.</span></span></span></a>
+            <p class="nav-caption">YOUR CINEMA</p>
+            <nav class="app-nav" aria-label="Main navigation">
                 <a href="/"
-                   {% if request.endpoint == 'index' %} aria-current="page" {% endif %}>Library</a>
+                   {% if request.endpoint in ['index', 'movie', 'edit', 'add'] %} aria-current="page" {% endif %}>{{ icon('library') }}<span>Library</span></a>
                 <a href="/search"
-                   {% if request.endpoint in ['search', 'entity', 'catalog_movie'] %} aria-current="page" {% endif %}>Explore</a>
+                   {% if request.endpoint in ['search', 'entity', 'catalog_movie'] %} aria-current="page" {% endif %}>{{ icon('explore') }}<span>Explore</span></a>
                 <a href="/recommendations"
-                   {% if request.blueprint == 'recommendations' %} aria-current="page" {% endif %}>For you</a>
+                   {% if request.blueprint == 'recommendations' %} aria-current="page" {% endif %}>{{ icon('spark') }}<span>For you</span></a>
                 <a href="/settings"
-                   {% if request.endpoint == 'settings' %} aria-current="page" {% endif %}>Settings</a>
-            </div>
-        </nav>
-        <main id="main">
+                   {% if request.endpoint == 'settings' %} aria-current="page" {% endif %}>{{ icon('settings') }}<span>Settings</span></a>
+            </nav>
+            <div class="sidebar-note"><span class="eyebrow">A LITTLE SERENDIPITY</span><p>Your next favorite<br>is out there.</p><a href="/recommendations">Find your next film {{ icon('arrow', 16) }}</a></div>
+            <div class="sidebar-bottom"><span class="local-dot"></span> A library of your own<small>Saved on this device</small></div>
+        </aside>
+        <div class="workspace">
+        <header class="workspace-topbar"><span>Good films. <span class="muted">Kept close.</span></span><a href="/search" class="topbar-search">{{ icon('search', 16) }}<span>Find a film</span><kbd>Ctrl K</kbd></a></header>
+        <main id="main" tabindex="-1">
             {% block content %}{% endblock %}
         </main>
         <div id="toast-region"
@@ -45,7 +50,8 @@
             {% endfor %}
         </div>
         <footer class="app-footer">
-            Your films. Your perspective. <span>Search shortcut: Ctrl / ⌘ K</span>
+            Made for the love of film.<span>Movie Watchlist · v{{ app_version }}</span>
         </footer>
+        </div>
     </body>
 </html>

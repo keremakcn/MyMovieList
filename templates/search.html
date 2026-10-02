@@ -4,9 +4,9 @@
 {% endblock %}
 {% block content %}
     <header class="explore-header">
-        <p class="eyebrow">ONE GOOD FILM LEADS TO ANOTHER</p>
-        <h1>What will you discover?</h1>
-        <p>Find movies, actors and directors. Choose Companies to explore studios.</p>
+        <p class="eyebrow">FOLLOW YOUR CURIOSITY</p>
+        <h1>A world of film<span class="heading-dot">.</span></h1>
+        <p>Start with a title. Follow an actor. Discover a whole new favorite.</p>
     </header>
     {% include "_search_form.html" %}
     <section class="search-results" aria-label="Search results">
@@ -67,11 +67,11 @@
             </div>
             {% include "_pagination.html" %}
         {% else %}
-            <div class="explore-intro">
-                <span>01 / MOVIES</span>
-                <span>02 / ACTORS &amp; DIRECTORS</span>
-                <span>03 / COMPANIES</span>
-                <p>Start with a title, a familiar face, or a studio you love.</p>
+            <div class="explore-intro"><div class="explore-orbit">{{ icon('explore', 44) }}</div><p class="eyebrow">EVERY FILM IS A NEW BEGINNING</p><h2>Where will your curiosity take you?</h2><p>Search above, or take one of these paths into cinema.</p></div>
+            <div class="discovery-paths">
+                <a href="/search?filters=1&amp;category=movie&amp;q=Interstellar"><span class="path-number">01 / A FILM</span><h2>Beyond the ordinary</h2><p>Begin with Interstellar</p>{{ icon('arrow') }}</a>
+                <a href="/search?filters=1&amp;category=actor&amp;category=director&amp;q=Christopher+Nolan"><span class="path-number">02 / A FILMMAKER</span><h2>Behind the lens</h2><p>Explore Christopher Nolan</p>{{ icon('arrow') }}</a>
+                <a href="/search?filters=1&amp;category=company&amp;q=A24"><span class="path-number">03 / A STUDIO</span><h2>A different perspective</h2><p>Step inside A24</p>{{ icon('arrow') }}</a>
             </div>
         {% endif %}
     </section>

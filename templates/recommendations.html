@@ -3,33 +3,33 @@
 {% block content %}
     <header class="app-header">
         <div>
-            <p class="eyebrow">YOUR NEXT GOOD FILM</p>
-            <h1>{{ 'Picked for you' if profile.ready else 'A few places to start' }}</h1>
-            <p>Picked for you. Choose New suggestions whenever you want a fresh selection.</p>
+            <p class="eyebrow">A LITTLE TASTE. A LITTLE CHANCE.</p>
+            <h1>Tonight, something good<span class="heading-dot">.</span></h1>
+            <p>Your next watch, with a little room for discovery.</p>
         </div>
         <a class="edit-link"
            href="/taste">{{ 'Edit your picks' if onboarding == 'complete' else 'Choose films you love' }}</a>
     </header>
     {% if not profile.ready %}
         <section class="taste-invitation">
-            <h2>Let's get to know your taste</h2>
-            <p>These are starting suggestions. Add and rate films you have seen — including ones you disliked — for more personal picks. Notes are optional and are not analyzed in this version.</p>
+            <h2>Make this feel more like you.</h2>
+            <p>These are starting suggestions. Choose films you love and rate what you watch to shape your picks.</p>
             {% if onboarding not in ["skipped", "complete"] %}<a class="edit-link"
    href="/taste">Pick a few favorites to get started →</a>{% endif %}
         </section>
     {% endif %}
-    <form action="/recommendations/mode"
+    <div class="recommendation-toolbar"><form action="/recommendations/mode"
           method="post"
           class="recommendation-controls">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="discovery-mode">How adventurous should your picks be?</label>
+        <label for="discovery-mode">In the mood for</label>
         <select id="discovery-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ label }}</option>{% endfor %}</select>
-        <button type="submit">Apply</button>
+        <button type="submit" class="secondary-button" data-auto-hide>Apply</button>
     </form>
-    <button type="button" id="refresh-recommendations" disabled>New suggestions</button>
+    <button type="button" id="refresh-recommendations" disabled>New suggestions</button></div>
     <p id="recommendation-status" role="status"></p>
     <section id="recommendation-results" aria-live="polite" aria-busy="true">
-        <p class="empty-state">Finding your next film…</p>
+        <div class="loading-state"><span class="loading-orbit" aria-hidden="true"></span><h2>Setting the scene…</h2><p>Finding a few films for you.</p></div>
     </section>
     <noscript>
         <p>Enable JavaScript to load recommendations. Your library still works without it.</p>

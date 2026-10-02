@@ -11,7 +11,7 @@
     if (region) {
         const refreshButton = document.getElementById("refresh-recommendations");
         const refreshStatus = document.getElementById("recommendation-status");
-        let loading = false, refreshPending = false;
+        let loading = false, refreshPending = false, restorePickFocus = false;
         async function load(fresh = false) {
             if (loading) { refreshPending = true; return; }
             loading = true; region.setAttribute('aria-busy', 'true');
@@ -21,6 +21,10 @@
             try {
                 const data = await read(await fetch(fresh ? '/api/recommendations/refresh' : '/api/recommendations', fresh ? {method: 'POST', headers: {'X-CSRF-Token': csrf}} : {}));
                 region.innerHTML = data.html; // Escaped same-origin Jinja fragment.
+                if (restorePickFocus) {
+                    const target = region.querySelector('.catalog-card h2 a') || refreshButton;
+                    target.focus(); restorePickFocus = false;
+                }
             } catch (error) {
                 if (fresh) { refreshStatus.textContent = error.message; return; }
                 const message = document.createElement('p'); message.className = 'form-error'; message.textContent = error.message;
@@ -34,6 +38,7 @@
         }
         refreshButton.addEventListener('click', () => { if (!loading) load(true); });
         document.addEventListener('library-movie-added', event => {
+            restorePickFocus = restorePickFocus || event.detail.restoreFocus;
             const id = event.detail.tmdbId;
             const card = [...region.querySelectorAll('.library-action')].find(node => node.dataset.tmdbId === String(id))?.closest('.recommendation-item');
             if (card) card.remove();
@@ -76,13 +81,20 @@
     const saveStatus = document.getElementById('taste-save-status');
     const continueButton = document.getElementById('taste-continue');
     const selected = new Map([...selectedRegion.querySelectorAll('[data-selected-id]')].map(button => [Number(button.dataset.selectedId), button.dataset.selectedTitle]));
-    let revision = 0, controller, timer, page = 1, query = '', busy = false, saving = false;
+    let revision = 0, controller, timer, page = 1, query = '', busy = false, saving = false, failedRequest = null;
     function sync() {
         count.textContent = `(${selected.size})`; selectedRegion.replaceChildren();
         for (const [id, title] of selected) {
             const button = document.createElement('button'); button.type = 'button'; button.textContent = `${title} ×`;
             button.setAttribute('aria-label', `Remove ${title} from your picks`);
-            button.addEventListener('click', () => { if (!saving) { selected.delete(id); sync(); } }); selectedRegion.append(button);
+            button.disabled = saving;
+            button.addEventListener('click', () => {
+                if (saving) return;
+                const index = [...selected.keys()].indexOf(id);
+                const hadFocus = document.activeElement === button;
+                selected.delete(id); sync();
+                if (hadFocus) (selectedRegion.children[index] || selectedRegion.lastElementChild || input).focus();
+            }); selectedRegion.append(button);
         }
         grid.querySelectorAll('input[type="checkbox"]').forEach(box => { box.checked = selected.has(Number(box.value)); box.disabled = saving; });
         continueButton.disabled = saving || !selected.size;
@@ -114,11 +126,13 @@
             const params = new URLSearchParams({q: nextQuery, page: nextPage});
             const data = await read(await fetch(`/api/taste/choices?${params}`, {signal: controller.signal}));
             if (current !== revision) return;
+            failedRequest = null; delete more.dataset.retry;
             query = nextQuery; page = nextPage; draw(data.movies);
             more.hidden = page >= data.pages; more.textContent = query ? 'Next results' : 'Show different films';
             status.textContent = data.errors.length ? data.errors.join(' ') : data.movies.length ? 'Select films you have seen and enjoyed. Your picks stay selected as you browse.' : 'No films found. Try another title.';
         } catch (error) {
             if (error.name !== 'AbortError' && current === revision) {
+                failedRequest = {query: nextQuery, page: nextPage};
                 status.textContent = error.message; more.hidden = false; more.textContent = 'Try again'; more.dataset.retry = 'true';
             }
         } finally { if (current === revision) { busy = false; more.disabled = false; grid.setAttribute('aria-busy', 'false'); } }
@@ -132,7 +146,7 @@
     });
     more.addEventListener('click', () => {
         if (busy) return;
-        if (more.dataset.retry) { delete more.dataset.retry; load(input.value.trim(), 1); } else load(query, page + 1);
+        if (more.dataset.retry && failedRequest) { load(failedRequest.query, failedRequest.page); } else load(query, page + 1);
     });
     document.getElementById('taste-browse').addEventListener('click', () => {
         clearTimeout(timer); input.value = ''; delete more.dataset.retry; load('', 1);

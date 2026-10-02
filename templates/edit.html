@@ -5,7 +5,7 @@
 {% block content %}
     <div class="form-page">
         <a class="back-link" href="{{ next_url }}">← Back</a>
-        <section class="form-card">
+        <section class="form-card" data-detail-id="{{ movie.id }}">
             <p class="eyebrow">YOUR PERSPECTIVE</p>
             <h1>{{ movie.title }}</h1>
             {% if error %}
@@ -32,7 +32,7 @@
                 <button>Save changes</button>
                 <a class="edit-link" href="{{ next_url }}">Cancel</a>
             </form>
-            <div class="quick-actions" data-detail-id="{{ movie.id }}">{% include "_library_actions.html" %}</div>
+            <div class="quick-actions">{% include "_library_actions.html" %}</div>
         </section>
     </div>
 {% endblock %}

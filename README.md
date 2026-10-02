@@ -1,10 +1,32 @@
-# Movie Watchlist 3.1.1
+# Movie Watchlist v3.2.0
+
+**A fresh look for your personal film library.** Version 3.2.0 brings a redesigned interface, responsive navigation and smoother everyday interactions while keeping your existing library. See the [release notes](RELEASE_NOTES.md) and [UI design and verification notes](UI_DESIGN.md).
 
 A local-first personal film library for Windows and the browser. Flask + Jinja + SQLite, with a small JavaScript interaction layer and a native pywebview window.
 
-Version 3.1.1 improves recommendation variety, makes discovery modes more distinct and adds manual refresh to the personalized recommendations introduced in 3.1.
+Keep your collection close, explore the people and studios behind your favorite films, and find something to watch tonight. Saved library information and downloaded posters remain available offline; discovery uses TMDB.
 
-## What's fixed and improved in 3.1.1
+## Your films. Your thoughts. Your space.
+
+Not every thought needs an audience. A film might leave you angry, challenge your beliefs, or bring back a memory you would rather keep to yourself. Write an honest reaction, a detailed review or a single sentence—without having to turn it into something for everyone else to read.
+
+Movie Watchlist is also your personal film journal. Your ratings and notes are saved on your own computer, without being published to a public profile or shared with other users. Your notes are not sent to TMDB.
+
+Local storage is not encryption: someone with access to your database or its backups could read your notes. Keep those files protected if they contain personal thoughts.
+
+## What's new in 3.2.0
+
+- **A new visual identity:** charcoal surfaces, lavender accents, editorial headings and a shared SVG icon set.
+- **A more focused library:** compact statistics, clearer filters, aligned movie cards and one-line note previews. View note opens the detail page without expanding the card.
+- **Navigation that fits the screen:** the desktop sidebar extends down the page and scrolls with the collection. Tablets use a compact rail; phones use a fixed bottom navigation bar.
+- **A new Explore landing page:** film, filmmaker and studio starting points lead into the existing connected discovery experience.
+- **Simpler recommendation controls:** discovery mode and New suggestions sit together; changing mode applies immediately. The recommendation algorithm is unchanged.
+- **Consistent pages:** refreshed film details, actor/director and company profiles, taste onboarding, settings and editing forms.
+- **Smoother interactions:** improved loading and empty states, keyboard focus after quick actions, and removal/Undo behavior in the editor.
+
+The existing library features, recommendation modes and database schema are retained. The Windows release continues using your library in `%APPDATA%\MovieWatchlist`, including its notes, ratings, favorites, saved posters and settings.
+
+## Included from 3.1.1
 
 - **New suggestions:** refresh recommendations without restarting the app. Normal page reloads keep the current selection.
 - **Fewer repeats:** the candidate pool expands on refresh, and up to 50 recently shown films per mode are held back while alternatives exist.
@@ -50,61 +72,29 @@ This first version uses genre-level matching, not plot-twist detection, semantic
 
 ## Screenshots
 
+Screenshots show the redesigned interface with isolated example data.
+
 ### Your movie library
 
-An overview of your collection, library statistics, ratings and compact movie cards.
+Collection statistics, compact cards, quick actions and a sidebar that follows the page's full height.
 
-![Movie library overview with statistics and movie cards](screenshots/homepage0.png)
-
-<details>
-<summary>Favorites and library filtering</summary>
-
-**Favorites**
-
-![Favorites view with saved movie cards](screenshots/homepage1.png)
-
-**Filter your library by title**
-
-![Library filtered to Django Unchained](screenshots/homepage2.png)
-
-</details>
+![Redesigned movie library with sidebar navigation and compact movie cards](screenshots/frontend-library.png)
 
 ### Search and discovery
 
-Choose which categories to search, then add films directly to your watchlist.
+Search films, actors, directors and companies, or start exploring from a film, filmmaker or studio.
 
-![Explore search with Movies, Actors, Directors and Companies checkbox filters](screenshots/search0.png)
+![Redesigned Explore page with search filters and discovery starting points](screenshots/frontend-explore.png)
 
-<details>
-<summary>Movie search results</summary>
+## Mobile layout
 
-![Oppenheimer search results with Add to Want to Watch buttons](screenshots/searchmovie.png)
+On narrow screens, cards stack into a single column, controls wrap to fit, and main navigation moves to a fixed bottom bar. Notes remain compact and open on the film detail page.
 
-</details>
-
-<details>
-<summary>Actor and director filmographies</summary>
-
-**Actor profile**
-
-![Tom Cruise profile and filmography](screenshots/actor.png)
-
-**Director profile**
-
-![Quentin Tarantino profile and filmography with library membership indicators](screenshots/director.png)
-
-</details>
-
-<details>
-<summary>Ratings, watched dates and notes</summary>
-
-![Movie editor for The Godfather with rating, watched date and note fields](screenshots/editpage.png)
-
-</details>
+Browser checks at 320 and 390 CSS pixels found no horizontal page overflow in the tested flows. Tablet and smaller desktop layouts were also checked at 768 and 1024 pixels. These are browser viewport checks, not tests on physical phones; touch interaction, the on-screen keyboard and mobile Safari still need device testing. The Windows executable does not run on phones, and the default local server is not configured for phone access over a network.
 
 ## Quick start
 
-1. Open `dist/MovieWatchlist-v3.1.1.exe` on Windows, or follow the source instructions below.
+1. Download and extract `MovieWatchlist-v3.2.0-windows.zip`, then open `MovieWatchlist-v3.2.0.exe` on Windows. For a local build, open `dist/MovieWatchlist-v3.2.0.exe`, or follow the source instructions below.
 2. In **Settings**, save your TMDB **API Read Access Token** to enable discovery.
 3. Open **Explore**, enter a title or name, choose the categories below the search box, then press **Search**.
 4. Use **Add to Want to Watch** on a result or film page. A film already in your library links to its editor instead of creating another entry.
@@ -149,24 +139,28 @@ Open `http://127.0.0.1:5000`. The app is intended for one user on the local mach
 
 ## Desktop
 
-The 3.1.1 release executable is `dist/MovieWatchlist-v3.1.1.exe`. It uses the same existing application data directory, so your library is retained when switching from an older executable. Close the running app before replacing its executable with an updated build.
+The release executable is `dist/MovieWatchlist-v3.2.0.exe`. It uses `%APPDATA%\MovieWatchlist`, the same data directory as earlier releases. Close the running application before opening the new version. Replacing or moving the executable does not move or erase your library; no adjacent `data/` folder is required.
 
-To build it:
+To run the native window from source after installing the desktop requirements, run `.\.venv\Scripts\python.exe run_desktop.py`.
+
+To build the executable and a clean release ZIP:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-desktop.txt
-.\.venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --windowed --name MovieWatchlist-v3.1.1 --icon=app_icon.ico --add-data "templates;templates" --add-data "static;static" run_desktop.py
+.\scripts\build_release.ps1
 ```
 
 The desktop server binds to an available loopback port before opening the window, avoiding fixed-port collisions. Windows needs the Edge WebView2 runtime.
 
+The build script reads `version.py`, creates `dist/MovieWatchlist-v3.2.0.exe`, and packages only that executable and the release notes. Upload `dist/releases/v3.2.0/MovieWatchlist-v3.2.0-windows.zip` and its `SHA256SUMS.txt` to your release. Personal databases, `.env` files, posters and old executables are excluded. The script accepts `-Python` if your environment is stored elsewhere.
+
 ## Data and upgrades
 
 - Source mode: `movies.db` and `posters/` in the project directory.
-- Packaged mode: `%APPDATA%\MovieWatchlist\movies.db` and `posters/`.
-- `MOVIE_WATCHLIST_DATA_DIR` overrides the data directory (useful for isolated testing).
+- Packaged Windows release: `%APPDATA%\MovieWatchlist\movies.db` and `%APPDATA%\MovieWatchlist\posters/`.
+- `MOVIE_WATCHLIST_DATA_DIR` explicitly overrides the data directory in both source and packaged mode; remove an old override if you want the default AppData library.
 - Before migrating an existing database, the app creates `movies.db.before-v2-<timestamp>.bak` beside it using SQLite's backup API.
-- The application version **3.1.1** and database schema version **2** are separate: the schema number does not need to match the release name.
+- Application version **3.2.0** keeps database schema version **2**. This release adds no schema migration.
 - Migrations run in a transaction and never automatically delete duplicate records. If a legacy database contains duplicate TMDB IDs, the migration stops with a diagnostic so they can be reconciled without losing notes.
 - New records store creation/update timestamps. Older records keep their IDs and original ordering; their unknown creation dates are not invented.
 - Removing a film sets `deleted_at`. Restoring clears it on the same row. Re-adding a removed TMDB movie restores that original entry, including its previous status and personal data.
@@ -175,6 +169,8 @@ The desktop server binds to an available loopback port before opening the window
 - The retired `movie_catalog` table is preserved but not used. `import_movies.py` is now a non-destructive compatibility notice.
 
 To restore an entire backup, close the app, keep a copy of the current database, and replace `movies.db` with the chosen backup. Keep `posters/` together with library backups. Do not copy an actively written SQLite database; use SQLite's backup API or close the app first.
+
+If you tried the separate frontend preview, its adjacent `data/` library remains separate. The release does not overwrite AppData with that test library or automatically merge it. Keep the preview files if you need to recover notes added there.
 
 ## TMDB configuration and privacy
 
@@ -196,12 +192,18 @@ storage.py              SQLite transactions, migration, membership and recovery
 tmdb_client.py          TMDB requests, cache, error handling and normalization
 recommendations.py      Local taste profile, public candidate pool and diverse ranking
 recommendation_routes.py Survey, recommendation and feedback routes
-run_desktop.py          Native window lifecycle
+run_desktop.py          Native window lifecycle using the shared data configuration
+version.py              Application version shared by the UI, launcher and build
+scripts/build_release.ps1 Clean Windows release packaging and SHA-256 checksums
 static/script.js        Shared actions, toasts, autocomplete and library filtering
-static/style.css        Responsive design and reduced-motion support
+static/recommendations.js Recommendation and taste-survey interactions
+static/style.css        Design tokens, shared components and responsive layouts
 templates/base.html     Shared page shell and navigation
+templates/_icons.html   Shared SVG icon set
 templates/_*.html       Shared result cards, actions, pagination and entity links
 tests/                  Isolated library, migration, recommendation and concurrency tests
+tests/frontend.e2e.cjs   Browser layout and interaction checks
+tests/frontend_fixture_server.py Isolated UI fixtures with mocked TMDB responses
 ```
 
 ## Development checks
@@ -214,6 +216,8 @@ node --check static/script.js
 node --check static/recommendations.js
 ```
 
-The latest verification passed **46 tests**, covering migration and recovery, duplicate/race handling, request safeguards, caching, discovery navigation, checkbox filtering, autocomplete and pagination. Tests use temporary databases and mocked TMDB responses; they do not modify the personal library. Node.js is only needed for the JavaScript syntax check, not to run the app.
+The latest verification passed **48 tests**, covering migration and recovery, duplicate/race handling, request safeguards, caching, discovery navigation, checkbox filtering, autocomplete, pagination and desktop data-directory selection. Desktop launcher tests simulate a packaged application and verify preservation of existing records in AppData and in an explicitly overridden data directory. Tests use temporary databases and mocked TMDB responses; they do not modify the personal library. Node.js is only needed for JavaScript checks and browser testing, not to run the app.
 
-See [QA_RESULTS.md](QA_RESULTS.md) for verification details and testing limitations.
+Frontend checks covered ten desktop pages, four responsive widths, equal card heights, long titles, missing posters, removal/Undo and keyboard focus. No JavaScript errors were reported in those scenarios. The latest sidebar change was also checked for desktop scrolling and fixed mobile navigation.
+
+See [UI_DESIGN.md](UI_DESIGN.md) for browser test instructions and limitations, and [QA_RESULTS.md](QA_RESULTS.md) for verification details.

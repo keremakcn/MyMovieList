@@ -2,11 +2,11 @@
 {% block content %}
     <header class="app-header">
         <div>
-            <p class="eyebrow">A HOME FOR YOUR FILMS</p>
-            <h1>Your movie library</h1>
-            <p class="page-subtitle">The ones you love. The ones you'll discover next.</p>
+            <p class="eyebrow">YOUR PERSONAL COLLECTION</p>
+            <h1>Your library<span class="heading-dot">.</span></h1>
+            <p class="page-subtitle">A collection of stories. A reflection of you.</p>
         </div>
-        <a class="add-movie-link" href="/add">+ Add manually</a>
+        <div class="header-actions"><a class="text-button" href="/add">Add manually</a><a class="add-movie-link" href="/search">{{ icon('plus', 17) }} Find a film</a></div>
     </header>
     {% if tmdb_token_missing %}
         <div class="token-banner">
@@ -15,19 +15,11 @@
         </div>
     {% endif %}
     <section class="stats-grid" aria-label="Library statistics">
-        {% for label,value in [('Favorites',stats.favorites),('Watched',stats.watched),('Want to watch',stats.watchlist),('Average rating',(stats.average|string ~ '/10') if stats.average else '—')] %}
+        {% for symbol,label,value in [('check','Watched',stats.watched),('clock','Want to watch',stats.watchlist),('heart','Favorites',stats.favorites),('star','Average rating',(stats.average|string ~ '/10') if stats.average else '—')] %}
             <div class="stat-card">
-                <span>{{ label }}</span>
-                <strong>{{ value }}</strong>
+                <span class="stat-symbol">{{ icon(symbol,18) }}</span><div><strong>{{ value }}</strong><span>{{ label }}</span></div>
             </div>
         {% endfor %}
-    </section>
-    <section class="discovery-strip">
-        <div>
-            <p class="eyebrow">FIND SOMETHING GREAT</p>
-            <h2>Follow a film. Discover a world.</h2>
-        </div>
-        <a class="edit-link" href="/search">Explore movies, actors & companies →</a>
     </section>
     <section class="filter-bar">
         <nav class="filter-group" aria-label="Library views">
@@ -40,6 +32,7 @@
         <form class="library-toolbar" action="/" role="search" data-library-filter>
             <input type="hidden" name="status" value="{{ status_filter }}">
             <div class="library-search">
+                {{ icon('search', 18) }}
                 <label class="sr-only" for="library-search-input">Filter your library by title</label>
                 <input id="library-search-input"
                        name="q"
@@ -54,12 +47,13 @@
                     <option value="{{ value }}" {{ 'selected' if sort==value }}>{{ label }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="secondary-button">Apply</button>
+            <button type="submit" class="secondary-button" data-auto-hide>Apply</button>
         </form>
     </section>
-    <section class="recent-section" id="library-results">
+    <p class="sr-only" id="library-update-status" role="status"></p>
+    <section class="recent-section" id="library-results" aria-label="Movie collection">
         <div class="section-heading">
-            <h2>{{ 'Recently removed' if status_filter=='trash' else 'Your collection' }}</h2>
+            <h2 tabindex="-1">{{ 'Recently removed' if status_filter=='trash' else 'Your collection' }}</h2>
             <span>{{ count }} {{ 'film' if count == 1 else 'films' }}</span>
         </div>
         <p id="library-search-empty" class="library-search-empty" hidden>No movies match your search.</p>
