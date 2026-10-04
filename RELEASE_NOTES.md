@@ -4,6 +4,8 @@ A fresh look for your personal film library, with a cleaner desktop experience a
 
 ## What's new
 
+- New lavender film-ribbon logo, Windows icon and Android launcher icon.
+- Signed Android beta `3.3.0-android-beta.1` available with token-free discovery; physical-device testing is still pending.
 - Movie discovery works without a personal TMDB account or token, through the shared Cloudflare gateway at `api.myshelf.cloud`.
 - Settings no longer asks for API credentials; obsolete saved tokens are removed on startup while library data stays local.
 - Redesigned interface with charcoal surfaces, lavender accents, refined typography and consistent icons.

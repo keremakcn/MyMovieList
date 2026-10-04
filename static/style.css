@@ -401,3 +401,5 @@ img.company-logo { object-fit: contain; background: #e8e6ed; padding: 12px; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+.brand-logo { width: 43px; height: 43px; flex-shrink: 0; object-fit: contain; }

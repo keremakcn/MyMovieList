@@ -1,6 +1,6 @@
 # Android — standalone beta
 
-The Android app runs the film library on the phone itself. It does not connect to a desktop computer or require a hosted MyMovieList server. This is a new Android beta; the existing Windows v3.2.0 release remains separate.
+The Android app runs the film library on the phone itself. It does not connect to a desktop computer or require a hosted MyMovieList server. This is a new Android beta; the existing Windows v3.3.0 release remains separate.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ Films and notes are stored in the app's private `files/library/` directory. They
 
 The release application ID is `com.moviewatchlist`. Its usual private data path is `/data/user/0/com.moviewatchlist/files/library/`. Builds with a different application ID have separate storage and do not automatically transfer their library.
 
-Cloud backup and device-transfer backup are disabled for the private library. Local storage is not an application-level encrypted vault. Discovery and remote images require internet access; saved film information and downloaded posters remain available offline. Users supply their own TMDB token in Settings, as on Windows. No developer token is embedded in the APK.
+Cloud backup and device-transfer backup are disabled for the private library. Local storage is not an application-level encrypted vault. Discovery and remote images require internet access; saved film information and downloaded posters remain available offline. Discovery uses the shared https://api.myshelf.cloud service. No personal TMDB account or token is required, and no developer credential is embedded in the APK.
 
 ## Requirements
 
@@ -52,7 +52,7 @@ Then build:
 .\scripts\build_android.ps1 -Release
 ```
 
-Outputs are placed in `dist/android/3.2.0-android-beta.1/`:
+Outputs are placed in `dist/android/3.3.0-android-beta.1/`:
 
 - `.apk`: installable download for a GitHub prerelease.
 - `.aab`: Android App Bundle for a future Google Play submission; it is not installed directly by users.
@@ -77,3 +77,7 @@ Before promoting this beta to a stable phone release, test the actual APK on dev
 Google Play publication is a separate step requiring your developer account, signing setup, privacy disclosures and store review. A successful APK/AAB build alone does not mean the app is ready or approved for the Play Store.
 
 Technical references: [Chaquopy](https://chaquo.com/chaquopy/doc/current/android.html), [Android WebView](https://developer.android.com/develop/ui/views/layout/webapps/webview), [Android App Bundles](https://developer.android.com/guide/app-bundle).
+
+## Latest build — October 5, 2026
+
+Signed `MyMovieList-3.3.0-android-beta.1.apk` and `.aab` generated in `dist/android/3.3.0-android-beta.1/`. The APK uses the existing release signing certificate, retains `com.moviewatchlist`, and increments `versionCode` to 2. The new logo and shared discovery gateway are included. Signature and package alignment verified; physical-device testing is pending.

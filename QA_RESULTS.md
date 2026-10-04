@@ -178,3 +178,11 @@ Gateway network follow-up: 68 isolated tests passed. Custom HTTPS gateway config
 Follow-up: Cleared Windows DNS client cache after stale negative resolution. Normal application TMDBClient search returned 20 results; rebuilt EXE smoke test passed startup, token-free Settings, isolated library and LIVE search. No DNS server settings or hosts entries were changed.
 
 MyMovieList rebrand (2026-10-05): 68 tests passed; packaged MyMovieList-v3.3.0.exe verified with new branding and live movie search in an isolated data directory. Existing AppData/MovieWatchlist data path retained.
+
+## MyMovieList logo and Android 3.3.0 beta — 2026-10-05
+
+- Approved generated logo converted to transparent PNG, 256px PNG and ICO with nine sizes from 16 through 256px. Windows icon, sidebar, favicon, README and Android launcher updated.
+- 68 Python tests, desktop browser flows, four mobile widths and mobile interaction tests passed. New Windows EXE live search passed with isolated data.
+- Signed Android APK and AAB built successfully; release package keeps com.moviewatchlist identity, raises versionCode to 2, and uses the same signing certificate as the previous 3.2.0 APK.
+- APK signature v2 and 16KB ZIP alignment verified. Shared logo assets included; personal databases, environment files and private signing files excluded.
+- Android app label MyMovieList and versionName 3.3.0-android-beta.1 verified. Physical Android-device installation/runtime verification remains pending.

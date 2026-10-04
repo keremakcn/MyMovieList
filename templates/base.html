@@ -11,6 +11,7 @@
                 MyMovieList
             {% endblock %}
         </title>
+        <link rel="icon" href="{{ url_for('static', filename='branding/mymovielist.ico') }}" sizes="any">
         <link rel="stylesheet"
               href="{{ url_for('static', filename='style.css', v=asset_version) }}">
         <script defer src="{{ url_for('static', filename='script.js', v=asset_version) }}"></script>
@@ -18,7 +19,7 @@
     <body>
         <a class="skip-link" href="#main">Skip to content</a>
         <aside class="sidebar">
-            <a class="brand" href="/" aria-label="MyMovieList home"><span class="brand-symbol">{{ icon('film', 23) }}</span><span>MyMovie<span class="brand-second">List<span class="brand-dot">.</span></span></span></a>
+            <a class="brand" href="/" aria-label="MyMovieList home"><img class="brand-logo" src="{{ url_for('static', filename='branding/mymovielist-256.png') }}" width="43" height="43" alt=""><span>MyMovie<span class="brand-second">List<span class="brand-dot">.</span></span></span></a>
             <p class="nav-caption">YOUR CINEMA</p>
             <nav class="app-nav" aria-label="Main navigation">
                 <a href="/"
