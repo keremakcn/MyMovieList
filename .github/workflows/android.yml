@@ -1,0 +1,84 @@
+name: Android packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Package type
+        type: choice
+        options: [debug, release]
+        default: debug
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Validate shared application
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pytest -q
+      - name: Configure release signing
+        if: inputs.mode == 'release'
+        env:
+          SIGNING_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SIGNING_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import base64, os
+          from pathlib import Path
+          keys = ['SIGNING_KEY', 'SIGNING_PASSWORD', 'SIGNING_ALIAS', 'SIGNING_KEY_PASSWORD']
+          if not all(os.environ.get(key) for key in keys):
+              raise SystemExit('Configure the four Android signing secrets before requesting a release build.')
+          Path('.android-signing').mkdir(exist_ok=True)
+          Path('.android-signing/release.jks').write_bytes(base64.b64decode(os.environ['SIGNING_KEY'], validate=True))
+          def property_value(value):
+              return value.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r')
+          properties = {'storeFile': '../.android-signing/release.jks', 'storePassword': os.environ['SIGNING_PASSWORD'],
+                        'keyAlias': os.environ['SIGNING_ALIAS'], 'keyPassword': os.environ['SIGNING_KEY_PASSWORD']}
+          Path('android/keystore.properties').write_text(''.join(f'{key}={property_value(value)}\n' for key, value in properties.items()))
+          PY
+      - name: Build APK and optional Play bundle
+        working-directory: android
+        env:
+          BUILD_MODE: ${{ inputs.mode }}
+        run: |
+          export CHAQUOPY_BUILD_PYTHON="$(command -v python)"
+          if [ "$BUILD_MODE" = release ]; then
+            bash ./gradlew --no-daemon assembleRelease bundleRelease lintRelease
+          else
+            bash ./gradlew --no-daemon assembleDebug lintDebug
+          fi
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: MovieWatchlist-android-${{ inputs.mode }}
+          if-no-files-found: error
+          path: |
+            android/app/build/outputs/apk/${{ inputs.mode }}/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+      - name: Remove temporary signing files
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ['.android-signing/release.jks', 'android/keystore.properties']:
+              Path(name).unlink(missing_ok=True)
+          PY

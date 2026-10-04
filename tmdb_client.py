@@ -1,7 +1,7 @@
 """Bounded TMDB cache and single-flight requests shared by all discovery views."""
 
-import hashlib
 import json
+import os
 import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -9,8 +9,12 @@ from collections import OrderedDict
 from concurrent.futures import Future
 from threading import Lock
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
+
+from version import APP_VERSION
+
+GATEWAY_BASE_URL = "https://api.myshelf.cloud/3/"
 
 
 class TMDBError(Exception):
@@ -21,8 +25,13 @@ class TMDBError(Exception):
 
 
 class TMDBClient:
-    def __init__(self, token_provider, capacity=256):
-        self.token_provider = token_provider
+    def __init__(self, capacity=256, base_url=None):
+        configured = base_url or os.environ.get("MOVIE_WATCHLIST_GATEWAY_URL") or GATEWAY_BASE_URL
+        parts = urlsplit(configured)
+        if (parts.scheme != "https" or not parts.hostname or parts.username or parts.password
+                or parts.query or parts.fragment or parts.path not in ("", "/", "/3", "/3/")):
+            raise ValueError("Movie discovery requires a valid HTTPS gateway address.")
+        self.base_url = configured.rstrip('/') + ('/' if parts.path.rstrip('/') == '/3' else '/3/')
         self.capacity = capacity
         self.cache = OrderedDict()
         self.pending = {}
@@ -36,11 +45,8 @@ class TMDBClient:
                     del self.cache[key]
 
     def get(self, path, **params):
-        token = self.token_provider()
-        if not token:
-            raise TMDBError("Add your TMDB token in Settings to explore movies.", 503)
         key = (
-            hashlib.sha256(token.encode()).hexdigest(),
+            self.base_url,
             path,
             urlencode(sorted(params.items())),
         )
@@ -53,22 +59,25 @@ class TMDBClient:
                 return cached[1]
             if self.cooldown.get(key[0], 0) > time.monotonic():
                 raise TMDBError(
-                    "TMDB is busy. Please wait a moment and try again.", 429
+                    "Movie discovery is busy. Please wait a moment and try again.", 429
                 )
             future = self.pending.get(key)
             owner = future is None
             if owner:
                 future = self.pending[key] = Future()
         if not owner:
-            return future.result(timeout=15)
+            try:
+                return future.result(timeout=15)
+            except TimeoutError as error:
+                raise TMDBError("Movie discovery is taking too long. Please try again.") from error
         try:
-            result = self._request(path, params, token)
+            result = self._request(path, params)
             ttl = 120 if path.startswith("search/") else 21600
         except TMDBError as error:
             result, ttl = error, error.retry_after
         except Exception:
             result, ttl = (
-                TMDBError("TMDB returned an unexpected response. Please try again."),
+                TMDBError("Movie discovery returned an unexpected response. Please try again."),
                 3,
             )
         with self.lock:
@@ -87,13 +96,17 @@ class TMDBClient:
             raise result
         return result
 
-    def _request(self, path, params, token):
+    def _request(self, path, params):
+        if not path or path.startswith('/') or any(part in ('', '.', '..') for part in path.split('/')) or '?' in path or '#' in path or '\\' in path:
+            raise TMDBError("Invalid movie discovery request.", 400)
+        if any(key in params for key in ('api_key', 'access_token', 'token')):
+            raise TMDBError("Credentials are not accepted by movie discovery.", 400)
         req = Request(
-            "https://api.themoviedb.org/3/" + path + "?" + urlencode(params),
-            headers={"Authorization": "Bearer " + token, "Accept": "application/json"},
+            self.base_url + path + "?" + urlencode(params),
+            headers={"Accept": "application/json", "User-Agent": f"MyMovieList/{APP_VERSION}"},
         )
         try:
-            with urlopen(req, timeout=8) as response:
+            with urlopen(req, timeout=12) as response:
                 data = json.load(response)
             if not isinstance(data, dict):
                 raise ValueError("Expected an object")
@@ -101,7 +114,7 @@ class TMDBClient:
         except HTTPError as error:
             if error.code in (401, 403):
                 raise TMDBError(
-                    "TMDB rejected the token. Check your token in Settings.", 503
+                    "Movie discovery is temporarily unavailable. Please try again later.", 503
                 ) from error
             if error.code == 429:
                 retry = error.headers.get("Retry-After", "10")
@@ -119,18 +132,18 @@ class TMDBClient:
                     except (ValueError, TypeError):
                         delay = 10
                 raise TMDBError(
-                    "TMDB is busy. Please wait a moment and try again.", 429, delay
+                    "Movie discovery is busy. Please wait a moment and try again.", 429, delay
                 ) from error
             if error.code == 404:
                 raise TMDBError(
                     "This item is no longer available on TMDB.", 404
                 ) from error
             raise TMDBError(
-                "TMDB is temporarily unavailable. Please try again."
+                "Movie discovery is temporarily unavailable. Please try again."
             ) from error
         except (URLError, TimeoutError, OSError, ValueError) as error:
             raise TMDBError(
-                "Could not reach TMDB. Check your connection and try again."
+                "Could not reach movie discovery. Check your connection and try again. Your saved library is still available."
             ) from error
 
 

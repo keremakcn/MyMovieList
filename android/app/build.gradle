@@ -1,0 +1,70 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+def repositoryRoot = rootProject.projectDir.parentFile
+def appVersion = (new File(repositoryRoot, 'version.py').text =~ /APP_VERSION = "([^"]+)"/)[0][1]
+def signingProperties = new Properties()
+def signingFile = rootProject.file('keystore.properties')
+if (signingFile.exists()) signingFile.withInputStream { signingProperties.load(it) }
+
+android {
+    namespace 'com.moviewatchlist'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.moviewatchlist'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "${appVersion}-android-beta.1"
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+    }
+    signingConfigs {
+        if (signingFile.exists()) {
+            release {
+                storeFile rootProject.file(signingProperties['storeFile'])
+                storePassword signingProperties['storePassword']
+                keyAlias signingProperties['keyAlias']
+                keyPassword signingProperties['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.debug'; versionNameSuffix '-debug' }
+        release {
+            minifyEnabled false
+            if (signingFile.exists()) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// An allowlist prevents databases, API tokens, desktop builds or Git history
+// from being bundled when the shared Python application is assembled.
+def sharedPython = layout.buildDirectory.dir('generated/sharedPython')
+def stageSharedPython = tasks.register('stageSharedPython', Sync) {
+    from(repositoryRoot) {
+        include 'app.py', 'storage.py', 'tmdb_client.py', 'recommendations.py'
+        include 'recommendation_routes.py', 'version.py', 'templates/**', 'static/**'
+    }
+    into sharedPython
+}
+chaquopy {
+    defaultConfig {
+        version '3.12'
+        if (System.getenv('CHAQUOPY_BUILD_PYTHON')) buildPython System.getenv('CHAQUOPY_BUILD_PYTHON')
+        pip { install '-r', new File(repositoryRoot, 'requirements.txt').absolutePath }
+    }
+    sourceSets {
+        main { srcDir sharedPython }
+    }
+}
+tasks.configureEach { task ->
+    if ((task.name.startsWith('generate') || task.name.startsWith('merge')) && task.name.contains('Python')) {
+        task.dependsOn stageSharedPython
+    }
+}

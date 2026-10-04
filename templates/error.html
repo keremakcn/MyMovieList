@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}
-    Something went wrong · Movie Watchlist
+    Something went wrong · MyMovieList
 {% endblock %}
 {% block content %}
     <section class="empty-state">
         <p class="eyebrow">LET'S TRY AGAIN</p>
         <h1>Unable to complete this request</h1>
         <p role="alert">{{ message }}</p>
-        <a class="edit-link" href="/search">Back to Explore</a> <a class="edit-link" href="/">Your library</a> <a class="edit-link" href="/settings">Settings</a>
+        <a class="edit-link" href="/search">Back to Explore</a> <a class="edit-link" href="/">Your library</a>
     </section>
 {% endblock %}

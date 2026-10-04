@@ -1,6 +1,6 @@
-# Movie Watchlist v3.2.0
+# MyMovieList v3.3.0
 
-**A fresh look for your personal film library.** Version 3.2.0 brings a redesigned interface, responsive navigation and smoother everyday interactions while keeping your existing library. See the [release notes](RELEASE_NOTES.md) and [UI design and verification notes](UI_DESIGN.md).
+**Your personal film library, with discovery ready from the start.** Version 3.3.0 uses our shared discovery service at `api.myshelf.cloud`: no personal TMDB account, API key or token is needed. Your library and private journal remain on your device. See the [release notes](RELEASE_NOTES.md) and [UI design and verification notes](UI_DESIGN.md).
 
 A local-first personal film library for Windows and the browser. Flask + Jinja + SQLite, with a small JavaScript interaction layer and a native pywebview window.
 
@@ -10,11 +10,19 @@ Keep your collection close, explore the people and studios behind your favorite 
 
 Not every thought needs an audience. A film might leave you angry, challenge your beliefs, or bring back a memory you would rather keep to yourself. Write an honest reaction, a detailed review or a single sentence—without having to turn it into something for everyone else to read.
 
-Movie Watchlist is also your personal film journal. Your ratings and notes are saved on your own computer, without being published to a public profile or shared with other users. Your notes are not sent to TMDB.
+MyMovieList is also your personal film journal. Your ratings and notes are saved on your own computer, without being published to a public profile or shared with other users. Your notes are not sent to TMDB.
 
 Local storage is not encryption: someone with access to your database or its backups could read your notes. Keep those files protected if they contain personal thoughts.
 
-## What's new in 3.2.0
+## What's new in 3.3.0
+
+- **No API-key setup:** search movies, explore actors/directors and studios, and get recommendations through our shared Cloudflare service.
+- **Our own discovery address:** `https://api.myshelf.cloud` replaces the default `workers.dev` address.
+- **Simpler Settings:** no credential form; legacy local TMDB token settings are removed on startup.
+- **Local privacy preserved:** notes, ratings, favorites and viewing history stay on your computer. Only catalog requests and search terms pass through the discovery service.
+- **Verified Windows integration:** 68 automated tests passed, and live search was verified in the packaged Windows app.
+
+## Interface improvements retained from 3.2.0
 
 - **A new visual identity:** charcoal surfaces, lavender accents, editorial headings and a shared SVG icon set.
 - **A more focused library:** compact statistics, clearer filters, aligned movie cards and one-line note previews. View note opens the detail page without expanding the card.
@@ -92,10 +100,16 @@ On narrow screens, cards stack into a single column, controls wrap to fit, and m
 
 Browser checks at 320 and 390 CSS pixels found no horizontal page overflow in the tested flows. Tablet and smaller desktop layouts were also checked at 768 and 1024 pixels. These are browser viewport checks, not tests on physical phones; touch interaction, the on-screen keyboard and mobile Safari still need device testing. The Windows executable does not run on phones, and the default local server is not configured for phone access over a network.
 
+### Standalone Android beta
+
+The new `android/` project packages the shared library code inside an Android app, so the phone does not need a running computer or a hosted server. Its library lives in private app storage and is independent of the Windows library. Phone controls have larger touch targets and 16px form text.
+
+Android builds are tracked separately as `3.2.0-android-beta.1`; this does not replace the stable Windows release. APK is the installable format for direct downloads, while AAB is intended for a future Play Store submission. Actual device verification is required before promoting the Android beta to stable. See [Android setup, signing and data storage](ANDROID.md).
+
 ## Quick start
 
-1. Download and extract `MovieWatchlist-v3.2.0-windows.zip`, then open `MovieWatchlist-v3.2.0.exe` on Windows. For a local build, open `dist/MovieWatchlist-v3.2.0.exe`, or follow the source instructions below.
-2. In **Settings**, save your TMDB **API Read Access Token** to enable discovery.
+1. Download and extract `MyMovieList-v3.3.0-windows.zip`, then open `MyMovieList-v3.3.0.exe` on Windows. For a local build, open `dist/MyMovieList-v3.3.0.exe`, or follow the source instructions below.
+2. Open the app and start exploring. No TMDB account, API key or token is required.
 3. Open **Explore**, enter a title or name, choose the categories below the search box, then press **Search**.
 4. Use **Add to Want to Watch** on a result or film page. A film already in your library links to its editor instead of creating another entry.
 5. Manage watched status, favorites, ratings and notes in **Library**. After removal, use **Undo** or restore the film from **Recently removed**.
@@ -139,7 +153,7 @@ Open `http://127.0.0.1:5000`. The app is intended for one user on the local mach
 
 ## Desktop
 
-The release executable is `dist/MovieWatchlist-v3.2.0.exe`. It uses `%APPDATA%\MovieWatchlist`, the same data directory as earlier releases. Close the running application before opening the new version. Replacing or moving the executable does not move or erase your library; no adjacent `data/` folder is required.
+The release executable is `dist/MyMovieList-v3.3.0.exe`. It uses `%APPDATA%\MovieWatchlist`, the same data directory as earlier releases. Close the running application before opening the new version. Replacing or moving the executable does not move or erase your library; no adjacent `data/` folder is required.
 
 To run the native window from source after installing the desktop requirements, run `.\.venv\Scripts\python.exe run_desktop.py`.
 
@@ -152,7 +166,7 @@ To build the executable and a clean release ZIP:
 
 The desktop server binds to an available loopback port before opening the window, avoiding fixed-port collisions. Windows needs the Edge WebView2 runtime.
 
-The build script reads `version.py`, creates `dist/MovieWatchlist-v3.2.0.exe`, and packages only that executable and the release notes. Upload `dist/releases/v3.2.0/MovieWatchlist-v3.2.0-windows.zip` and its `SHA256SUMS.txt` to your release. Personal databases, `.env` files, posters and old executables are excluded. The script accepts `-Python` if your environment is stored elsewhere.
+The build script reads `version.py`, creates `dist/MyMovieList-v3.3.0.exe`, and packages only that executable and the release notes. Upload `dist/releases/v3.3.0/MyMovieList-v3.3.0-windows.zip` and its `SHA256SUMS.txt` to your release. Personal databases, `.env` files, posters and old executables are excluded. The script accepts `-Python` if your environment is stored elsewhere.
 
 ## Data and upgrades
 
@@ -160,7 +174,7 @@ The build script reads `version.py`, creates `dist/MovieWatchlist-v3.2.0.exe`, a
 - Packaged Windows release: `%APPDATA%\MovieWatchlist\movies.db` and `%APPDATA%\MovieWatchlist\posters/`.
 - `MOVIE_WATCHLIST_DATA_DIR` explicitly overrides the data directory in both source and packaged mode; remove an old override if you want the default AppData library.
 - Before migrating an existing database, the app creates `movies.db.before-v2-<timestamp>.bak` beside it using SQLite's backup API.
-- Application version **3.2.0** keeps database schema version **2**. This release adds no schema migration.
+- Application version **3.3.0** keeps database schema version **2**. This release adds no schema migration.
 - Migrations run in a transaction and never automatically delete duplicate records. If a legacy database contains duplicate TMDB IDs, the migration stops with a diagnostic so they can be reconciled without losing notes.
 - New records store creation/update timestamps. Older records keep their IDs and original ordering; their unknown creation dates are not invented.
 - Removing a film sets `deleted_at`. Restoring clears it on the same row. Re-adding a removed TMDB movie restores that original entry, including its previous status and personal data.
@@ -174,9 +188,11 @@ If you tried the separate frontend preview, its adjacent `data/` library remains
 
 ## TMDB configuration and privacy
 
-Paste an **API Read Access Token** in Settings, or provide `TMDB_ACCESS_TOKEN` in a `.env` file in the data directory. A saved token takes precedence. Leaving the Settings input blank preserves the current token; removal is explicit.
+Discovery connects through the shared Cloudflare Worker at `https://api.myshelf.cloud`. The TMDB credential is stored only as a Cloudflare Secret. Users do not need a TMDB account, API key or token; Settings no longer collects credentials. Legacy `tmdb_token` settings are removed on application startup, and `TMDB_ACCESS_TOKEN` is no longer used.
 
-The token stays on the backend and is stored in the local SQLite database when saved in Settings. It is not encrypted at rest: protect local database backups. No token, personal database or poster directory is included in the desktop build.
+Search terms and requests for catalog information pass through Cloudflare to TMDB. Private notes, ratings, favorites and viewing history remain local. Poster images still load from TMDB's image service when not downloaded locally. Discovery requires the gateway and an internet connection; saved library data and downloaded posters remain available offline. The anonymous gateway has rate limits, but does not guarantee that only our applications can call it. See `cloudflare/watchlist-api/README.md` for deployment details.
+
+For deployment, `MOVIE_WATCHLIST_GATEWAY_URL` can select the same gateway on a custom HTTPS domain (for example `https://api.example.com`). Credentials, query strings and unrelated base paths are rejected. This is an operator configuration, not a user API-key requirement. The default address is `https://api.myshelf.cloud`; the custom domain avoids reliance on the workers.dev hostname.
 
 Optional `FLASK_SECRET_KEY` keeps session signing stable between launches. Without it, sessions are deliberately invalidated on restart and an old open page may need a refresh.
 
@@ -195,6 +211,8 @@ recommendation_routes.py Survey, recommendation and feedback routes
 run_desktop.py          Native window lifecycle using the shared data configuration
 version.py              Application version shared by the UI, launcher and build
 scripts/build_release.ps1 Clean Windows release packaging and SHA-256 checksums
+android/                Standalone Android shell, embedded Python and local authentication
+scripts/build_android.ps1 Android APK/AAB packaging
 static/script.js        Shared actions, toasts, autocomplete and library filtering
 static/recommendations.js Recommendation and taste-survey interactions
 static/style.css        Design tokens, shared components and responsive layouts
@@ -216,8 +234,13 @@ node --check static/script.js
 node --check static/recommendations.js
 ```
 
-The latest verification passed **48 tests**, covering migration and recovery, duplicate/race handling, request safeguards, caching, discovery navigation, checkbox filtering, autocomplete, pagination and desktop data-directory selection. Desktop launcher tests simulate a packaged application and verify preservation of existing records in AppData and in an explicitly overridden data directory. Tests use temporary databases and mocked TMDB responses; they do not modify the personal library. Node.js is only needed for JavaScript checks and browser testing, not to run the app.
+The latest verification passed **68 tests**, covering credential-free gateway requests, secure custom-domain configuration, legacy-token cleanup, offline library preservation, migration and recovery, duplicate/race handling, request safeguards, caching, discovery navigation, checkbox filtering, autocomplete, pagination and desktop data-directory selection. Desktop launcher tests simulate a packaged application and verify preservation of existing records in AppData and in an explicitly overridden data directory. Tests use temporary databases and mocked TMDB responses; they do not modify the personal library. Node.js is only needed for JavaScript checks and browser testing, not to run the app.
 
 Frontend checks covered ten desktop pages, four responsive widths, equal card heights, long titles, missing posters, removal/Undo and keyboard focus. No JavaScript errors were reported in those scenarios. The latest sidebar change was also checked for desktop scrolling and fixed mobile navigation.
 
 See [UI_DESIGN.md](UI_DESIGN.md) for browser test instructions and limitations, and [QA_RESULTS.md](QA_RESULTS.md) for verification details.
+
+
+## Name and existing libraries
+
+MyMovieList was previously called Movie Watchlist. Existing Windows libraries continue using `%APPDATA%\MovieWatchlist` so upgrading does not create an empty library or require a manual transfer. Existing data-directory and gateway environment variable names remain supported. The repository and source folder names may still use the original name.

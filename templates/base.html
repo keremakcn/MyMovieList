@@ -3,11 +3,12 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <meta name="theme-color" content="#101116">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>
             {% block title %}
-                Movie Watchlist
+                MyMovieList
             {% endblock %}
         </title>
         <link rel="stylesheet"
@@ -17,7 +18,7 @@
     <body>
         <a class="skip-link" href="#main">Skip to content</a>
         <aside class="sidebar">
-            <a class="brand" href="/" aria-label="Movie Watchlist home"><span class="brand-symbol">{{ icon('film', 23) }}</span><span>Movie<span class="brand-second">Watchlist<span class="brand-dot">.</span></span></span></a>
+            <a class="brand" href="/" aria-label="MyMovieList home"><span class="brand-symbol">{{ icon('film', 23) }}</span><span>MyMovie<span class="brand-second">List<span class="brand-dot">.</span></span></span></a>
             <p class="nav-caption">YOUR CINEMA</p>
             <nav class="app-nav" aria-label="Main navigation">
                 <a href="/"
@@ -50,7 +51,7 @@
             {% endfor %}
         </div>
         <footer class="app-footer">
-            Made for the love of film.<span>Movie Watchlist · v{{ app_version }}</span>
+            Made for the love of film.<span>MyMovieList · v{{ app_version }}</span>
         </footer>
         </div>
     </body>

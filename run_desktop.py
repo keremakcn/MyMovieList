@@ -13,7 +13,7 @@ if __name__ == "__main__":
     server_thread.start()
     try:
         webview.create_window(
-            f"Movie Watchlist v{APP_VERSION}",
+            f"MyMovieList v{APP_VERSION}",
             f"http://127.0.0.1:{server.effective_port}",
             width=1280,
             height=860,

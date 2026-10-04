@@ -1,10 +1,10 @@
-# Movie Watchlist v3.2.0 — UI Design and Verification
+# MyMovieList v3.2.0 — UI Design and Verification
 
-The redesigned interface is part of the main Movie Watchlist release.
+The redesigned interface is part of the main MyMovieList release.
 
 ## Start the application
 
-Open `dist/MovieWatchlist-v3.2.0.exe`, or extract and open the executable from the release ZIP.
+Open `dist/MyMovieList-v3.2.0.exe`, or extract and open the executable from the release ZIP.
 
 The Windows release uses the existing `%APPDATA%\MovieWatchlist` library, posters and configuration. It does not read the earlier frontend preview's adjacent `data/` folder. An explicit `MOVIE_WATCHLIST_DATA_DIR` environment setting still overrides the default.
 

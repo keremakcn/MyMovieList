@@ -8,12 +8,6 @@
         </div>
         <div class="header-actions"><a class="text-button" href="/add">Add manually</a><a class="add-movie-link" href="/search">{{ icon('plus', 17) }} Find a film</a></div>
     </header>
-    {% if tmdb_token_missing %}
-        <div class="token-banner">
-            <span>Your saved library is available offline. Connect TMDB to explore.</span>
-            <a href="/settings">Set up TMDB →</a>
-        </div>
-    {% endif %}
     <section class="stats-grid" aria-label="Library statistics">
         {% for symbol,label,value in [('check','Watched',stats.watched),('clock','Want to watch',stats.watchlist),('heart','Favorites',stats.favorites),('star','Average rating',(stats.average|string ~ '/10') if stats.average else '—')] %}
             <div class="stat-card">

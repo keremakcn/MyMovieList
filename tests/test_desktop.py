@@ -58,6 +58,6 @@ def test_packaged_launcher_retains_existing_library(tmp_path, monkeypatch, overr
     assert response.status_code == 200
     assert f"v{APP_VERSION}" in response.get_data(as_text=True)
     window.create_window.assert_called_once()
-    assert window.create_window.call_args.args[0] == f"Movie Watchlist v{APP_VERSION}"
+    assert window.create_window.call_args.args[0] == f"MyMovieList v{APP_VERSION}"
     server.close.assert_called_once()
     assert not (tmp_path / "Downloads" / "data").exists()

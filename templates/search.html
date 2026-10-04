@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}
-    Explore · Movie Watchlist
+    Explore · MyMovieList
 {% endblock %}
 {% block content %}
     <header class="explore-header">
@@ -12,7 +12,7 @@
     <section class="search-results" aria-label="Search results">
         {% if error %}
             <div class="form-error" role="alert">
-                {{ error }} <a href="/settings">Settings</a>
+                {{ error }}
             </div>
         {% elif query %}
             {% for warning in warnings %}

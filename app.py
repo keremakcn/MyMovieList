@@ -1,4 +1,4 @@
-"""Movie Watchlist: local library and TMDB discovery, shared by web and desktop."""
+"""MyMovieList: local library and TMDB discovery, shared by web and desktop."""
 
 import json
 import os
@@ -85,7 +85,7 @@ def create_app(config=None):
         template_folder=str(BASE_DIR / "templates"),
         static_folder=str(BASE_DIR / "static"),
     )
-    data_dir = Path(os.environ.get("MOVIE_WATCHLIST_DATA_DIR", DEFAULT_DATA_DIR))
+    data_dir = Path((config or {}).get("DATA_DIR") or os.environ.get("MOVIE_WATCHLIST_DATA_DIR", DEFAULT_DATA_DIR))
     load_dotenv(data_dir / ".env")
     app.config.update(
         SECRET_KEY=os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32),
@@ -103,15 +103,7 @@ def create_app(config=None):
     app.extensions["db"] = db
     locks = [Lock() for _ in range(32)]
 
-    def get_token():
-        rows = db.query("SELECT value FROM settings WHERE key='tmdb_token'")
-        return (
-            rows[0]["value"]
-            if rows and rows[0]["value"]
-            else os.environ.get("TMDB_ACCESS_TOKEN")
-        )
-
-    tmdb = TMDBClient(get_token)
+    tmdb = TMDBClient()
     app.extensions["tmdb"] = tmdb
     app.jinja_env.filters["safe_back"] = safe_path
 
@@ -284,7 +276,6 @@ def create_app(config=None):
             count=count,
             page=page,
             pages=pages,
-            tmdb_token_missing=not bool(get_token()),
         )
 
     def profession(department):
@@ -819,26 +810,9 @@ def create_app(config=None):
         flash("Movie restored with its original notes, rating and position.")
         return redirect(safe_path(request.form.get("next")))
 
-    @app.route("/settings", methods=["GET", "POST"])
+    @app.get("/settings")
     def settings():
-        if request.method == "POST":
-            token = request.form.get("tmdb_token", "").strip()
-            if token:
-                db.execute(
-                    "INSERT INTO settings(key,value) VALUES('tmdb_token',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                    token,
-                )
-            elif request.form.get("clear_token") == "1":
-                db.execute("DELETE FROM settings WHERE key='tmdb_token'")
-            flash("Settings saved.")
-            return redirect(url_for("settings"))
-        return render_template(
-            "settings.html",
-            has_token=bool(get_token()),
-            has_saved_token=bool(
-                db.query("SELECT 1 FROM settings WHERE key='tmdb_token'")
-            ),
-        )
+        return render_template("settings.html")
 
     from recommendation_routes import register_recommendations
 

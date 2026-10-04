@@ -44,3 +44,15 @@ Thumbs.db
 Desktop.ini
 *.swp
 *.swo
+
+# Android local tooling, build outputs and private signing material
+.gradle/
+.kotlin/
+android/local.properties
+keystore.properties
+*.jks
+*.keystore
+.android-signing/
+*.apk
+*.aab
+*.hprof

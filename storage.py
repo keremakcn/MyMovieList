@@ -100,6 +100,9 @@ class Database:
             con.execute(
                 "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
             )
+            # Discovery credentials now live exclusively in the hosted gateway.
+            con.execute("PRAGMA secure_delete=ON")
+            con.execute("DELETE FROM settings WHERE key='tmdb_token'")
             con.execute("""CREATE TABLE IF NOT EXISTS recommendation_likes (
                 movie_id INTEGER PRIMARY KEY REFERENCES movies(id), created_at TEXT NOT NULL)""")
             con.execute("""CREATE TABLE IF NOT EXISTS recommendation_dismissals (

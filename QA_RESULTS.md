@@ -1,4 +1,4 @@
-# Verification — Movie Watchlist v3.2.0
+# Verification — MyMovieList v3.2.0
 
 Verified on Windows, 2026-10-02. All test writes used isolated databases. The release continues using the existing AppData library; it adds no schema migration and does not merge the earlier frontend preview's separate data.
 
@@ -69,7 +69,7 @@ These are local server observations, not end-to-end browser or network benchmark
 
 - PyInstaller build succeeded: `dist/MovieWatchlist-Discovery.exe`.
 - The original `dist/MovieWatchlist.exe` was preserved.
-- Release executable launched with the isolated test data directory and exposed its own **Movie Watchlist** window.
+- Release executable launched with the isolated test data directory and exposed its own **MyMovieList** window.
 - Package archive inspection found no `.env`, `movies.db` or personal poster directory.
 - Full native UI automation was not completed: the desktop state-capture approval timed out. Interactive flows were instead verified in the in-app browser; the native check confirms process/window startup.
 
@@ -150,3 +150,31 @@ Session update verified: all 40 Python tests pass. Isolated headless UI checks a
 - These fixtures verify selection rules, not subjective recommendation quality on live TMDB data.
 
 - Headless Edge with isolated fixtures: five selections showed 50 distinct films; reloads preserved order; simulated HTTP failure preserved cards; no JavaScript errors.
+# Hosted discovery gateway — 2026-10-04
+
+- MyMovieList now uses the shared Cloudflare gateway for catalog requests. No local token is required or sent; local and environment credentials are no longer read by discovery.
+- Settings no longer accepts credential writes. Startup removes the legacy `tmdb_token` setting with SQLite secure deletion; other settings and all library records are preserved.
+- 62 isolated Python tests passed, including credential-free requests, cache/single-flight/cooldown, offline failures, legacy-token cleanup, Android local authentication and installed desktop library selection.
+- Existing browser checks passed: 10 desktop pages, four responsive widths, aligned cards, removal/Undo, survey focus and search keyboard controls. The updated Settings screen was visually inspected.
+- Direct live gateway verification from the agent environment was blocked by an SSL connection failure. The user verified TV search on the deployed Worker, but live movie discovery from the rebuilt executable still needs a device check.
+
+
+Hosted gateway packaged verification (2026-10-04): rebuilt Windows EXE starts with isolated data, Settings has no token field and library loads. Live search returned no catalog results in the agent environment; direct HTTPS probing failed with SSL WRONG_VERSION_NUMBER. Device verification remains required. Main-project tests: 62 passed (temporary cache permission warning only). Existing AppData/source library records and noncredential settings were verified unchanged during credential cleanup; sanitized library backups are in .qa.
+
+
+Gateway network follow-up: 68 isolated tests passed. Custom HTTPS gateway configuration added and obsolete Settings links removed from discovery errors. Default workers.dev TLS fails in Python (including TLS 1.2), PowerShell and Windows curl while Cloudflare main site succeeds and direct TMDB returns expected unauthenticated 401. User reports Chrome also fails but the in-app browser succeeds. Custom-domain selection and live verification remain pending; no replacement EXE is built until an accessible endpoint is verified.
+
+
+
+## Custom domain desktop build — 2026-10-05
+
+- Primary project: Desktop/movie-watchlist. Default gateway changed to https://api.myshelf.cloud/3/.
+- Identifiable MovieWatchlist/version User-Agent resolves Cloudflare Error 1010 for the default Python user agent; covered by the request-header test.
+- 68 automated tests passed with temporary databases.
+- Windows EXE and release ZIP rebuilt successfully; packaged startup, library and token-free Settings verified in an isolated data directory.
+- Cloudflare resolver returns valid A/AAAA and nameserver records. HTTPS search using a test-only resolved IP returned 20 results. No IP override was added to the app and certificate verification remained enabled.
+- Final live search in the packaged app did not pass: the machine default DNS resolver could not resolve api.myshelf.cloud. Recheck normal discovery after DNS resolution recovers before public release.
+
+Follow-up: Cleared Windows DNS client cache after stale negative resolution. Normal application TMDBClient search returned 20 results; rebuilt EXE smoke test passed startup, token-free Settings, isolated library and LIVE search. No DNS server settings or hosts entries were changed.
+
+MyMovieList rebrand (2026-10-05): 68 tests passed; packaged MyMovieList-v3.3.0.exe verified with new branding and live movie search in an isolated data directory. Existing AppData/MovieWatchlist data path retained.

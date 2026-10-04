@@ -370,20 +370,17 @@ def test_http_double_add_is_safe(app):
     assert len(set(ids)) == 1
 
 
-def test_settings_blank_does_not_remove_saved_token(app, client):
-    post(client, "/settings", tmdb_token="example-token")
-    post(client, "/settings", tmdb_token="")
-    assert (
-        app.extensions["db"].query("SELECT value FROM settings")[0]["value"]
-        == "example-token"
-    )
-    assert b"example-token" not in client.get("/settings").data
-    post(client, "/settings", clear_token="1")
-    assert not app.extensions["db"].query("SELECT * FROM settings")
+def test_settings_does_not_collect_credentials(app, client):
+    html = client.get("/settings").data
+    assert b"Ready to explore" in html
+    assert b"tmdb_token" not in html and b"API Read Access Token" not in html
+    assert b"Set up TMDB" not in client.get("/").data
+    assert post(client, "/settings", tmdb_token="example-token").status_code == 405
+    assert not app.extensions["db"].query("SELECT * FROM settings WHERE key='tmdb_token'")
 
 
 def test_rate_limit_cooldown_applies_to_different_requests():
-    client = TMDBClient(lambda: "token")
+    client = TMDBClient()
     calls = []
 
     def limited(*args):
@@ -399,7 +396,7 @@ def test_rate_limit_cooldown_applies_to_different_requests():
 
 
 def test_cache_single_flight_and_expiry():
-    client = TMDBClient(lambda: "token", capacity=2)
+    client = TMDBClient(capacity=2)
     calls = []
 
     def fetch(*args):
