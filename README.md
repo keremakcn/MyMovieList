@@ -6,6 +6,8 @@
 <p align="center">A personal movie library with discovery, recommendations and a private journal. No account or API key required.</p>
 <p align="center"><a href="https://github.com/keremakcn/MyMovieList/releases/latest"><strong>Download</strong></a> · <a href="https://github.com/keremakcn/MyMovieList/releases">All releases</a></p>
 
+**English** | [Türkçe](README.tr.md)
+
 ## Get started
 
 **Windows — v3.4.0**
@@ -35,25 +37,46 @@ Download `MyMovieList-3.4.0-android-beta.1.apk` from the release’s **Assets** 
 
 ## Screenshots
 
+Captured from the current app with a demo library and public catalog snapshots. See the [Turkish screenshots](README.tr.md#ekran-görüntüleri) for the Turkish interface.
+
 ### Your library
 
-![MyMovieList library](screenshots/frontend-library.png)
+![MyMovieList English library with posters, ratings, favorites and private note previews](screenshots/en/library.png)
 
-### Explore films
+### Discover your next film
 
-![MyMovieList discovery](screenshots/discovery-desktop.png)
+![MyMovieList English Explore page with trending and highly rated films](screenshots/en/explore.png)
 
-![Mobile genre discovery](screenshots/discovery-mobile.png)
+### A little more you
 
-### Cast and filmmakers
+![MyMovieList English personal recommendations and discovery modes](screenshots/en/recommendations.png)
 
-![Actor profile](screenshots/actor.png)
+<details>
+<summary>Movie details and filmmaker discovery</summary>
 
-![Director profile](screenshots/director.png)
+![MyMovieList English movie detail with a personal note, synopsis and saved credits](screenshots/en/movie-details.png)
+
+![MyMovieList English Christopher Nolan profile and filmography](screenshots/en/director.png)
+
+</details>
+
+<details>
+<summary>Mobile layouts</summary>
+
+Responsive views of the shared interface at phone size.
+
+<p align="center">
+  <img src="screenshots/en/mobile-library.png" alt="English library at phone size" width="44%">
+  <img src="screenshots/en/mobile-explore.png" alt="English Explore page at phone size" width="44%">
+</p>
+
+</details>
 
 ## Your thoughts stay yours
 
 Not every reaction needs an audience. Write honestly without publishing your notes to a public profile. Your library, notes, ratings and favorites stay on your device and are not uploaded to our discovery service or TMDB.
+
+Recommendations are ranked on your device. Private notes are not analyzed.
 
 Searches and catalog requests pass through `api.myshelf.cloud` to TMDB. Discovery and remote images need internet; saved library information and downloaded posters remain available offline. Local storage is not encrypted.
 
