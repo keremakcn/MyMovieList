@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}{{ t(title) }} · MyMovieList{% endblock %}
+{% block content %}
+    <a class="discovery-back" href="/search">{{ t("← Back to Explore") }}</a>
+    <header class="explore-header discovery-collection-header">
+        <p class="eyebrow">{{ t("FOLLOW YOUR CURIOSITY") }}</p>
+        <h1>{{ t(title) }}<span class="heading-dot">.</span></h1>
+        <p>{{ t(description) }}</p>
+    </header>
+    <nav class="discovery-nav" aria-label="{{ t("Explore collections") }}">
+        <a href="/search">{{ t("Discover") }}</a>
+        {% for key,label in [('trending','Trending films'),('top-rated','Highest rated'),('new-releases','New releases'),('genres','Genres')] %}
+            <a href="/discover/{{ key }}" {% if collection == key %}aria-current="page"{% endif %}>{{ t(label) }}</a>
+        {% endfor %}
+    </nav>
+    {% if collection == 'genres' %}
+        <nav class="discovery-genre-picker" aria-label="{{ t("Choose a genre") }}">
+            {% for id,name in genres.items() %}<a href="/discover/genres?genre={{ id }}{% if hide_library %}&amp;hide_library=1{% endif %}" {% if genre == id %}aria-current="page"{% endif %}>{{ t(name) }}</a>{% endfor %}
+        </nav>
+    {% endif %}
+    {% if collection != 'genres' or genre %}
+        <form class="discovery-filter-form" method="get" action="/discover/{{ collection }}" data-discovery-filter>
+            {% if genre %}<label class="discovery-genre-select">{{ t("Genre") }}<select name="genre">{% for id,name in genres.items() %}<option value="{{ id }}" {{ 'selected' if genre == id }}>{{ t(name) }}</option>{% endfor %}</select></label>{% endif %}
+            {% if collection == 'trending' %}
+                <label class="discovery-period-label">{{ t("Period") }}<select name="window"><option value="week" {{ 'selected' if window == 'week' }}>{{ t("This week") }}</option><option value="day" {{ 'selected' if window == 'day' }}>{{ t("Today") }}</option></select></label>
+            {% endif %}
+            <label class="discovery-hide-library"><input type="checkbox" name="hide_library" value="1" {{ 'checked' if hide_library }}>{{ t("Hide films in my library") }}</label>
+            <button type="submit" class="secondary-button">{{ t("Update") }}</button>
+        </form>
+        <div class="section-heading discovery-collection-count"><h2 id="collection-heading" tabindex="-1">{{ t(genres.get(genre, 'Films to explore') if genre else 'Films to explore') }}</h2><span data-discovery-count>{{ t("{count} film on this page" if visible_count == 1 else "{count} films on this page", count=visible_count) }}</span></div>
+        <section class="discovery-collection" aria-label="{{ t(title) }}" {% if hide_library %}data-hide-library{% endif %}>
+            {% if error %}
+                <div class="discovery-empty" role="alert"><h2>{{ t("Discovery is taking a break.") }}</h2><p>{{ t(error) }}</p><a class="secondary-button" href="{{ current_url }}">{{ t("Try again") }}</a></div>
+            {% elif movies %}
+                <div class="discovery-grid">{% for movie in movies %}{% include '_discovery_card.html' %}{% endfor %}</div>
+            {% else %}
+                <div class="discovery-empty" role="status"><h2>{{ t('Nothing new on this page.' if hide_library and hidden_count else 'No films found.') }}</h2><p>{{ t('The films on this page are already in your library. Try the next page or show your library films.' if hide_library and hidden_count else 'Try another collection or genre.') }}</p></div>
+            {% endif %}
+        </section>
+        {% if not error %}{% include '_pagination.html' %}{% endif %}
+    {% else %}
+        <div class="discovery-genre-intro">{{ icon('explore', 44) }}<h2>{{ t("Choose a genre to get started.") }}</h2><p>{{ t("From a quiet drama to something out of this world.") }}</p></div>
+    {% endif %}
+    <p class="tmdb-credit">{{ t("This product uses the TMDB API but is not endorsed or certified by TMDB.") }}</p>
+    <script defer src="{{ url_for('static', filename='discovery.js', v=asset_version) }}"></script>
+{% endblock %}

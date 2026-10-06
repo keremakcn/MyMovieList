@@ -2,66 +2,67 @@
 {% block content %}
     <header class="app-header">
         <div>
-            <p class="eyebrow">YOUR PERSONAL COLLECTION</p>
-            <h1>Your library<span class="heading-dot">.</span></h1>
-            <p class="page-subtitle">A collection of stories. A reflection of you.</p>
+            <p class="eyebrow">{{ t("YOUR PERSONAL COLLECTION") }}</p>
+            <h1>{{ t("Your library") }}<span class="heading-dot">.</span></h1>
+            <p class="page-subtitle">{{ t("A collection of stories. A reflection of you.") }}</p>
         </div>
-        <div class="header-actions"><a class="text-button" href="/add">Add manually</a><a class="add-movie-link" href="/search">{{ icon('plus', 17) }} Find a film</a></div>
+        <div class="header-actions"><a class="text-button" href="/add">{{ t("Add manually") }}</a><a class="add-movie-link" href="/search">{{ icon('plus', 17) }} {{ t("Find a film") }}</a></div>
     </header>
-    <section class="stats-grid" aria-label="Library statistics">
+    <section class="stats-grid" aria-label="{{ t("Library statistics") }}">
         {% for symbol,label,value in [('check','Watched',stats.watched),('clock','Want to watch',stats.watchlist),('heart','Favorites',stats.favorites),('star','Average rating',(stats.average|string ~ '/10') if stats.average else '—')] %}
             <div class="stat-card">
-                <span class="stat-symbol">{{ icon(symbol,18) }}</span><div><strong>{{ value }}</strong><span>{{ label }}</span></div>
+                <span class="stat-symbol">{{ icon(symbol,18) }}</span><div><strong>{{ value }}</strong><span>{{ t(label) }}</span></div>
             </div>
         {% endfor %}
     </section>
     <section class="filter-bar">
-        <nav class="filter-group" aria-label="Library views">
+        <nav class="filter-group" aria-label="{{ t("Library views") }}">
             {% for value,label in [('all','All films'),('Watchlist','Want to watch'),('Watched','Watched'),('favorite','Favorites'),('trash','Recently removed')] %}
                 <a href="{{ url_for('index', status=value, sort=sort, q=query) }}"
                    class="{{ 'active-filter' if status_filter==value }}"
-                   {% if status_filter==value %} aria-current="page" {% endif %}>{{ label }}</a>
+                   {% if status_filter==value %} aria-current="page" {% endif %}>{{ t(label) }}</a>
             {% endfor %}
         </nav>
         <form class="library-toolbar" action="/" role="search" data-library-filter>
             <input type="hidden" name="status" value="{{ status_filter }}">
             <div class="library-search">
                 {{ icon('search', 18) }}
-                <label class="sr-only" for="library-search-input">Filter your library by title</label>
+                <label class="sr-only" for="library-search-input">{{ t("Filter your library by title") }}</label>
                 <input id="library-search-input"
                        name="q"
                        value="{{ query }}"
-                       placeholder="Filter your library by title…"
+                       placeholder="{{ t("Filter your library by title…") }}"
                        autocomplete="off"
                        maxlength="200">
             </div>
-            <label class="sr-only" for="library-sort">Sort movies</label>
+            <label class="sr-only" for="library-sort">{{ t("Sort movies") }}</label>
             <select name="sort" id="library-sort">
                 {% for value,label in sorts.items() %}
-                    <option value="{{ value }}" {{ 'selected' if sort==value }}>{{ label }}</option>
+                    <option value="{{ value }}" {{ 'selected' if sort==value }}>{{ t(label) }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="secondary-button" data-auto-hide>Apply</button>
+            <button type="submit" class="secondary-button" data-auto-hide>{{ t("Apply") }}</button>
         </form>
     </section>
     <p class="sr-only" id="library-update-status" role="status"></p>
-    <section class="recent-section" id="library-results" aria-label="Movie collection">
+    <section class="recent-section" id="library-results" aria-label="{{ t("Movie collection") }}">
         <div class="section-heading">
-            <h2 tabindex="-1">{{ 'Recently removed' if status_filter=='trash' else 'Your collection' }}</h2>
-            <span>{{ count }} {{ 'film' if count == 1 else 'films' }}</span>
+            <h2 tabindex="-1">{{ t('Recently removed' if status_filter=='trash' else 'Your collection') }}</h2>
+            <span>{{ t("{count} film" if count == 1 else "{count} films", count=count) }}</span>
         </div>
-        <p id="library-search-empty" class="library-search-empty" hidden>No movies match your search.</p>
+        <p id="library-search-empty" class="library-search-empty" hidden>{{ t("No movies match your search.") }}</p>
         <div class="movie-list" id="movie-list">
             {% for movie in movies %}
                 <article class="movie-card"
                          data-movie-id="{{ movie.id }}"
-                         data-title="{{ movie.title|lower }}">
+                         data-metadata-pending="{{ 1 if movie.metadata_pending else 0 }}"
+                         data-title="{{ movie.search_title }}">
                     <div class="movie-card-main">
                         <div class="movie-card-poster-wrapper">
                             {% if movie.poster_path %}
                                 <img class="movie-card-poster"
                                      src="{{ movie.poster_path }}"
-                                     alt="Poster for {{ movie.title }}"
+                                     alt="{{ t("Poster for {title}", title=movie.title) }}"
                                      width="96"
                                      height="144"
                                      loading="lazy"
@@ -71,7 +72,7 @@
                             {% endif %}
                             {% if movie.score_percent is not none %}
                                 <span class="tmdb-score tmdb-score-sm {{ 'score-high' if movie.score_percent>=70 else 'score-mid' }}"
-                                      title="TMDB score">{{ movie.score_percent }}</span>
+                                      title="{{ t("TMDB score") }}">{{ movie.score_percent }}</span>
                             {% endif %}
                         </div>
                         <div class="movie-card-body">
@@ -83,20 +84,20 @@
                                 {% endif %}
                             </h2>
                             <p class="card-year">
-                                {{ movie.year or 'Year unknown' }} <span class="favorite-icon"
+                                {{ movie.year or t("Year unknown") }} <span class="favorite-icon"
        {{ 'hidden' if not movie.favorite }}>♥</span>
                             </p>
                             <p class="card-genre"
-                               title="{{ movie.genre or '' }}">{{ movie.genre or 'Uncategorized' }}</p>
-                            <span class="status-badge {{ movie.status|lower }}">{{ 'Want to watch' if movie.status=='Watchlist' else 'Watched' }}</span>
-                            <p class="movie-rating">{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else 'Not rated yet' }}</p>
+                               title="{{ movie.genre or '' }}">{{ movie.genre or t("Uncategorized") }}</p>
+                            <span class="status-badge {{ movie.status|lower }}">{{ t('Want to watch' if movie.status=='Watchlist' else 'Watched') }}</span>
+                            <p class="movie-rating">{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("Not rated yet") }}</p>
                         </div>
                     </div>
                     {% if status_filter=="trash" %}
                         <form action="/restore/{{ movie.id }}" method="post">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="next" value="{{ current_url }}">
-                            <button type="submit">Restore movie</button>
+                            <button type="submit">{{ t("Restore movie") }}</button>
                         </form>
                     {% else %}
                         {% include "_library_actions.html" %}
@@ -107,7 +108,7 @@
                             {% if status_filter != "trash" %}
                                 <a class="card-note-link"
                                    href="{{ url_for('movie', movie_id=movie.id, back=current_url, _anchor='note') }}"
-                                   aria-label="View note for {{ movie.title }}">View note</a>
+                                   aria-label="{{ t("View note for {title}", title=movie.title) }}">{{ t("View note") }}</a>
                             {% endif %}
                         </div>
                     {% else %}
@@ -117,9 +118,9 @@
             {% else %}
                 <div class="empty-state">
                     <div class="empty-state-icon">◈</div>
-                    <h2>{{ 'No movies found' if query or status_filter!='all' else 'Your story starts here' }}</h2>
-                    <p>{{ 'Try another filter or search.' if query or status_filter!='all' else 'Find a favorite or discover your next watch.' }}</p>
-                    <a class="add-movie-link" href="/search">Explore movies</a>
+                    <h2>{{ t('No movies found' if query or status_filter!='all' else 'Your story starts here') }}</h2>
+                    <p>{{ t('Try another filter or search.' if query or status_filter!='all' else 'Find a favorite or discover your next watch.') }}</p>
+                    <a class="add-movie-link" href="/search">{{ t("Explore movies") }}</a>
                 </div>
             {% endfor %}
         </div>

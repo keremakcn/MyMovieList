@@ -38,6 +38,17 @@ dist/
 build/
 *.spec
 
+# Cloudflare / Node tooling and local Worker credentials
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+!.dev.vars.*.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Local operating-system and editor temporary files
 .DS_Store
 Thumbs.db

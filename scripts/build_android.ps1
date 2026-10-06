@@ -9,8 +9,8 @@ $previousPython = $env:CHAQUOPY_BUILD_PYTHON
 $env:CHAQUOPY_BUILD_PYTHON = $Python
 Push-Location -LiteralPath (Join-Path $root 'android')
 try {
-    if ($Release) { & $Gradle --no-daemon assembleRelease bundleRelease }
-    else { & $Gradle --no-daemon assembleDebug }
+    if ($Release) { & $Gradle --no-daemon assembleRelease bundleRelease lintRelease }
+    else { & $Gradle --no-daemon assembleDebug lintDebug }
     if ($LASTEXITCODE -ne 0) { throw 'Android build failed.' }
     $versionSource = Get-Content -LiteralPath (Join-Path $root 'version.py') -Raw
     if ($versionSource -notmatch 'APP_VERSION\s*=\s*"([^"]+)"') { throw 'Cannot read version.' }

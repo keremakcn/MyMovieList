@@ -16,8 +16,8 @@
         {% endif %}
     </a>
     <div class="catalog-card-body">
-        <p class="eyebrow">MOVIE ·
-            {{ movie.year or 'Release date unknown' }}
+        <p class="eyebrow">{{ t("MOVIE ·") }}
+            {{ movie.year or t("Release date unknown") }}
             {% if movie.score_percent is not none %}
                 · TMDB {{ movie.score_percent }}%
             {% endif %}
@@ -25,7 +25,7 @@
         <h2>
             <a href="{{ url_for('catalog_movie', tmdb_id=movie.tmdb_id, back=current_url) }}">{{ movie.title }}</a>
         </h2>
-        <p class="result-overview">{{ movie.overview or 'No overview available.' }}</p>
+        <p class="result-overview">{{ movie.overview or t("No overview available.") }}</p>
         {% include "_movie_action.html" %}
     </div>
 </article>

@@ -1,3 +1,67 @@
+# Release verification — MyMovieList v3.4.0 — 2026-10-06
+
+This release packages the current shared application for Windows and Android. Test writes used synthetic libraries; the personal AppData library was not opened or rewritten.
+
+- **212 Python tests passed** in the main project, including local storage, migrations, identity preservation, bilingual content, recommendation diversity, concurrency, native-session protection and desktop data paths. Python E9/F checks and all four application JavaScript syntax checks passed.
+- **11 shared TMDB/RAWG gateway tests passed.** No gateway deployment was required for this packaging update.
+- **Recommendation UI checks passed:** stable reloads, refresh, discovery modes, keyboard actions, failed-refresh recovery, English/Turkish identity and four viewport widths (320, 390, 768 and 1365 px).
+- **Bilingual catalog UI checks passed:** 30 responsive views, automatic legacy enrichment, full cast storage, actor/company navigation, direct search addition, title aliases, offline details and editing, preservation of every movie field, and no JavaScript errors.
+- **Mobile UI checks passed:** touch targets, equal card heights at 320, 360, 390 and 412 px, touch autocomplete, note saving with a reduced viewport and removal/Undo. These browser checks do not replace Android keyboard/insets or device testing.
+- **Windows build completed:** `dist/MyMovieList-v3.4.0.exe` and `dist/releases/v3.4.0/MyMovieList-v3.4.0-windows.zip`.
+- **Signed Android builds completed:** APK and AAB in `dist/android/3.4.0-android-beta.1/`. Package identity remains `com.moviewatchlist`; `versionCode` is 3 and `versionName` is `3.4.0-android-beta.1`. The APK certificate matches the previous 3.3.0 release, and its v2 signature and 16 KB ZIP alignment passed. Bundletool validated the AAB structure; AAB signature verification passed.
+- **Archive verification passed:** EXE, APK and AAB contain all shared modules and 35 UI assets matching the source. Packaged versions, Windows ZIP contents and SHA-256 checksums match. No personal database, environment file, Git history or private signing key is included. All 80 native-library ELF alignment checks across the APK/AAB passed at 16 KB or larger.
+- **Release downloads are collected in `dist/releases/v3.4.0/`:** Windows ZIP, Android APK, Android AAB, current release notes and a combined `SHA256SUMS.txt`.
+- **Android release lint passed** with no errors and four non-blocking warnings: an API 33 attribute on older devices, an available Gradle update, an unused legacy icon and the existing square launcher-icon shape.
+- **Git packaging checks passed:** `.env`, personal SQLite data, signing material, build outputs, Node dependencies, local Wrangler state and `.dev.vars` are ignored. Tests, application/Worker source and public documentation remain eligible for version control. `git diff --check` passed; Git reported only LF/CRLF conversion notices.
+- Physical Android-device testing and Google Play publication remain separate. Desktop and Android keep independent libraries. Personal statistics and cloud sync are not included.
+
+Earlier verification records below describe the source updates and older builds; their version numbers and historical limitations are retained for context.
+
+---
+# Recommendation update verification — 2026-10-06
+
+- Added **23 recommendation regression cases** covering rich features, moderate-rating confidence, limited lead-cast evidence, a single versus consistent theme preference, smaller interests, franchise/director diversity, different themes within one genre, negative feedback, language identity, cache corruption, offline restarts, optional detail failures and reserve refill. Existing survey/refresh/privacy/concurrency tests remain included.
+- The full **main-folder run passed 212 Python tests**. One warning concerned an unwritable pytest cache, with no test failures. Python E9/F checks and **11 shared TMDB/RAWG gateway tests passed**.
+- **Isolated recommendation UI checks passed**: stable page reload, fresh picks, mode changes, keyboard add/refresh, failed refresh retaining cards, English/Turkish identity and no horizontal overflow at 320, 390, 768 and 1365 px. All UI writes used a synthetic library; personal AppData was not opened. The in-app browser could not reach localhost, so the checks used an isolated headless Edge session through Playwright.
+- **Live metadata smoke passed**: movie 550 returned 14 keyword IDs, 75 cast members and one director through `api.myshelf.cloud`; existing TV search returned 20 results. The tested allowlist was deployed as Worker version `8233cb00-dc3e-4e48-9860-161ce9d3f222`, preserving provider credentials and rate-limit bindings.
+- **Live recommendation smoke passed** with a separate empty library: 126 public candidates, 24 enriched records and ten unique picks without errors. First load took 6.08 seconds; repeating the same selection took 0.006 seconds and preserved the cards. Network timing is illustrative, not a guaranteed response time.
+- **Windows build refreshed and verified**: `dist/MyMovieList-v3.3.0.exe` (15.72 MB) contains the new recommendation module and matching UI/locale assets. The release ZIP contains only the EXE and current release notes; its SHA-256 checksum matches. The packaged launcher data-path tests passed with isolated AppData. The new EXE was inspected without starting it against the personal library.
+- **Synthetic timing, median of five runs**: the old session strategy ranked an entire 800-movie pool in 669 ms; the new richer model ranked a 30-movie reserve from 1,200 candidates in 340 ms. The simpler old ten-pick calculation was faster (30 ms for 800 candidates versus 136 ms for the richer 1,200-candidate calculation). The reserve limit reduces total session work; these timings exclude network/image costs and do not measure recommendation accuracy.
+- Private notes are not parsed or scored. No database schema migration, personal-library rewrite, telemetry or Android APK/AAB build is part of this recommendation update. Android's source packaging allowlist includes the new shared module for a future build.
+
+See [recommendation design and reproducible checks](RECOMMENDATIONS_DESIGN.md). Earlier verification follows.
+
+---
+
+# Discovery update verification — 2026-10-06
+
+This section covers the current source update; previous release checks are retained below.
+
+- **106 Python tests passed**, including **38 new discovery cases** covering provider selection, validation before network calls, malformed/duplicate/adult results, fresh library membership over cached feeds, quick-add/duplicates, hidden-library filtering, offline genre choice, error isolation and pagination/back links.
+- **Isolated browser regression passed**: a failed shelf leaves the others usable; retry restores keyboard focus; latest trending period wins; failed quick-add remains retryable; simultaneous submissions for the same film across three shelves issue one add request and update all copies.
+- Hide-library addition removes only that card, updates the visible page count and focuses the next title. Pagination and movie-detail return links retain period/filter/page choices.
+- Six discovery views were checked at **320, 390, 768, 1024 and 1365 px**, without horizontal document overflow. A long title and a missing poster retain equal card height and aligned actions. Selected genres use a compact native selector on mobile.
+- Back/forward cache restoration refreshes membership; library/Watched status is included in accessible action labels. These two behaviors were also covered by a separate source review.
+- **9 Worker/RAWG regression tests passed**. The shared gateway was deployed as version `916a7fed-b84d-4ef4-bc53-969c87107d20`; all four live movie collection requests returned HTTP 200 and 20 results each. Existing provider credentials and limits were retained.
+- **Live UI preview passed**: all three shelves rendered, all 36 requested poster images loaded, and the Science Fiction mobile grid had no document overflow. Screenshots are saved under `screenshots/discovery-*.png`.
+- **Main Windows build refreshed:** `dist/MyMovieList-v3.3.0.exe` and `dist/releases/v3.3.0/MyMovieList-v3.3.0-windows.zip` now include the discovery update. Embedded UI assets match the source, ZIP contents match the EXE/release notes, and the SHA-256 checksum was verified.
+- **Windows Discovery Preview built successfully** (15.7 MB). Archive inspection confirmed the two new Python modules and UI assets and excluded library/credential files. This is a preview build, not a newly published GitHub release.
+- New modules were added to Android's packaging allowlist. No new APK/AAB was built for this source update; physical-device and screen-reader testing remain separate checks.
+
+Reproduce the browser regression using a newly created temporary fixture library:
+
+```powershell
+$env:DISCOVERY_SCENARIO = "errors"
+$env:PREVIEW_TEST_PORT = "5063"
+.\.venv\Scripts\python tests/discovery_fixture_server.py
+# In another terminal, with Playwright available:
+node tests/discovery.e2e.cjs
+```
+
+The fixture also supports `DISCOVERY_LIVE=1` for an isolated read-only catalog preview with real provider results. Tests never use the personal library or print provider secrets.
+
+---
+
 # Verification — MyMovieList v3.2.0
 
 Verified on Windows, 2026-10-02. All test writes used isolated databases. The release continues using the existing AppData library; it adds no schema migration and does not merge the earlier frontend preview's separate data.
@@ -186,3 +250,34 @@ MyMovieList rebrand (2026-10-05): 68 tests passed; packaged MyMovieList-v3.3.0.e
 - Signed Android APK and AAB built successfully; release package keeps com.moviewatchlist identity, raises versionCode to 2, and uses the same signing certificate as the previous 3.2.0 APK.
 - APK signature v2 and 16KB ZIP alignment verified. Shared logo assets included; personal databases, environment files and private signing files excluded.
 - Android app label MyMovieList and versionName 3.3.0-android-beta.1 verified. Physical Android-device installation/runtime verification remains pending.
+
+
+## English/Turkish interface — 2026-10-06
+
+- Main project: Desktop/movie-watchlist. Only known UI labels/messages are translated; no DOM-wide replacements, title matching or catalog-language switching.
+- Windows UI language is read on the first start without a saved preference. `settings.ui_language` is stored in the existing local database and reused across sessions/restarts. Frozen builds retain AppData/MovieWatchlist. The database schema is unchanged.
+- Settings → Language uses a CSRF-protected POST, validates en/tr and redirects to the refreshed Settings screen. HTML lang, accessible labels, notifications, error messages and asynchronous fragments use the saved language. BFcache pages check the saved preference before showing stale-language content.
+- TMDB requests remain en-US. All movie IDs, form values, status enums, URL parameters, titles, genres, biographies, descriptions and notes remain canonical. A mismatched movie-detail ID is rejected before display/add/refresh.
+- 146 isolated Python tests passed, including first-start/restart persistence, concurrent initialization, whole-row preservation across repeated switches, original-order Undo, quick-add duplicates, canonical TMDB requests, invalid/CSRF language changes, localized partial failures, escaping and mismatched provider data.
+- Browser regression passed 80 views across English/Turkish at 320/390/768/1024/1365px with zero JavaScript errors. Verified keyboard language save, persisted selection, add failure/retry, fixed movie IDs/statuses, Ctrl+Z Undo with notes/rating/favorite, autocomplete + Enter, genre IDs, taste selections and recommendation labels.
+- English/Turkish Settings screenshots inspected at desktop and 390px. Longer button labels adjusted to fit existing compact cards. Shared client dictionary includes only the 51 messages used by JavaScript.
+- No Android build, gateway deployment, version bump, Git commit or release publication performed for this change. User AppData and source libraries were not opened by QA; all checks use isolated libraries.
+
+Windows packaging verified: rebuilt standard MyMovieList-v3.3.0.exe and Windows ZIP. The real EXE starts with an isolated library, changes Turkish to English, retains English after restart, and leaves every movie field unchanged. Packaged UI assets match current source; i18n and identity guards are included; ZIP/SHA256 contents verified. Android artifacts were not rebuilt.
+
+
+## Automatic credits and bilingual movie content — 2026-10-06
+
+- Primary project: Desktop/movie-watchlist. New movies and taste-survey additions fetch verified English details, complete credits and translations in one `credits,translations` request. A separate SQLite metadata cache stores both display languages; movie IDs and canonical library titles are never matched or rewritten by translated text.
+- Turkish-original movies use their original title in Turkish. Available Turkish synopses are preferred, with English fallback for missing/blank translations. Search, suggestions, discovery, filmographies, taste choices and recommendation display use the chosen language while ranking and stored genre/status values remain canonical.
+- Schema v3 adds the metadata table with an automatic before-v3 SQLite backup for existing libraries. Migration, bilingual switching, refresh failures, Undo, original order and personal-field preservation are covered by tests. No AppData/source library was used by QA.
+- Cast, directors and companies load without a detail-page refresh button. Complete cast lists are saved; the first 12 appear directly and a native keyboard-accessible disclosure shows the rest. Older visible entries hydrate with two bounded background workers and retain all personal data, including timestamps. Interrupted/offline fetches leave saved library pages usable.
+- Duplicate metadata requests coalesce by movie ID. Malformed credits, mismatched movie/translation IDs and damaged cache entries are handled safely. Foreground transient failures retain a short retry cooldown and correct error status; background scans back off separately. Rate limits remain 120/client-IP, 600/TMDB and 60/RAWG per minute.
+- Library filtering supports original/English/Turkish aliases, Unicode case and diacritics; İstanbul/istanbul and Sınıfı/Sinifi match without modifying stored titles.
+- 189 isolated Python tests passed. Test fixtures block actual catalog network access unless explicitly mocked; the live opt-in verification runs separately. Ruff, JavaScript syntax and diff whitespace checks passed.
+- 10 shared-gateway tests passed, including movie credits/translations append validation, canonical cache keys, injection rejection and unchanged TV/game behavior. Deployed Worker version: 9c58d1d3-860a-461a-8dc5-995d7a27390d at api.myshelf.cloud.
+- Browser checks passed 110 bilingual responsive views at 320/390/768/1024/1365px with zero JavaScript errors: language persistence, add/retry, autocomplete, Undo, actor/company navigation, automatic older-entry hydration, complete cast, title-alias filtering, offline details/editing and full movie-row preservation after metadata completion. Turkish film detail was visually inspected on desktop and at 390px.
+- Separate live validation of the 1975 Hababam Sınıfı (TMDB 83651) saved its Turkish synopsis and all 57 cast members, displayed The Chaos Class in English, and preserved the entire completed movie row through the language switch.
+- Android was not rebuilt, and no version bump, Git commit or GitHub release publication was performed.
+
+Windows package verification: rebuilt MyMovieList-v3.3.0.exe and Windows ZIP. The real executable displayed saved Turkish/English movie titles, synopses and full cast offline, retained the English selection after restart, and preserved every completed movie field in an isolated library. All 32 packaged UI files match current source; the catalog/i18n modules and ID guard are included. Personal database/env/signing files are excluded; ZIP contents and SHA256 verified. No Android artifacts were rebuilt.

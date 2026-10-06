@@ -1,32 +1,31 @@
-# MyMovieList v3.3.0 — Movie Discovery Without API-Key Setup
+# MyMovieList v3.4.0 — Bilingual Discovery & Smarter Recommendations
 
-A fresh look for your personal film library, with a cleaner desktop experience and responsive layouts. Keep your ratings, reactions and personal notes on your own computer, without publishing them to a public profile.
+Discover your next film in English or Turkish, with richer recommendations and automatically saved movie details. This release brings the current shared application to Windows and the signed Android beta.
 
 ## What's new
 
-- New lavender film-ribbon logo, Windows icon and Android launcher icon.
-- Signed Android beta `3.3.0-android-beta.1` available with token-free discovery; physical-device testing is still pending.
-- Movie discovery works without a personal TMDB account or token, through the shared Cloudflare gateway at `api.myshelf.cloud`.
-- Settings no longer asks for API credentials; obsolete saved tokens are removed on startup while library data stays local.
-- Redesigned interface with charcoal surfaces, lavender accents, refined typography and consistent icons.
-- A cleaner library with compact statistics, aligned cards and one-line notes that open on the detail page.
-- Full-height desktop sidebar that scrolls with the collection, a compact tablet rail and fixed bottom navigation on phones.
-- A new Explore landing page with film, filmmaker and studio starting points.
-- Refreshed film details, profiles, settings, editing and taste onboarding screens.
-- Streamlined recommendation controls with automatic discovery-mode switching.
+- **English and Turkish:** the first launch follows your device's UI language, then saves your choice locally. Switch languages in Settings. Available Turkish synopses and Turkish-original film names are supported, with English fallback where necessary.
+- **Automatic movie details:** cast, directors, writers, producers, studios and bilingual content are saved when adding a film. Older library entries fill missing details as you browse online. Saved details remain readable offline.
+- **Smarter personal recommendations:** ratings, favorites and selected films inform a local model using genres, available themes, directors and lead cast. Private notes are not analyzed.
+- **More varied discovery:** a broader candidate pool includes classics and rotating international selections. Smaller interests are preserved, with limits on repeated themes, franchises and directors.
+- **Distinct discovery modes:** familiar, balanced and adventurous choices use different mixes when enough information is available. New suggestions avoid recent repeats when alternatives exist.
+- **Stable suggestions:** browsing and switching interface languages keep the current picks. Added and hidden films stay excluded; changed preferences take effect when you request new suggestions.
+- **Explore shelves:** browse Trending by day or week, Highest rated, New releases and Genres. Hide library films and add directly from poster cards.
+- **Android update:** the signed `3.4.0-android-beta.1` APK and Play bundle include the current language, discovery and recommendation features. No TMDB account or API key is required.
 
-## Fixes and polish
+## Reliability and privacy
 
-- Improved keyboard focus after removing films, adding suggestions and changing taste selections.
-- Removing a film from its editor now hides the full form; Undo restores it.
-- Taste-search retries return to the failed page.
-- More consistent loading, empty, hover and focus states.
+- Catalog responses are checked against the requested movie ID before saving or displaying details. Language changes preserve movie identity, notes, ratings, favorites and library order.
+- Personal library data and recommendation ranking remain on your device. Catalog requests use the shared discovery service; no developer API credential is embedded in the app.
+- The locally cached public recommendation pool can supply suggestions offline after an online fetch. Available results still depend on the cached pool and metadata.
+- Existing removal/Undo behavior preserves personal fields and the original library order.
 
 ## Upgrading
 
-- Close the old application, extract the release ZIP and open `MyMovieList-v3.3.0.exe`.
-- Your existing library, notes, ratings, favorites and settings remain in `%APPDATA%\MovieWatchlist`. No manual data transfer is needed when upgrading from a standard release.
-- An explicit `MOVIE_WATCHLIST_DATA_DIR` override is still respected.
-- The earlier frontend preview's separate `data/` library is not automatically merged into your main library.
-- Recommendation ranking and the database schema are unchanged.
-- Validation: 68 automated tests, including credential-free gateway requests, legacy-token cleanup and desktop data-path checks, ten desktop pages and responsive browser checks at 320, 390, 768 and 1024 CSS pixels. Physical phone testing is still pending.
+- **Windows:** close the previous app, extract `MyMovieList-v3.4.0-windows.zip` and open `MyMovieList-v3.4.0.exe`. Your existing library remains in `%APPDATA%\MovieWatchlist`; an explicit `MOVIE_WATCHLIST_DATA_DIR` override is still respected.
+- **Android:** install `MyMovieList-3.4.0-android-beta.1.apk` over the previous signed release. The application ID and signing certificate are retained, and `versionCode` increases to 3. Do not uninstall or clear app storage if you want to keep the phone's library.
+- Windows and Android keep separate libraries; cloud sync is not included.
+- The recommendation update requires no additional schema migration. The bilingual metadata-cache migration preserves existing movie IDs and personal fields.
+- Android remains a beta pending physical-device testing. The `.apk` is the installable download; the `.aab` is for a future Google Play submission and is not installed directly.
+
+See [QA results](QA_RESULTS.md) for verification and [Android build instructions](ANDROID.md) for package details.

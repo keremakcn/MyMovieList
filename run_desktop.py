@@ -8,7 +8,8 @@ from version import APP_VERSION
 
 if __name__ == "__main__":
     # The application factory retains the installed app's AppData library.
-    server = create_server(create_app(), host="127.0.0.1", port=0)
+    application = create_app()
+    server = create_server(application, host="127.0.0.1", port=0)
     server_thread = threading.Thread(target=server.run, daemon=True)
     server_thread.start()
     try:
@@ -21,4 +22,5 @@ if __name__ == "__main__":
         )
         webview.start()
     finally:
+        application.extensions["catalog"].close()
         server.close()

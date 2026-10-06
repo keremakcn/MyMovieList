@@ -1,13 +1,13 @@
 <div class="movie-card-actions">
     <a class="edit-link"
-       href="{{ url_for('edit', movie_id=movie.id, next=current_url) }}">Edit</a>
+       href="{{ url_for('edit', movie_id=movie.id, next=current_url) }}">{{ t("Edit") }}</a>
     <form action="/favorite/{{ movie.id }}" method="post" data-quick-action>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="next" value="{{ current_url }}">
         <input type="hidden" name="value" value="{{ 0 if movie.favorite else 1 }}">
         <button type="submit"
                 class="secondary-button"
-                aria-label="{{ 'Remove from favorites' if movie.favorite else 'Add to favorites' }}"
+                aria-label="{{ t('Remove from favorites' if movie.favorite else 'Add to favorites') }}"
                 aria-pressed="{{ 'true' if movie.favorite else 'false' }}">{{ '♥' if movie.favorite else '♡' }}</button>
     </form>
     <form action="/status/{{ movie.id }}" method="post" data-quick-action>
@@ -17,7 +17,7 @@
                name="value"
                value="{{ 'Watched' if movie.status == 'Watchlist' else 'Watchlist' }}">
         <button type="submit"
-                class="secondary-button">{{ 'Mark watched' if movie.status == 'Watchlist' else 'Want to watch' }}</button>
+                class="secondary-button">{{ t('Mark watched' if movie.status == 'Watchlist' else 'Want to watch') }}</button>
     </form>
     <form action="/delete/{{ movie.id }}"
           method="post"
@@ -27,6 +27,6 @@
         <input type="hidden" name="next" value="/">
         <button type="submit"
                 class="delete-button"
-                aria-label="Remove {{ movie.title }}">Remove</button>
+                aria-label="{{ t("Remove {title}", title=movie.title) }}">{{ t("Remove") }}</button>
     </form>
 </div>

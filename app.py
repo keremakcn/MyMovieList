@@ -6,13 +6,14 @@ import secrets
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from itertools import zip_longest
 from datetime import date, datetime
+from itertools import zip_longest
 from pathlib import Path
 from threading import Lock
-from urllib.parse import urlsplit, urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import urlopen
 
+from catalog import CatalogService, display_summary
 from dotenv import load_dotenv
 from flask import (
     Flask,
@@ -26,8 +27,10 @@ from flask import (
     session,
     url_for,
 )
+from i18n import SUPPORTED_LANGUAGES, register_i18n
+
 from storage import Database, utcnow
-from tmdb_client import TMDBClient, TMDBError, image_url, movie_details, movie_summary
+from tmdb_client import TMDBClient, TMDBError, image_url, movie_summary
 from version import APP_VERSION
 
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -101,10 +104,20 @@ def create_app(config=None):
     db = Database(app.config["DATABASE"])
     db.migrate()
     app.extensions["db"] = db
+    register_i18n(app, db)
+    t = app.extensions["i18n"]["translate"]
     locks = [Lock() for _ in range(32)]
 
     tmdb = TMDBClient()
     app.extensions["tmdb"] = tmdb
+    catalog = CatalogService(db, tmdb, background=app.config.get("BACKGROUND_METADATA", not app.testing))
+    app.extensions["catalog"] = catalog
+
+    def content_locale():
+        return app.extensions["i18n"]["language"]()
+
+    def provider_language():
+        return "tr-TR" if content_locale() == "tr" else "en-US"
     app.jinja_env.filters["safe_back"] = safe_path
 
     def csrf_token():
@@ -147,6 +160,10 @@ def create_app(config=None):
                     (BASE_DIR / "static/style.css").stat().st_mtime_ns,
                     (BASE_DIR / "static/script.js").stat().st_mtime_ns,
                     (BASE_DIR / "static/recommendations.js").stat().st_mtime_ns,
+                    (BASE_DIR / "static/discovery.js").stat().st_mtime_ns
+                    if (BASE_DIR / "static/discovery.js").exists() else 0,
+                    (BASE_DIR / "static/i18n.js").stat().st_mtime_ns,
+                    (BASE_DIR / "static/locales/tr.json").stat().st_mtime_ns,
                 )
             ),
         )
@@ -180,7 +197,7 @@ def create_app(config=None):
     @app.errorhandler(TMDBError)
     def tmdb_error(error):
         if wants_json():
-            return jsonify(error=str(error)), error.status
+            return jsonify(error=t(str(error))), error.status
         return render_template("error.html", message=str(error)), error.status
 
     from werkzeug.exceptions import HTTPException, SecurityError
@@ -190,14 +207,14 @@ def create_app(config=None):
         if isinstance(error, SecurityError):
             return "Untrusted host.", 400
         if wants_json():
-            return jsonify(error=error.description), error.code
+            return jsonify(error=t(error.description)), error.code
         return render_template("error.html", message=error.description), error.code
 
     @app.errorhandler(500)
     def internal_error(error):
         message = "Something went wrong. Your library is safe. Please try again."
         if wants_json():
-            return jsonify(error=message), 500
+            return jsonify(error=t(message)), 500
         return render_template("error.html", message=message), 500
 
     def integer(value, default=1, maximum=500):
@@ -212,13 +229,13 @@ def create_app(config=None):
             movie["library"] = membership.get(movie["tmdb_id"])
         return movies
 
-    def unique_movies(items):
+    def unique_movies(items, locale=None):
         seen, result = set(), []
         for item in items:
             if item.get("id") and item["id"] not in seen:
                 seen.add(item["id"])
                 result.append(movie_summary(item))
-        return result
+        return catalog.present(result, locale or content_locale())
 
     @app.get("/")
     def index():
@@ -241,12 +258,13 @@ def create_app(config=None):
         elif status == "favorite":
             clauses.append("favorite=1")
         if query:
-            clauses.append("title LIKE ? ESCAPE '\\'")
-            params.append(
-                "%"
-                + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-                + "%"
-            )
+            clauses.append("""(search_fold(title) LIKE search_fold(?) ESCAPE '\\' OR EXISTS (
+                SELECT 1 FROM movie_metadata c WHERE c.tmdb_id=movies.tmdb_id AND (
+                search_fold(c.english_title) LIKE search_fold(?) ESCAPE '\\' OR
+                search_fold(c.original_title) LIKE search_fold(?) ESCAPE '\\' OR
+                search_fold(c.turkish_title) LIKE search_fold(?) ESCAPE '\\')))""")
+            pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+            params.extend([pattern] * 4)
         where = " AND ".join(clauses)
         count = db.query("SELECT COUNT(*) total FROM movies WHERE " + where, *params)[
             0
@@ -262,12 +280,14 @@ def create_app(config=None):
             *params,
             (page - 1) * 36,
         )
+        pending = catalog.schedule(movies)
         stats = db.query(
             "SELECT COALESCE(SUM(status='Watchlist'),0) watchlist, COALESCE(SUM(status='Watched'),0) watched, COALESCE(SUM(favorite=1),0) favorites, ROUND(AVG(rating),1) average FROM movies WHERE deleted_at IS NULL"
         )[0]
         return render_template(
             "index.html",
-            movies=movies,
+            movies=[dict(m, metadata_pending=m.get("tmdb_id") in pending)
+                    for m in catalog.present(movies, content_locale())],
             stats=stats,
             status_filter=status,
             sort=sort,
@@ -277,6 +297,23 @@ def create_app(config=None):
             page=page,
             pages=pages,
         )
+
+    @app.get("/api/library/metadata")
+    def library_metadata():
+        raw_ids = request.args.getlist("id")
+        if not raw_ids or len(raw_ids) > 36 or any(
+            not value.isascii() or not value.isdecimal() or len(value) > 10 for value in raw_ids
+        ):
+            abort(400, "Choose a valid movie.")
+        ids = list(dict.fromkeys(int(value) for value in raw_ids))
+        rows = db.query("SELECT * FROM movies WHERE deleted_at IS NULL AND id IN ("
+                        + ",".join("?" for _ in ids) + ")", *ids)
+        with catalog.state_lock:
+            pending = set(catalog.pending)
+        return jsonify(language=content_locale(), movies=[
+            dict(id=m["id"], title=m["title"], search_title=m["search_title"],
+                 pending=m.get("tmdb_id") in pending)
+            for m in catalog.present(rows, content_locale())])
 
     def profession(department):
         return {
@@ -299,7 +336,8 @@ def create_app(config=None):
             "company": ["company"],
         }.get(request.args.get("type"), ["movie", "actor", "director"])
 
-    def search_data(query, kind, page, categories=None):
+    def search_data(query, kind, page, categories=None, locale=None):
+        locale = locale or content_locale()
         if kind == "all":
             # All shares the same role filter and cache as Actors & Directors.
             categories = (
@@ -317,7 +355,7 @@ def create_app(config=None):
             groups, warnings, failures = [], [], []
             with ThreadPoolExecutor(max_workers=len(sources)) as pool:
                 searches = [
-                    (label, pool.submit(search_data, query, source, page, categories))
+                    (label, pool.submit(search_data, query, source, page, categories, locale))
                     for source, label in sources
                 ]
                 for label, future in searches:
@@ -325,7 +363,7 @@ def create_app(config=None):
                         groups.append(future.result())
                     except TMDBError as exc:
                         failures.append(exc)
-                        warnings.append(f"{label}: {exc}")
+                        warnings.append(f"{t(label)}: {t(str(exc))}")
             if not groups:
                 raise failures[0]
             results = [
@@ -354,10 +392,10 @@ def create_app(config=None):
         source = kind
         params = dict(query=query, page=page)
         if kind != "company":
-            params.update(language="en-US", include_adult="false")
+            params.update(language="tr-TR" if locale == "tr" else "en-US", include_adult="false")
         data = tmdb.get("search/" + source, **params)
         if kind == "movie":
-            results = annotate(unique_movies(data.get("results", [])))
+            results = annotate(unique_movies(data.get("results", []), locale))
         else:
             results, seen = [], set()
             for item in data.get("results", []):
@@ -377,7 +415,7 @@ def create_app(config=None):
                             item.get("profile_path") or item.get("logo_path"), "w185"
                         ),
                         description=", ".join(
-                            m.get("title", "")
+                            display_summary(dict(m, title=m.get("title", "")), locale)["title"]
                             for m in item.get("known_for", [])
                             if m.get("media_type") == "movie"
                         ),
@@ -434,7 +472,7 @@ def create_app(config=None):
             results=[
                 dict(
                     label=m.get("title") or m.get("name"),
-                    subtitle=m.get("role_label", "Movie")
+                    subtitle=t(m.get("role_label", "Movie"))
                     + (
                         " · " + str(m.get("year") or m.get("description"))
                         if m.get("year") or m.get("description")
@@ -481,6 +519,9 @@ def create_app(config=None):
             Path(app.config["DATA_DIR"]) / "posters", filename, max_age=86400
         )
 
+    def catalog_details(tmdb_id):
+        return catalog.details(tmdb_id)
+
     def add_from_tmdb(status):
         try:
             tmdb_id = int(request.form.get("movie_id", ""))
@@ -494,13 +535,7 @@ def create_app(config=None):
                 db.restore(existing[0]["id"])
                 movie_id, created = existing[0]["id"], False
             else:
-                details = movie_details(
-                    tmdb.get(
-                        f"movie/{tmdb_id}",
-                        language="en-US",
-                        append_to_response="credits",
-                    )
-                )
+                details = catalog_details(tmdb_id)
                 values = {
                     k: details.get(k)
                     for k in (
@@ -550,9 +585,7 @@ def create_app(config=None):
 
     @app.get("/catalog_movie/<int:tmdb_id>")
     def catalog_movie(tmdb_id):
-        details = movie_details(
-            tmdb.get(f"movie/{tmdb_id}", language="en-US", append_to_response="credits")
-        )
+        details = catalog.present([catalog_details(tmdb_id)], content_locale())[0]
         details["library"] = db.membership([tmdb_id]).get(tmdb_id)
         return render_template("catalog_movie.html", movie=details, tmdb=details)
 
@@ -561,12 +594,7 @@ def create_app(config=None):
         row = db.movie(movie_id)
         if not row:
             abort(404, "This movie is not in your active library.")
-        details = dict(
-            row,
-            poster_url=row["poster_path"],
-            cast=(row["cast_list"] or "").split(", "),
-            entities=json.loads(row["entities_json"] or "{}"),
-        )
+        row, details = catalog.library_detail(row, content_locale())
         return render_template("movie.html", movie=row, tmdb=details)
 
     @app.post("/movie/<int:movie_id>/refresh")
@@ -574,14 +602,7 @@ def create_app(config=None):
         row = db.movie(movie_id)
         if not row or not row["tmdb_id"]:
             abort(404)
-        tmdb.invalidate(f"movie/{row['tmdb_id']}")
-        details = movie_details(
-            tmdb.get(
-                f"movie/{row['tmdb_id']}",
-                language="en-US",
-                append_to_response="credits",
-            )
-        )
+        details = catalog.details(row["tmdb_id"], force=True)
         db.execute(
             "UPDATE movies SET entities_json=?, overview=?, runtime=?, director=?, cast_list=?, score_percent=?, poster_path=? WHERE id=? AND deleted_at IS NULL",
             json.dumps(details["entities"]),
@@ -604,7 +625,7 @@ def create_app(config=None):
         profile = tmdb.get(
             f"{kind}/{entity_id}",
             **(
-                {"language": "en-US", "append_to_response": "movie_credits"}
+                {"language": provider_language(), "append_to_response": "movie_credits"}
                 if kind == "person"
                 else {}
             ),
@@ -622,7 +643,7 @@ def create_app(config=None):
             data = tmdb.get(
                 "discover/movie",
                 with_companies=entity_id,
-                language="en-US",
+                language=provider_language(),
                 include_adult="false",
                 sort_by="popularity.desc",
                 page=page,
@@ -744,7 +765,7 @@ def create_app(config=None):
                     }
                 )
         return render_template(
-            "edit.html", movie=row, next_url=next_url, error=error
+            "edit.html", movie=catalog.present([row], content_locale())[0], next_url=next_url, error=error
         ), 422 if error else 200
 
     def mutation_result(movie_id):
@@ -814,15 +835,39 @@ def create_app(config=None):
     def settings():
         return render_template("settings.html")
 
+    @app.get("/api/ui-language")
+    def ui_language():
+        return jsonify(language=app.extensions["i18n"]["language"]())
+
+    @app.post("/settings/language")
+    def change_language():
+        choice = request.form.get("language")
+        if choice not in SUPPORTED_LANGUAGES:
+            abort(400, "Choose Turkish or English.")
+        db.execute(
+            "INSERT OR REPLACE INTO settings(key,value) VALUES ('ui_language',?)",
+            choice,
+        )
+        # Capture the new locale for the confirmation and response headers.
+        from flask import g
+
+        g.ui_language = choice
+        flash(t("Language saved."))
+        return redirect(url_for("settings"), code=303)
+
     from recommendation_routes import register_recommendations
 
     register_recommendations(app, db, tmdb, download_poster)
+    from discovery_routes import register_discovery
+
+    register_discovery(app, db, tmdb)
     return app
 
 
 if __name__ == "__main__":
     import threading
     import webbrowser
+
     from waitress import serve
 
     application = create_app()

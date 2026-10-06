@@ -1,21 +1,35 @@
 {% extends "base.html" %}
 {% block title %}
-    Settings · MyMovieList
+    {{ t("Settings · MyMovieList") }}
 {% endblock %}
 {% block content %}
     <div class="form-page">
-        <p class="eyebrow">YOUR WORKSPACE</p>
-        <h1>Settings</h1>
+        <p class="eyebrow">{{ t("YOUR WORKSPACE") }}</p>
+        <h1>{{ t("Settings") }}</h1>
+        <section class="form-card language-settings" aria-labelledby="language-heading">
+            <h2 id="language-heading">{{ t('Language') }}</h2>
+            <form class="movie-form" action="{{ url_for('change_language') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label for="ui-language">{{ t('Interface language') }}</label>
+                <select id="ui-language" name="language" aria-describedby="language-help language-data-help">
+                    <option value="tr" lang="tr" {{ 'selected' if ui_language == 'tr' }}>Türkçe</option>
+                    <option value="en" lang="en" {{ 'selected' if ui_language == 'en' }}>English</option>
+                </select>
+                <p id="language-help" class="settings-note">{{ t('The computer language is used only on first launch. Your selection is remembered on this device.') }}</p>
+                <p id="language-data-help" class="settings-note">{{ t('Turkish film titles and available synopses follow your language. Your notes, ratings and library order stay the same.') }}</p>
+                <button type="submit">{{ t('Save language') }}</button>
+            </form>
+        </section>
         <section class="form-card">
-            <h2>Ready to explore</h2>
-            <p>Search films, actors, directors and production studios without setting up an API key or account.</p>
-            <p class="settings-note">Discovery needs an internet connection. If the service is unavailable, your saved library and downloaded posters remain accessible.</p>
+            <h2>{{ t("Ready to explore") }}</h2>
+            <p>{{ t("Search films, actors, directors and production studios without setting up an API key or account.") }}</p>
+            <p class="settings-note">{{ t("Discovery needs an internet connection. If the service is unavailable, your saved library and downloaded posters remain accessible.") }}</p>
         </section>
         <section class="settings-help">
-            <h2>Your library stays yours</h2>
-            <p>Your notes, ratings, favorites and viewing history are stored on this device. They are not uploaded to the discovery service.</p>
-            <p>Online searches and requests for film information pass through our discovery service to TMDB.</p>
-            <p>Removed films are kept in <a href="/?status=trash">Recently removed</a>, with their notes, ratings and original order. Database upgrades create a backup before changing the schema.</p>
+            <h2>{{ t("Your library stays yours") }}</h2>
+            <p>{{ t("Your notes, ratings, favorites and viewing history are stored on this device. They are not uploaded to the discovery service.") }}</p>
+            <p>{{ t("Online searches and requests for film information pass through our discovery service to TMDB.") }}</p>
+            <p>{{ t("Removed films are kept in") }} <a href="/?status=trash">{{ t("Recently removed") }}</a>{{ t(", with their notes, ratings and original order. Database upgrades create a backup before changing the schema.") }}</p>
         </section>
     </div>
 {% endblock %}

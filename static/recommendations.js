@@ -1,10 +1,11 @@
 /* UI for local recommendations and taste onboarding. */
 (() => {
     'use strict';
+    const {t} = window.MovieListI18n;
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     async function read(response) {
-        const data = await response.json().catch(() => ({error: 'Something went wrong. Please try again.'}));
-        if (!response.ok) throw new Error(data.error || 'Could not complete the request. Please try again.');
+        const data = await response.json().catch(() => ({error: t('Something went wrong. Please try again.')}));
+        if (!response.ok) throw new Error(data.error || t('Could not complete the request. Please try again.'));
         return data;
     }
     const region = document.getElementById('recommendation-results');
@@ -16,7 +17,7 @@
             if (loading) { refreshPending = true; return; }
             loading = true; region.setAttribute('aria-busy', 'true');
             refreshButton.disabled = true;
-            refreshButton.textContent = fresh ? 'Refreshing…' : 'New suggestions';
+            refreshButton.textContent = fresh ? t('Refreshing…') : t('New suggestions');
             refreshStatus.textContent = '';
             try {
                 const data = await read(await fetch(fresh ? '/api/recommendations/refresh' : '/api/recommendations', fresh ? {method: 'POST', headers: {'X-CSRF-Token': csrf}} : {}));
@@ -28,11 +29,11 @@
             } catch (error) {
                 if (fresh) { refreshStatus.textContent = error.message; return; }
                 const message = document.createElement('p'); message.className = 'form-error'; message.textContent = error.message;
-                const retry = document.createElement('button'); retry.type = 'button'; retry.dataset.recommendationRetry = ''; retry.textContent = 'Try again';
+                const retry = document.createElement('button'); retry.type = 'button'; retry.dataset.recommendationRetry = ''; retry.textContent = t('Try again');
                 region.replaceChildren(message, retry);
             } finally {
                 loading = false; region.setAttribute('aria-busy', 'false');
-                refreshButton.disabled = false; refreshButton.textContent = 'New suggestions';
+                refreshButton.disabled = false; refreshButton.textContent = t('New suggestions');
                 if (refreshPending) { refreshPending = false; load(); }
             }
         }
@@ -55,12 +56,12 @@
                 await read(await fetch(form.action, {method: 'POST', body: new FormData(form), headers: {'X-CSRF-Token': csrf, Accept: 'application/json'}}));
                 const card = form.closest('.recommendation-item');
                 const notice = document.createElement('div'); notice.className = 'taste-invitation';
-                const text = document.createElement('p'); text.textContent = 'Suggestion hidden. Other films in this genre are unaffected.';
+                const text = document.createElement('p'); text.textContent = t('Suggestion hidden. Other films in this genre are unaffected.');
                 const undo = document.createElement('form'); undo.action = '/recommendations/restore'; undo.method = 'post';
                 for (const [name, value] of [['csrf_token', csrf], ['movie_id', form.elements.movie_id.value]]) {
                     const input = document.createElement('input'); input.type = 'hidden'; input.name = name; input.value = value; undo.append(input);
                 }
-                const restore = document.createElement('button'); restore.textContent = 'Undo'; undo.append(restore);
+                const restore = document.createElement('button'); restore.textContent = t('Undo'); undo.append(restore);
                 notice.append(text, undo); card.replaceWith(notice); restore.focus();
             } catch (error) {
                 button.disabled = false;
@@ -86,7 +87,7 @@
         count.textContent = `(${selected.size})`; selectedRegion.replaceChildren();
         for (const [id, title] of selected) {
             const button = document.createElement('button'); button.type = 'button'; button.textContent = `${title} ×`;
-            button.setAttribute('aria-label', `Remove ${title} from your picks`);
+            button.setAttribute('aria-label', t('Remove {title} from your picks', {title}));
             button.disabled = saving;
             button.addEventListener('click', () => {
                 if (saving) return;
@@ -103,14 +104,14 @@
         grid.replaceChildren();
         for (const movie of movies) {
             const label = document.createElement('label'); label.className = 'taste-card';
-            const box = document.createElement('input'); box.type = 'checkbox'; box.value = movie.tmdb_id; box.setAttribute('aria-label', `I liked ${movie.title}`);
+            const box = document.createElement('input'); box.type = 'checkbox'; box.value = movie.tmdb_id; box.setAttribute('aria-label', t('I liked {title}', {title: movie.title}));
             const art = document.createElement('div'); art.className = 'taste-poster';
             if (movie.poster_url) { const image = document.createElement('img'); image.src = movie.poster_url; image.alt = ''; image.loading = 'lazy'; art.append(image); }
             else art.textContent = '◈';
             const title = document.createElement('strong'); title.textContent = movie.title;
-            const year = document.createElement('small'); year.textContent = movie.year || 'Year unknown';
+            const year = document.createElement('small'); year.textContent = movie.year || t('Year unknown');
             box.addEventListener('change', () => {
-                if (box.checked && selected.size >= 24) { box.checked = false; status.textContent = 'You can select up to 24 films.'; return; }
+                if (box.checked && selected.size >= 24) { box.checked = false; status.textContent = t('You can select up to 24 films.'); return; }
                 if (box.checked) selected.set(movie.tmdb_id, movie.title); else selected.delete(movie.tmdb_id);
                 sync();
             });
@@ -121,19 +122,19 @@
     async function load(nextQuery, nextPage) {
         const current = ++revision;
         controller?.abort(); controller = new AbortController(); busy = true;
-        more.disabled = true; grid.setAttribute('aria-busy', 'true'); status.textContent = 'Loading films…';
+        more.disabled = true; grid.setAttribute('aria-busy', 'true'); status.textContent = t('Loading films…');
         try {
             const params = new URLSearchParams({q: nextQuery, page: nextPage});
             const data = await read(await fetch(`/api/taste/choices?${params}`, {signal: controller.signal}));
             if (current !== revision) return;
             failedRequest = null; delete more.dataset.retry;
             query = nextQuery; page = nextPage; draw(data.movies);
-            more.hidden = page >= data.pages; more.textContent = query ? 'Next results' : 'Show different films';
-            status.textContent = data.errors.length ? data.errors.join(' ') : data.movies.length ? 'Select films you have seen and enjoyed. Your picks stay selected as you browse.' : 'No films found. Try another title.';
+            more.hidden = page >= data.pages; more.textContent = query ? t('Next results') : t('Show different films');
+            status.textContent = data.errors.length ? data.errors.join(' ') : data.movies.length ? t('Select films you have seen and enjoyed. Your picks stay selected as you browse.') : t('No films found. Try another title.');
         } catch (error) {
             if (error.name !== 'AbortError' && current === revision) {
                 failedRequest = {query: nextQuery, page: nextPage};
-                status.textContent = error.message; more.hidden = false; more.textContent = 'Try again'; more.dataset.retry = 'true';
+                status.textContent = error.message; more.hidden = false; more.textContent = t('Try again'); more.dataset.retry = 'true';
             }
         } finally { if (current === revision) { busy = false; more.disabled = false; grid.setAttribute('aria-busy', 'false'); } }
     }
@@ -153,12 +154,12 @@
     });
     saveForm.addEventListener('submit', async event => {
         event.preventDefault(); if (saving || !selected.size) return;
-        saving = true; sync(); saveStatus.textContent = 'Saving your picks. Please keep this page open…';
+        saving = true; sync(); saveStatus.textContent = t('Saving your picks. Please keep this page open…');
         const data = new FormData(saveForm); for (const id of selected.keys()) data.append('movie_id', id);
         try {
             const result = await read(await fetch(saveForm.action, {method: 'POST', body: data, headers: {'X-CSRF-Token': csrf, Accept: 'application/json'}}));
             location.assign(result.url);
-        } catch (error) { saveStatus.textContent = `${error.message} Your selections are still here. Please try again.`; saving = false; sync(); }
+        } catch (error) { saveStatus.textContent = t('{error} Your selections are still here. Please try again.', {error: error.message}); saving = false; sync(); }
     });
     sync(); load('', 1);
 })();

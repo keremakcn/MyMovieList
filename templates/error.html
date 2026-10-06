@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}
-    Something went wrong · MyMovieList
+    {{ t("Something went wrong · MyMovieList") }}
 {% endblock %}
 {% block content %}
     <section class="empty-state">
-        <p class="eyebrow">LET'S TRY AGAIN</p>
-        <h1>Unable to complete this request</h1>
-        <p role="alert">{{ message }}</p>
-        <a class="edit-link" href="/search">Back to Explore</a> <a class="edit-link" href="/">Your library</a>
+        <p class="eyebrow">{{ t("LET'S TRY AGAIN") }}</p>
+        <h1>{{ t("Unable to complete this request") }}</h1>
+        <p role="alert">{{ t(message) }}</p>
+        <a class="edit-link" href="/search">{{ t("Back to Explore") }}</a> <a class="edit-link" href="/">{{ t("Your library") }}</a>
     </section>
 {% endblock %}

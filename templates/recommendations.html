@@ -1,53 +1,53 @@
 {% extends "base.html" %}
-{% block title %}For you · MyMovieList{% endblock %}
+{% block title %}{{ t("For you · MyMovieList") }}{% endblock %}
 {% block content %}
     <header class="app-header">
         <div>
-            <p class="eyebrow">A LITTLE TASTE. A LITTLE CHANCE.</p>
-            <h1>Tonight, something good<span class="heading-dot">.</span></h1>
-            <p>Your next watch, with a little room for discovery.</p>
+            <p class="eyebrow">{{ t("A LITTLE TASTE. A LITTLE CHANCE.") }}</p>
+            <h1>{{ t("Tonight, something good") }}<span class="heading-dot">.</span></h1>
+            <p>{{ t("Your next watch, with a little room for discovery.") }}</p>
         </div>
         <a class="edit-link"
-           href="/taste">{{ 'Edit your picks' if onboarding == 'complete' else 'Choose films you love' }}</a>
+           href="/taste">{{ t('Edit your picks' if onboarding == 'complete' else 'Choose films you love') }}</a>
     </header>
     {% if not profile.ready %}
         <section class="taste-invitation">
-            <h2>Make this feel more like you.</h2>
-            <p>These are starting suggestions. Choose films you love and rate what you watch to shape your picks.</p>
+            <h2>{{ t("Make this feel more like you.") }}</h2>
+            <p>{{ t("These are starting suggestions. Choose films you love and rate what you watch to shape your picks.") }}</p>
             {% if onboarding not in ["skipped", "complete"] %}<a class="edit-link"
-   href="/taste">Pick a few favorites to get started →</a>{% endif %}
+   href="/taste">{{ t("Pick a few favorites to get started →") }}</a>{% endif %}
         </section>
     {% endif %}
     <div class="recommendation-toolbar"><form action="/recommendations/mode"
           method="post"
           class="recommendation-controls">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="discovery-mode">In the mood for</label>
-        <select id="discovery-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ label }}</option>{% endfor %}</select>
-        <button type="submit" class="secondary-button" data-auto-hide>Apply</button>
+        <label for="discovery-mode">{{ t("In the mood for") }}</label>
+        <select id="discovery-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ t(label) }}</option>{% endfor %}</select>
+        <button type="submit" class="secondary-button" data-auto-hide>{{ t("Apply") }}</button>
     </form>
-    <button type="button" id="refresh-recommendations" disabled>New suggestions</button></div>
+    <button type="button" id="refresh-recommendations" disabled>{{ t("New suggestions") }}</button></div>
     <p id="recommendation-status" role="status"></p>
     <section id="recommendation-results" aria-live="polite" aria-busy="true">
-        <div class="loading-state"><span class="loading-orbit" aria-hidden="true"></span><h2>Setting the scene…</h2><p>Finding a few films for you.</p></div>
+        <div class="loading-state"><span class="loading-orbit" aria-hidden="true"></span><h2>{{ t("Setting the scene…") }}</h2><p>{{ t("Finding a few films for you.") }}</p></div>
     </section>
     <noscript>
-        <p>Enable JavaScript to load recommendations. Your library still works without it.</p>
+        <p>{{ t("Enable JavaScript to load recommendations. Your library still works without it.") }}</p>
     </noscript>
     {% if dismissed %}
         <details class="biography">
-            <summary>Hidden suggestions ({{ dismissed|length }})</summary>
-            <p>Hiding a film affects only that film, not its entire genre.</p>
+            <summary>{{ t("Hidden suggestions ({count})", count=dismissed|length) }}</summary>
+            <p>{{ t("Hiding a film affects only that film, not its entire genre.") }}</p>
             {% for film in dismissed %}
                 <form action="/recommendations/restore" method="post" class="hidden-pick">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="movie_id" value="{{ film.tmdb_id }}">
-                    <span>{{ film.title }}</span><button type="submit" class="edit-link">Show again</button>
+                    <span>{{ film.title }}</span><button type="submit" class="edit-link">{{ t("Show again") }}</button>
                 </form>
             {% endfor %}
         </details>
     {% endif %}
-    <p class="tmdb-credit">Your ratings, notes and favorites stay on this device. Suggestions are ranked on your device from a public movie pool. Your preference profile is not sent to TMDB.</p>
+    <p class="tmdb-credit">{{ t("Your ratings, notes and favorites stay on this device. Suggestions are ranked on your device from a public movie pool. Your preference profile is not sent to TMDB.") }}</p>
     <script defer
             src="{{ url_for('static', filename='recommendations.js', v=asset_version) }}"></script>
 {% endblock %}

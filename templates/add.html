@@ -1,49 +1,49 @@
 {% extends "base.html" %}
 {% block title %}
-    Add a movie
+    {{ t("Add a movie") }}
 {% endblock %}
 {% block content %}
     <div class="form-page">
-        <a class="back-link" href="/">← Back to library</a>
+        <a class="back-link" href="/">{{ t("← Back to library") }}</a>
         <section class="form-card">
-            <p class="eyebrow">MAKE IT YOURS</p>
-            <h1>Add a movie</h1>
-            <p>For a poster and film details, <a href="/search">find it on TMDB</a>. Or add your own entry here.</p>
+            <p class="eyebrow">{{ t("MAKE IT YOURS") }}</p>
+            <h1>{{ t("Add a movie") }}</h1>
+            <p>{{ t("For a poster and film details,") }} <a href="/search">{{ t("find it on TMDB") }}</a>{{ t(". Or add your own entry here.") }}</p>
             {% if error %}
-                <p class="form-error" role="alert">{{ error }}</p>
+                <p class="form-error" role="alert">{{ t(error) }}</p>
             {% endif %}
             <form class="movie-form" action="/add" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label for="title">Title</label>
+                <label for="title">{{ t("Title") }}</label>
                 <input id="title"
                        name="title"
                        maxlength="300"
                        required
                        value="{{ values.get('title', '') }}">
-                <label for="year">Release year</label>
+                <label for="year">{{ t("Release year") }}</label>
                 <input id="year"
                        name="year"
                        type="number"
                        min="1800"
                        max="2200"
                        value="{{ values.get('year', '') }}">
-                <label for="genre">Genres</label>
+                <label for="genre">{{ t("Genres") }}</label>
                 <input id="genre" name="genre" value="{{ values.get('genre', '') }}">
-                <label for="status">Status</label>
+                <label for="status">{{ t("Status") }}</label>
                 <select id="status" name="status">
-                    <option value="Watchlist">Want to watch</option>
-                    <option value="Watched" {{ 'selected' if values.get("status")=='Watched' }}>Watched</option>
+                    <option value="Watchlist">{{ t("Want to watch") }}</option>
+                    <option value="Watched" {{ 'selected' if values.get("status")=='Watched' }}>{{ t("Watched") }}</option>
                 </select>
-                <label for="rating">Your rating (1–10)</label>
+                <label for="rating">{{ t("Your rating (1–10)") }}</label>
                 <input id="rating"
                        name="rating"
                        type="number"
                        min="1"
                        max="10"
                        value="{{ values.get('rating', '') }}">
-                <label for="note">Your note</label>
+                <label for="note">{{ t("Your note") }}</label>
                 <textarea id="note" name="note" rows="5" maxlength="20000">{{ values.get('note','') }}</textarea>
-                <button>Add to library</button>
+                <button>{{ t("Add to library") }}</button>
             </form>
         </section>
     </div>

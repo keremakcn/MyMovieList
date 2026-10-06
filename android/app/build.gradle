@@ -16,7 +16,7 @@ android {
         applicationId 'com.moviewatchlist'
         minSdk 24
         targetSdk 36
-        versionCode 2
+        versionCode 3
         versionName "${appVersion}-android-beta.1"
         ndk { abiFilters 'arm64-v8a', 'x86_64' }
     }
@@ -48,8 +48,8 @@ android {
 def sharedPython = layout.buildDirectory.dir('generated/sharedPython')
 def stageSharedPython = tasks.register('stageSharedPython', Sync) {
     from(repositoryRoot) {
-        include 'app.py', 'storage.py', 'tmdb_client.py', 'recommendations.py'
-        include 'recommendation_routes.py', 'version.py', 'templates/**', 'static/**'
+        include 'app.py', 'storage.py', 'tmdb_client.py', 'recommendations.py', 'recommendation_model.py'
+        include 'recommendation_routes.py', 'discovery.py', 'discovery_routes.py', 'version.py', 'i18n.py', 'catalog.py', 'templates/**', 'static/**'
     }
     into sharedPython
 }

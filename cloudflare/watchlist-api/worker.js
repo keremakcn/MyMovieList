@@ -1,3 +1,5 @@
+import {gameGateway} from './games.js';
+
 // TMDB_TOKEN must be a Cloudflare Secret, never a literal in this file.
 const routes = [
   /^search\/(movie|tv|person|company)$/,
@@ -6,7 +8,18 @@ const routes = [
   /^tv\/[1-9]\d{0,9}\/season\/\d{1,3}$/,
   /^(person|company)\/[1-9]\d{0,9}$/,
   /^discover\/movie$/,
+  /^trending\/movie\/(day|week)$/,
+  /^movie\/top_rated$/,
+  /^genre\/movie\/list$/,
 ];
+function isISODate(value) {
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  if (year < 1 || month < 1 || month > 12) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= days[month - 1];
+}
 const validators = {
   query: v => v.trim().length > 0 && v.length <= 200 && !/[\x00-\x1f]/.test(v),
   page: v => /^[1-9]\d{0,2}$/.test(v) && Number(v) <= 500,
@@ -18,7 +31,8 @@ const validators = {
   with_companies: v => /^[1-9]\d{0,9}$/.test(v),
   with_original_language: v => /^[a-z]{2}$/.test(v),
   'vote_count.gte': v => /^\d{1,7}$/.test(v),
-  'primary_release_date.lte': v => /^\d{4}-\d{2}-\d{2}$/.test(v),
+  'primary_release_date.gte': isISODate,
+  'primary_release_date.lte': isISODate,
 };
 function json(body, status = 200, extra = {}) {
   return new Response(JSON.stringify(body), {status, headers: {
@@ -52,14 +66,22 @@ export function upstreamURL(input) {
     if (seen.has(key)) return null;
     seen.add(key);
     if (key === 'append_to_response') {
-      const allowed = /^movie\/\d+$/.test(path) ? ['credits'] :
+      const allowed = /^movie\/\d+$/.test(path) ? ['credits', 'keywords', 'translations'] :
         /^tv\/\d+$/.test(path) ? ['aggregate_credits'] :
         /^person\/\d+$/.test(path) ? ['movie_credits', 'tv_credits'] : [];
-      if (!allowed.includes(value)) return null;
+      const parts = value.split(',');
+      if (!parts.length || parts.length > allowed.length || new Set(parts).size !== parts.length
+          || parts.some(part => !allowed.includes(part))) return null;
+      target.searchParams.set(key, parts.sort().join(','));
+      continue;
     } else if (!Object.hasOwn(validators, key) || !validators[key](value)) return null;
     target.searchParams.set(key, key === 'query' ? value.trim() : value);
   }
   if (path.startsWith('search/') && !target.searchParams.has('query')) return null;
+  const startDate = target.searchParams.get('primary_release_date.gte');
+  const endDate = target.searchParams.get('primary_release_date.lte');
+  // ISO dates sort chronologically after calendar validation.
+  if (startDate && endDate && startDate > endDate) return null;
   if (path.startsWith('search/') && path !== 'search/company' || path === 'discover/movie') {
     target.searchParams.set('include_adult', 'false');
   }
@@ -70,8 +92,9 @@ export default {
   async fetch(request, env, ctx) {
     if (request.method !== 'GET') return error('method_not_allowed', 405, {Allow:'GET'});
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/rawg/')) return gameGateway(request, env, ctx);
     if (url.pathname === '/' || url.pathname === '/health') {
-      return json({service:'watchlist-api', status:
+      return json({service:'watchlist-api', games_status: env.RAWG_API_KEY && env.CLIENT_LIMITER && env.RAWG_LIMITER ? 'configured' : 'setup_required', status:
         env.TMDB_TOKEN && env.CLIENT_LIMITER && env.UPSTREAM_LIMITER ? 'configured' : 'setup_required'});
     }
     if (env.DISABLED === 'true') return error('temporarily_disabled', 503);
@@ -126,7 +149,9 @@ export default {
       stage = 'tmdb_response';
       const data = await response.json();
       if (!data || Array.isArray(data) || typeof data !== 'object') return error('invalid_upstream_response', 502);
-      const ttl = upstream.pathname.includes('/search/') ? 120 : 3600;
+      const ttl = upstream.pathname.includes('/search/') ? 120 :
+        upstream.pathname.startsWith('/3/trending/') ? 900 :
+        upstream.pathname === '/3/genre/movie/list' ? 86400 : 3600;
       const result = json(data, 200, {'Cache-Control':`public, max-age=${ttl}`});
       stage = 'cache_write';
       ctx.waitUntil(Promise.resolve().then(() => cache.put(key, result.clone())).catch(() => {}));

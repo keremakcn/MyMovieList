@@ -1,6 +1,7 @@
 /* Shared interactions: the server owns library state; DOM state is disposable. */
 (() => {
     'use strict';
+    const {t} = window.MovieListI18n;
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const pendingMovies = new Set();
     const pendingForms = new WeakSet();
@@ -8,6 +9,11 @@
     let lastUndo = null;
     let libraryVersion = 0;
     let libraryController;
+
+    function foldTitle(value) {
+        return (value || '').normalize('NFKD').toLowerCase()
+            .replace(/ı/g, 'i').replace(/ß/g, 'ss').replace(/\p{M}/gu, '');
+    }
 
     async function post(url, data) {
         const response = await fetch(url, {
@@ -19,13 +25,13 @@
             }
         });
         const result = await response.json().catch(() => ({
-            error: 'Something went wrong. Please try again.'
+            error: t('Something went wrong. Please try again.')
         }));
-        if (!response.ok) throw new Error(result.error || 'Something went wrong. Please try again.');
+        if (!response.ok) throw new Error(result.error || t('Something went wrong. Please try again.'));
         return result;
     }
 
-    function toast(message, action, actionLabel = 'Undo', persistent = false) {
+    function toast(message, action, actionLabel = t('Undo'), persistent = false) {
         const box = document.createElement('div');
         box.className = 'toast';
         const text = document.createElement('span');
@@ -45,11 +51,11 @@
                 }
             });
             box.append(button);
-            if (actionLabel === 'Undo') lastUndo = button;
+            if (actionLabel === t('Undo')) lastUndo = button;
         }
         const close = document.createElement('button');
         close.textContent = '×';
-        close.setAttribute('aria-label', 'Dismiss notification');
+        close.setAttribute('aria-label', t('Dismiss notification'));
         close.addEventListener('click', dismiss);
         box.append(close);
         region.append(box);
@@ -81,26 +87,72 @@
         const response = await fetch(url, {
             signal: libraryController.signal
         });
-        if (!response.ok) throw new Error('Could not refresh your library. Please try again.');
+        if (!response.ok) throw new Error(t('Could not refresh your library. Please try again.'));
         const html = new DOMParser().parseFromString(await response.text(), 'text/html');
         if (version !== libraryVersion) return false;
         if (replace) {
             const fresh = html.getElementById('library-results');
-            if (!fresh) throw new Error('Could not refresh your library. Please try again.');
+            if (!fresh) throw new Error(t('Could not refresh your library. Please try again.'));
             document.getElementById('library-results').replaceWith(fresh);
         }
         document.querySelector('.stats-grid')?.replaceWith(html.querySelector('.stats-grid'));
         const status = document.getElementById('library-update-status');
-        if (status) status.textContent = html.querySelector('.section-heading > span')?.textContent || 'Library updated.';
+        if (status) status.textContent = html.querySelector('.section-heading > span')?.textContent || t('Library updated.');
+        hydrateMetadata();
         return true;
     }
+
+    let metadataEpoch = 0;
+    let metadataController;
+    let metadataTimer;
+    function hydrateMetadata() {
+        const epoch = ++metadataEpoch;
+        metadataController?.abort();
+        clearTimeout(metadataTimer);
+        let attempts = 0;
+        async function update() {
+            const cards = [...document.querySelectorAll('.movie-card[data-metadata-pending="1"]')];
+            if (!cards.length || attempts++ >= 30) return;
+            metadataController = new AbortController();
+            const ids = new URLSearchParams();
+            cards.slice(0, 36).forEach(card => ids.append('id', card.dataset.movieId));
+            try {
+                const response = await fetch('/api/library/metadata?' + ids, {signal: metadataController.signal});
+                if (!response.ok) return;
+                const data = await response.json();
+                if (epoch !== metadataEpoch || data.language !== document.documentElement.lang) return;
+                for (const movie of data.movies) {
+                    const card = document.querySelector(`.movie-card[data-movie-id="${movie.id}"]`);
+                    if (!card) continue;
+                    card.dataset.metadataPending = movie.pending ? '1' : '0';
+                    card.dataset.title = movie.search_title;
+                    const heading = card.querySelector('h2');
+                    if (!heading) continue;
+                    heading.title = movie.title;
+                    (heading.querySelector('a') || heading).textContent = movie.title;
+                    const poster = card.querySelector('.movie-card-poster');
+                    if (poster) poster.alt = t('Poster for {title}', {title: movie.title});
+                    const remove = card.querySelector('[data-delete] button');
+                    if (remove) remove.setAttribute('aria-label', t('Remove {title}', {title: movie.title}));
+                    const note = card.querySelector('.card-note-link');
+                    if (note) note.setAttribute('aria-label', t('View note for {title}', {title: movie.title}));
+                }
+                if (data.movies.some(movie => movie.pending)) metadataTimer = setTimeout(update, 2000);
+            } catch (_) {
+                // Background enrichment is optional; saved films remain usable offline.
+            }
+        }
+        metadataTimer = setTimeout(update, 600);
+    }
+    hydrateMetadata();
 
     function markAdded(id, result) {
         document.querySelectorAll(`.library-action[data-tmdb-id="${id}"]`).forEach(container => {
             const link = document.createElement('a');
             link.href = result.edit_url;
             link.className = 'in-library';
-            link.textContent = '✓ Already in your library — Click to edit';
+            link.textContent = container.dataset.compact === 'true' ? t('✓ In your library') : t('✓ Already in your library — Click to edit');
+            link.setAttribute('aria-label', t('Edit {title} — {status}', {title: container.dataset.movieTitle || t('Movie'), status: t(result.status === 'Watched' ? 'Watched' : 'In your library')}));
             const hadFocus = container.contains(document.activeElement);
             container.replaceChildren(link);
             if (hadFocus) link.focus();
@@ -124,13 +176,13 @@
         const label = buttons[0]?.textContent;
         buttons.forEach(button => button.disabled = true);
         form.setAttribute('aria-busy', 'true');
-        if (form.matches('[data-add-movie]')) buttons[0].textContent = 'Adding…';
+        if (form.matches('[data-add-movie]')) buttons[0].textContent = t('Adding…');
         try {
             const result = await post(form.action, data);
             if (form.matches('[data-add-movie]')) {
                 markAdded(movieId, result);
-                document.dispatchEvent(new CustomEvent("library-movie-added", {detail: {tmdbId: movieId, restoreFocus}}));
-                toast(result.created ? (result.status === 'Watched' ? 'Added as watched.' : 'Added to Want to Watch.') : '✓ In your library.');
+                document.dispatchEvent(new CustomEvent("library-movie-added", {detail: {tmdbId: movieId, restoreFocus, status: result.status, editUrl: result.edit_url}}));
+                toast(result.created ? (result.status === 'Watched' ? t('Added as watched.') : t('Added to Want to Watch.')) : t('✓ In your library.'));
             } else if (form.matches('[data-delete]')) {
                 const card = form.closest('.movie-card');
                 const detail = document.querySelector('[data-detail-id]');
@@ -145,11 +197,11 @@
                     notice.className = 'empty-state';
                     notice.id = 'removed-notice';
                     const message = document.createElement('p');
-                    message.textContent = 'Movie removed. Use Undo below or restore it from Recently removed.';
+                    message.textContent = t('Movie removed. Use Undo below or restore it from Recently removed.');
                     const link = document.createElement('a');
                     link.className = 'edit-link';
                     link.href = '/?status=trash';
-                    link.textContent = 'Recently removed';
+                    link.textContent = t('Recently removed');
                     notice.append(message, link);
                     detail.after(notice);
                 }
@@ -160,9 +212,9 @@
                     if (detail) detail.hidden = false;
                     document.getElementById('removed-notice')?.remove();
                     await refreshLibrary();
-                    toast('Movie restored — notes, rating and original order preserved.');
+                    toast(t('Movie restored — notes, rating and original order preserved.'));
                 };
-                const notification = toast('Movie removed.', undo);
+                const notification = toast(t('Movie removed.'), undo);
                 if (!card) notification.querySelector('button').focus();
                 await refreshLibrary();
                 if (card && restoreFocus) {
@@ -187,17 +239,17 @@
                         form.elements.value.value = result.favorite ? '0' : '1';
                         buttons[0].textContent = result.favorite ? '♥' : '♡';
                         buttons[0].setAttribute('aria-pressed', String(Boolean(result.favorite)));
-                        buttons[0].setAttribute('aria-label', result.favorite ? 'Remove from favorites' : 'Add to favorites');
+                        buttons[0].setAttribute('aria-label', result.favorite ? t('Remove from favorites') : t('Add to favorites'));
                     } else {
                         form.elements.value.value = result.status === 'Watched' ? 'Watchlist' : 'Watched';
-                        buttons[0].textContent = result.status === 'Watched' ? 'Want to watch' : 'Mark watched';
+                        buttons[0].textContent = result.status === 'Watched' ? t('Want to watch') : t('Mark watched');
                         document.querySelectorAll('.status-badge').forEach(badge => {
-                            badge.textContent = result.status === 'Watched' ? 'Watched' : 'Want to watch';
+                            badge.textContent = t(result.status === 'Watched' ? 'Watched' : 'Want to watch');
                             badge.className = `status-badge ${result.status.toLowerCase()}`;
                         });
                         document.querySelectorAll('[data-watched-date]').forEach(label => {
                             label.hidden = !result.watched_date;
-                            label.textContent = result.watched_date ? `Watched ${result.watched_date}` : '';
+                            label.textContent = result.watched_date ? t('Watched {date}', {date: result.watched_date}) : '';
                         });
                         const dateInput = document.querySelector('input[name="watched_date"]');
                         if (dateInput && dateInput.value === dateInput.defaultValue) {
@@ -208,7 +260,7 @@
                 }
             }
         } catch (error) {
-            if (error.name !== 'AbortError') toast(error.message || 'Could not complete the request. Please try again.', null, '', true);
+            if (error.name !== 'AbortError') toast(error.message || t('Could not complete the request. Please try again.'), null, '', true);
         } finally {
             pendingForms.delete(form);
             if (movieId) pendingMovies.delete(movieId);
@@ -251,8 +303,8 @@
             clearTimeout(debounce);
             libraryController?.abort();
             ++libraryVersion;
-            const query = input.value.trim().toLowerCase();
-            document.querySelectorAll('.movie-card').forEach(card => card.hidden = !card.dataset.title.includes(query));
+            const query = foldTitle(input.value.trim());
+            document.querySelectorAll('.movie-card').forEach(card => card.hidden = !foldTitle(card.dataset.title).includes(query));
             debounce = setTimeout(run, 250);
         });
         libraryForm.addEventListener('submit', event => {
@@ -336,7 +388,7 @@
             });
             list.hidden = !items.length;
             input.setAttribute('aria-expanded', String(Boolean(items.length)));
-            status.textContent = items.length ? `${items.length} suggestions available. Use the arrow keys.` : 'No suggestions. Press Enter to search.';
+            status.textContent = items.length ? t('{count} suggestions available. Use the arrow keys.', {count: items.length}) : t('No suggestions. Press Enter to search.');
         }
 
         function schedule() {
@@ -354,7 +406,7 @@
                 }
                 controller = new AbortController();
                 input.setAttribute('aria-busy', 'true');
-                status.textContent = 'Loading suggestions…';
+                status.textContent = t('Loading suggestions…');
                 try {
                     const response = await fetch(`/api/suggestions?${params}`, {
                         signal: controller.signal
@@ -390,7 +442,7 @@
         filters.forEach(filter => filter.addEventListener('change', () => {
             close();
             filterHelp.textContent = filters.some(item => item.checked)
-                ? 'Press Search to apply your filters.' : 'Select at least one category.';
+                ? t('Press Search to apply your filters.') : t('Select at least one category.');
         }));
         searchForm.addEventListener('focusout', () => setTimeout(() => {
             if (!searchForm.contains(document.activeElement)) close();
@@ -436,7 +488,7 @@
             const placeholder = document.createElement('span');
             placeholder.className = 'poster-placeholder';
             placeholder.textContent = '◈';
-            placeholder.setAttribute('aria-label', 'Image unavailable');
+            placeholder.setAttribute('aria-label', t('Image unavailable'));
             event.target.replaceWith(placeholder);
         }
     }, true);

@@ -4,10 +4,17 @@ import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from unicodedata import combining, normalize
 
 
 def utcnow():
     return datetime.now(timezone.utc).isoformat(timespec="microseconds")
+
+
+def search_fold(value):
+    """Case/diacritic-insensitive search; never used to write movie names or IDs."""
+    normalized = normalize("NFKD", (value or "").casefold().replace("ı", "i"))
+    return "".join(character for character in normalized if not combining(character))
 
 
 class Database:
@@ -18,6 +25,7 @@ class Database:
     def connect(self, write=False):
         con = sqlite3.connect(self.path, timeout=15)
         con.row_factory = sqlite3.Row
+        con.create_function("search_fold", 1, search_fold, deterministic=True)
         con.execute("PRAGMA foreign_keys=ON")
         try:
             if write:
@@ -43,15 +51,15 @@ class Database:
         os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
         with self.connect() as con:
             version = con.execute("PRAGMA user_version").fetchone()[0]
-            if version > 2:
+            if version > 3:
                 raise RuntimeError("This library was created by a newer app version.")
             has_movies = con.execute(
                 "SELECT 1 FROM sqlite_master WHERE name='movies'"
             ).fetchone()
-            if has_movies and version < 2:
+            if has_movies and version < 3:
                 backup_path = (
                     self.path
-                    + ".before-v2-"
+                    + ".before-v3-"
                     + datetime.now().strftime("%Y%m%d-%H%M%S")
                     + ".bak"
                 )
@@ -107,7 +115,11 @@ class Database:
                 movie_id INTEGER PRIMARY KEY REFERENCES movies(id), created_at TEXT NOT NULL)""")
             con.execute("""CREATE TABLE IF NOT EXISTS recommendation_dismissals (
                 tmdb_id INTEGER PRIMARY KEY, title TEXT NOT NULL, created_at TEXT NOT NULL)""")
-            con.execute("PRAGMA user_version=2")
+            con.execute("""CREATE TABLE IF NOT EXISTS movie_metadata (
+                tmdb_id INTEGER PRIMARY KEY CHECK(tmdb_id>0), english_title TEXT NOT NULL,
+                original_title TEXT NOT NULL, turkish_title TEXT NOT NULL,
+                data_json TEXT NOT NULL, fetched_at TEXT NOT NULL)""")
+            con.execute("PRAGMA user_version=3")
 
     def movie(self, movie_id, include_deleted=False):
         rows = self.query(

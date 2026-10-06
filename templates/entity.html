@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}
-    {{ profile.name }} · Explore
+    {{ profile.name }} · {{ t("Explore") }}
 {% endblock %}
 {% block content %}
-    <a class="back-link" href="{{ back_url }}">← Back</a>
+    <a class="back-link" href="{{ back_url }}">{{ t("← Back") }}</a>
     <section class="entity-profile">
         {% if profile_image %}
             <img class="entity-profile-image {{ 'company-logo' if kind == 'company' }}"
@@ -13,12 +13,12 @@
                  height="180">
         {% endif %}
         <div>
-            <p class="eyebrow">{{ role_label|upper }}</p>
+            <p class="eyebrow">{{ t(role_label)|upper }}</p>
             <h1>{{ profile.name }}</h1>
             <p>{{ profile.known_for_department or profile.headquarters or '' }}</p>
             {% if profile.biography or profile.description %}
                 <details class="biography">
-                    <summary>{{ 'Biography' if kind == 'person' else 'About the company' }}</summary>
+                    <summary>{{ t('Biography' if kind == 'person' else 'About the company') }}</summary>
                     <p>{{ profile.biography or profile.description }}</p>
                 </details>
             {% endif %}
@@ -26,19 +26,19 @@
     </section>
     <div class="section-heading">
         <div>
-            <p class="eyebrow">KEEP EXPLORING</p>
-            <h2>{{ 'Filmography' if kind == 'person' else 'Films from this studio' }}</h2>
+            <p class="eyebrow">{{ t("KEEP EXPLORING") }}</p>
+            <h2>{{ t('Filmography' if kind == 'person' else 'Films from this studio') }}</h2>
         </div>
-        <span>{{ total }} films · Popular first</span>
+        <span>{{ t("{count} films · Popular first", count=total) }}</span>
     </div>
     <div class="results-grid">
         {% for movie in movies %}
             {% include "_result_card.html" %}
         {% else %}
-            <div class="empty-state">No movies found.</div>
+            <div class="empty-state">{{ t("No movies found.") }}</div>
         {% endfor %}
     </div>
     {% set page_url = entity_page_url %}
     {% include "_pagination.html" %}
-    <p class="tmdb-credit">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p class="tmdb-credit">{{ t("This product uses the TMDB API but is not endorsed or certified by TMDB.") }}</p>
 {% endblock %}

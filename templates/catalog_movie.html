@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}
-    {{ movie.title }} · Explore
+    {{ movie.title }} · {{ t("Explore") }}
 {% endblock %}
 {% block content %}
-    <a class="back-link" href="{{ back_url }}">← Back to explore</a>
+    <a class="back-link" href="{{ back_url }}">{{ t("← Back to explore") }}</a>
     <section class="movie-detail-card">
-        <p class="eyebrow">MOVIE DETAILS</p>
+        <p class="eyebrow">{{ t("MOVIE DETAILS") }}</p>
         <h1>{{ movie.title }}</h1>
         <div class="movie-header">
             {% if tmdb.poster_url %}
                 <img class="movie-poster detail-poster"
                      src="{{ tmdb.poster_url }}"
-                     alt="Poster for {{ movie.title }}"
+                     alt="{{ t("Poster for {title}", title=movie.title) }}"
                      width="180"
                      height="270">
             {% endif %}
@@ -26,7 +26,7 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
                         <input type="hidden" name="next" value="{{ current_url }}">
-                        <button class="secondary-button">+ Add as watched</button>
+                        <button class="secondary-button">{{ t("+ Add as watched") }}</button>
                     </form>
                 {% endif %}
             </div>

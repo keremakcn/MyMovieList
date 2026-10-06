@@ -1,0 +1,11 @@
+{% from '_icons.html' import icon %}
+{% if movies %}
+    <div class="discovery-rail" id="rail-{{ collection }}" tabindex="0" aria-label="{{ t(collection_info.title) }}">
+        {% for movie in movies %}{% include '_discovery_card.html' %}{% endfor %}
+    </div>
+{% else %}
+    <div class="discovery-empty" role="status">
+        <p>{{ t("No films found right now.") }}</p>
+        <a class="text-button" href="/discover/{{ collection }}">{{ t("Browse the full collection") }} {{ icon('arrow', 16) }}</a>
+    </div>
+{% endif %}

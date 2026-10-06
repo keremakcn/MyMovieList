@@ -1,29 +1,29 @@
 {% extends "base.html" %}
 {% block title %}
-    Explore · MyMovieList
+    {{ t("Explore · MyMovieList") }}
 {% endblock %}
 {% block content %}
     <header class="explore-header">
-        <p class="eyebrow">FOLLOW YOUR CURIOSITY</p>
-        <h1>A world of film<span class="heading-dot">.</span></h1>
-        <p>Start with a title. Follow an actor. Discover a whole new favorite.</p>
+        <p class="eyebrow">{{ t("FOLLOW YOUR CURIOSITY") }}</p>
+        <h1>{{ t("A world of film") }}<span class="heading-dot">.</span></h1>
+        <p>{{ t("Start with a title. Follow an actor. Discover a whole new favorite.") }}</p>
     </header>
     {% include "_search_form.html" %}
-    <section class="search-results" aria-label="Search results">
+    <section class="search-results" aria-label="{{ t("Search results") }}">
         {% if error %}
             <div class="form-error" role="alert">
-                {{ error }}
+                {{ t(error) }}
             </div>
         {% elif query %}
             {% for warning in warnings %}
-                <p class="form-error" role="status">{{ warning }} Showing the other available results. Try again to load everything.</p>
+                <p class="form-error" role="status">{{ t(warning) }} {{ t("Showing the other available results. Try again to load everything.") }}</p>
             {% endfor %}
             <div class="section-heading">
-                <h2>Results for “{{ query }}”</h2>
-                <span>{{ total }} {{ 'matches on this page' if kind in ['all', 'person'] else ('available results' if warnings else 'results') }}</span>
+                <h2>{{ t("Results for “{query}”", query=query) }}</h2>
+                <span>{{ total }} {{ t('matches on this page' if kind in ['all', 'person'] else ('available results' if warnings else 'results')) }}</span>
             </div>
             {% if kind in ['all', 'person'] and pages > 1 %}
-                <p class="muted">Filtered by primary profession. Other matches may appear on the next page.</p>
+                <p class="muted">{{ t("Filtered by primary profession. Other matches may appear on the next page.") }}</p>
             {% endif %}
             <div class="results-grid">
                 {% for result in results %}
@@ -49,31 +49,26 @@
                                 {% endif %}
                             </a>
                             <div>
-                                <p class="eyebrow">{{ result.role_label|upper }}</p>
+                                <p class="eyebrow">{{ t(result.role_label)|upper }}</p>
                                 <h2>
                                     <a href="{{ url_for('entity',kind=result.kind,entity_id=result.id,back=current_url) }}">{{ result.name }}</a>
                                 </h2>
                                 <p>{{ result.description }}</p>
-                                <a href="{{ url_for('entity',kind=result.kind,entity_id=result.id,back=current_url) }}">View films →</a>
+                                <a href="{{ url_for('entity',kind=result.kind,entity_id=result.id,back=current_url) }}">{{ t("View films →") }}</a>
                             </div>
                         </article>
                     {% endif %}
                 {% else %}
                     <div class="empty-state">
-                        <h2>{{ 'No matches on this page.' if kind in ['all', 'person'] and pages > 1 else 'No results found.' }}</h2>
-                        <p>Try a different spelling or search type.</p>
+                        <h2>{{ t('No matches on this page.' if kind in ['all', 'person'] and pages > 1 else 'No results found.') }}</h2>
+                        <p>{{ t("Try a different spelling or search type.") }}</p>
                     </div>
                 {% endfor %}
             </div>
             {% include "_pagination.html" %}
         {% else %}
-            <div class="explore-intro"><div class="explore-orbit">{{ icon('explore', 44) }}</div><p class="eyebrow">EVERY FILM IS A NEW BEGINNING</p><h2>Where will your curiosity take you?</h2><p>Search above, or take one of these paths into cinema.</p></div>
-            <div class="discovery-paths">
-                <a href="/search?filters=1&amp;category=movie&amp;q=Interstellar"><span class="path-number">01 / A FILM</span><h2>Beyond the ordinary</h2><p>Begin with Interstellar</p>{{ icon('arrow') }}</a>
-                <a href="/search?filters=1&amp;category=actor&amp;category=director&amp;q=Christopher+Nolan"><span class="path-number">02 / A FILMMAKER</span><h2>Behind the lens</h2><p>Explore Christopher Nolan</p>{{ icon('arrow') }}</a>
-                <a href="/search?filters=1&amp;category=company&amp;q=A24"><span class="path-number">03 / A STUDIO</span><h2>A different perspective</h2><p>Step inside A24</p>{{ icon('arrow') }}</a>
-            </div>
+            {% include "_discovery_landing.html" %}
         {% endif %}
     </section>
-    <p class="tmdb-credit">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p class="tmdb-credit">{{ t("This product uses the TMDB API but is not endorsed or certified by TMDB.") }}</p>
 {% endblock %}

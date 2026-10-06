@@ -1,14 +1,25 @@
 {% if tmdb.entities %}
-    <section class="entity-links" aria-label="Explore cast, crew and companies">
+    <section class="entity-links" aria-label="{{ t("Explore cast, crew and companies") }}">
         {% for key,label in [('directors','Directed by'),('cast','Cast'),('writers','Writing'),('producers','Producers'),('companies','Production companies')] %}
             {% if tmdb.entities.get(key) %}
-                <h2>{{ label }}</h2>
+                <h2>{{ t(label) }}</h2>
                 <div class="entity-chips">
-                    {% for person in tmdb.entities[key] %}
+                    {% for person in (tmdb.entities[key][:12] if key == "cast" else tmdb.entities[key]) %}
                         <a href="{{ url_for('entity', kind='company' if key == 'companies' else 'person', entity_id=person.id, back=current_url) }}"
                            {% if person.role %} title="{{ person.role }}" {% endif %}>{{ person.name }}</a>
                     {% endfor %}
                 </div>
+                {% if key == "cast" and tmdb.entities[key]|length > 12 %}
+                    <details class="full-cast">
+                        <summary>{{ t('See full cast ({count})', count=tmdb.entities[key]|length) }}</summary>
+                        <div class="entity-chips">
+                            {% for person in tmdb.entities[key][12:] %}
+                                <a href="{{ url_for('entity', kind='person', entity_id=person.id, back=current_url) }}"
+                                   {% if person.role %}title="{{ person.role }}"{% endif %}>{{ person.name }}</a>
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% endif %}
             {% endif %}
         {% endfor %}
     </section>

@@ -12,7 +12,7 @@ from waitress import serve  # noqa: E402
 
 data = ROOT / '.qa' / 'frontend-fixture'
 data.mkdir(parents=True, exist_ok=True)
-app = create_app({'DATA_DIR': str(ROOT), 'DATABASE': str(data / 'movies.db'), 'SECRET_KEY': 'isolated-frontend-test'})
+app = create_app({'DATA_DIR': str(data), 'DATABASE': str(data / 'movies.db'), 'SECRET_KEY': 'isolated-frontend-test', 'UI_LANGUAGE_DETECTOR': lambda: 'en'})
 mock_recommendations(app)
 original_get = app.extensions['tmdb'].get
 films = [
@@ -41,6 +41,10 @@ def fixture_get(path, **params):
         return {'id': 174, 'name': 'Warner Bros.', 'description': 'Discover the films from this studio.'}
     if path == 'discover/movie' and 'with_companies' in params:
         return {'results': [MOVIE], 'total_pages': 1}
+    if (path in ('movie/popular', 'movie/top_rated', 'movie/now_playing')
+            or path.startswith('trending/movie/')
+            or (path == 'discover/movie' and 'with_genres' not in params)):
+        return {'results': [MOVIE], 'page': 1, 'total_pages': 1, 'total_results': 1}
     return original_get(path, **params)
 
 app.extensions['tmdb'].get = fixture_get

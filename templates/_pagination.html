@@ -1,11 +1,11 @@
 {% if pages > 1 %}
-    <nav class="pagination" aria-label="Pages">
+    <nav class="pagination" aria-label="{{ t("Pages") }}">
         {% if page > 1 %}
-            <a class="edit-link" href="{{ page_url(page-1) }}">← Previous</a>
+            <a class="edit-link" href="{{ page_url(page-1) }}">{{ t("← Previous") }}</a>
         {% endif %}
-        <span>Page {{ page }} of {{ pages }}</span>
+        <span>{{ t("Page {page} of {pages}", page=page, pages=pages) }}</span>
         {% if page < pages %}
-            <a class="edit-link" href="{{ page_url(page+1) }}">Next →</a>
+            <a class="edit-link" href="{{ page_url(page+1) }}">{{ t("Next →") }}</a>
         {% endif %}
     </nav>
 {% endif %}

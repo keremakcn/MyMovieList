@@ -72,7 +72,12 @@ class TMDBClient:
                 raise TMDBError("Movie discovery is taking too long. Please try again.") from error
         try:
             result = self._request(path, params)
-            ttl = 120 if path.startswith("search/") else 21600
+            if path.startswith("search/"):
+                ttl = 120
+            elif path.startswith("trending/") or path in ("movie/top_rated", "movie/now_playing", "discover/movie"):
+                ttl = 1800
+            else:
+                ttl = 21600
         except TMDBError as error:
             result, ttl = error, error.retry_after
         except Exception:
@@ -160,6 +165,8 @@ def movie_summary(data):
     return {
         "tmdb_id": data["id"],
         "title": data.get("title") or "Untitled movie",
+        "original_title": data.get("original_title") or "",
+        "original_language": data.get("original_language") or "",
         "year": int(release[:4]) if release[:4].isdigit() else None,
         "poster_url": image_url(data.get("poster_path")),
         "overview": data.get("overview") or "",
@@ -178,7 +185,7 @@ def movie_details(data):
             "name": p["name"],
             "role": p.get("character") or p.get("job") or "",
         }
-        for p in credits.get("cast", [])[:12]
+        for p in credits.get("cast", [])
     ]
 
     def crew_members(jobs):
@@ -209,6 +216,10 @@ def movie_details(data):
     ]
     result.update(
         genre=", ".join(g["name"] for g in data.get("genres", [])),
+        genre_ids=[g["id"] for g in data.get("genres", []) if type(g.get("id")) is int and g["id"] > 0],
+        keyword_ids=[k["id"] for k in (data.get("keywords") or {}).get("keywords", []) if type(k.get("id")) is int and k["id"] > 0],
+        collection_id=(data.get("belongs_to_collection") or {}).get("id"),
+        recommendation_features_version=1,
         runtime=data.get("runtime"),
         director=", ".join(p["name"] for p in directors),
         cast=[p["name"] for p in people],

@@ -1,0 +1,46 @@
+<div class="discovery-home" data-discovery-home>
+    <nav class="discovery-nav" aria-label="{{ t("Explore collections") }}">
+        <a href="/search" aria-current="page">{{ t("Discover") }}</a>
+        <a href="/discover/trending">{{ t("Trending films") }}</a>
+        <a href="/discover/top-rated">{{ t("Highest rated") }}</a>
+        <a href="/discover/new-releases">{{ t("New releases") }}</a>
+        <a href="/discover/genres">{{ t("Genres") }}</a>
+    </nav>
+    {% for key,title,description in [('trending','Trending films','The films finding their moment.'),('top-rated','Highest rated','Stories that stand the test of time.'),('new-releases','New releases','Fresh stories from the last three months.')] %}
+        <section class="discovery-shelf" id="discovery-{{ key }}" data-discovery-shelf="{{ key }}" aria-labelledby="heading-{{ key }}">
+            <div class="discovery-heading">
+                <div><h2 id="heading-{{ key }}">{{ t(title) }}</h2><p>{{ t(description) }}</p></div>
+                <a class="discovery-view-all" href="/discover/{{ key }}">{{ t("View all") }} {{ icon('arrow', 16) }}</a>
+            </div>
+            <div class="discovery-shelf-controls">
+                {% if key == 'trending' %}
+                    <div class="discovery-period" role="group" aria-label="{{ t("Trending period") }}">
+                        <button type="button" data-trending-window="day" aria-pressed="false">{{ t("Today") }}</button>
+                        <button type="button" data-trending-window="week" aria-pressed="true">{{ t("This week") }}</button>
+                    </div>
+                {% else %}<span></span>{% endif %}
+                <div class="discovery-scroll-controls" hidden>
+                    <button type="button" class="discovery-scroll" data-scroll="-1" aria-controls="rail-{{ key }}" aria-label="{{ t("Scroll {title} left", title=t(title)|lower) }}">{{ icon('arrow', 16) }}</button>
+                    <button type="button" class="discovery-scroll" data-scroll="1" aria-controls="rail-{{ key }}" aria-label="{{ t("Scroll {title} right", title=t(title)|lower) }}">{{ icon('arrow', 16) }}</button>
+                </div>
+            </div>
+            <div class="discovery-feed" data-discovery-feed aria-busy="true">
+                <p class="sr-only" role="status">{{ t("Loading {title}…", title=t(title)|lower) }}</p>
+                <div class="discovery-skeletons" aria-hidden="true">
+                    {% for i in range(6) %}<div class="discovery-skeleton"><span></span><i></i><i></i></div>{% endfor %}
+                </div>
+            </div>
+            <noscript><p><a href="/discover/{{ key }}">{{ t("Browse {title} →", title=t(title)|lower) }}</a></p></noscript>
+        </section>
+    {% endfor %}
+    <section class="discovery-genre-section" aria-labelledby="genre-heading">
+        <div class="discovery-heading"><div><h2 id="genre-heading">{{ t("Find your kind of film") }}</h2><p>{{ t("Pick a mood. Follow a genre. See where it takes you.") }}</p></div><a class="discovery-view-all" href="/discover/genres">{{ t("All genres") }} {{ icon('arrow', 16) }}</a></div>
+        <div class="discovery-genre-tiles">
+            {% for id,name,symbol in [(878,'Science fiction','spark'),(53,'Thriller','explore'),(18,'Drama','film'),(35,'Comedy','star'),(28,'Action','arrow'),(27,'Horror','clock'),(16,'Animation','spark'),(10749,'Romance','heart')] %}
+                <a href="/discover/genres?genre={{ id }}"><span>{{ icon(symbol, 23) }}</span><strong>{{ t(name) }}</strong>{{ icon('arrow', 16) }}</a>
+            {% endfor %}
+        </div>
+    </section>
+    <a class="discovery-personal-link" href="/recommendations"><span>{{ icon('spark', 23) }}</span><div><strong>{{ t("A little more you.") }}</strong><p>{{ t("Find films shaped by your personal taste.") }}</p></div>{{ icon('arrow', 20) }}</a>
+</div>
+<script defer src="{{ url_for('static', filename='discovery.js', v=asset_version) }}"></script>

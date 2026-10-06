@@ -1,44 +1,36 @@
 {% extends "base.html" %}
 {% block title %}
-    {{ movie.title }} · Your library
+    {{ movie.title }} · {{ t("Your library") }}
 {% endblock %}
 {% block content %}
-    <a class="back-link" href="{{ request.args.get('back')|safe_back }}">← Back to library</a>
+    <a class="back-link" href="{{ request.args.get('back')|safe_back }}">{{ t("← Back to library") }}</a>
     <section class="movie-detail-card" data-detail-id="{{ movie.id }}">
-        <p class="eyebrow">IN YOUR LIBRARY</p>
+        <p class="eyebrow">{{ t("IN YOUR LIBRARY") }}</p>
         <h1>{{ movie.title }}</h1>
         <div class="movie-header">
             {% if tmdb.poster_url %}
                 <img class="movie-poster detail-poster"
                      src="{{ tmdb.poster_url }}"
-                     alt="Poster for {{ movie.title }}"
+                     alt="{{ t("Poster for {title}", title=movie.title) }}"
                      width="180"
                      height="270">
             {% endif %}
             <div class="movie-header-badges">
                 {% include "_info_badges.html" %}
-                <span class="status-badge {{ movie.status|lower }}">{{ 'Want to watch' if movie.status=='Watchlist' else 'Watched' }}</span>
-                <p>{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else 'No rating yet' }}</p>
-                <p data-watched-date {{ "hidden" if not movie.watched_date }}>Watched {{ movie.watched_date or "" }}</p>
+                <span class="status-badge {{ movie.status|lower }}">{{ t('Want to watch' if movie.status=='Watchlist' else 'Watched') }}</span>
+                <p>{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("No rating yet") }}</p>
+                <p data-watched-date {{ "hidden" if not movie.watched_date }}>{{ t("Watched {date}", date=movie.watched_date or "") }}</p>
             </div>
         </div>
         {% include "_library_actions.html" %}
         {% if movie.note %}
             <section class="movie-note-block" id="note" tabindex="-1" aria-labelledby="note-title">
-                <h2 id="note-title">Your note</h2>
+                <h2 id="note-title">{{ t("Your note") }}</h2>
                 <p>{{ movie.note }}</p>
             </section>
         {% endif %}
         {% include "_tmdb_info.html" %}
         {% include "_entities.html" %}
-        {% if movie.tmdb_id %}
-            <form class="refresh-form"
-                  action="/movie/{{ movie.id }}/refresh"
-                  method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="secondary-button">{{ 'Load actors & companies' if not tmdb.entities else 'Refresh movie information' }}</button>
-                <small>Requires internet. Keeps your personal notes and rating.</small>
-            </form>
-        {% endif %}
+
     </section>
 {% endblock %}

@@ -1,7 +1,8 @@
-{% if errors %}<div class="form-error" role="status">Some online suggestions could not be loaded. {{ errors|join(" ") }} <button type="button" data-recommendation-retry>Try again</button></div>{% endif %}
+{% if errors %}<div class="form-error" role="status">{{ t("Some online suggestions could not be loaded.") }} {% for error in errors %}{{ t(error) }} {% endfor %} <button type="button" data-recommendation-retry>{{ t("Try again") }}</button></div>{% endif %}
+{% if profile_changed|default(false) %}<p class="taste-invitation" role="status">{{ t("Your taste has changed. Choose New suggestions to use your latest ratings and favorites.") }}</p>{% endif %}
 <div class="section-heading">
-    <h2>{{ 'Your next discoveries' if profile.ready else 'Starting suggestions' }}</h2>
-    <span>{{ movies|length }} picks</span>
+    <h2>{{ t('Your next discoveries' if profile.ready else 'Starting suggestions') }}</h2>
+    <span>{{ t("{count} picks", count=movies|length) }}</span>
 </div>
 <div class="results-grid">
     {% for movie in movies %}
@@ -16,26 +17,26 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
                         <input type="hidden" name="next" value="/recommendations">
-                        <button class="edit-link" type="submit">I've seen this</button>
+                        <button class="edit-link" type="submit">{{ t("I've seen this") }}</button>
                     </form>
                     <form action="/recommendations/dismiss" method="post" data-dismiss-pick>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="movie_id" value="{{ movie.tmdb_id }}">
                         <input type="hidden" name="title" value="{{ movie.title }}">
-                        <button class="edit-link" type="submit">Not interested</button>
+                        <button class="edit-link" type="submit">{{ t("Not interested") }}</button>
                     </form>
                 </div>
             </div>
         </div>
-    {% else %}<div class="empty-state"><h2>No new suggestions right now.</h2><p>Try choosing more films, rating your library or showing hidden suggestions again.</p><a href="/taste">Update your picks →</a></div>{% endfor %}
+    {% else %}<div class="empty-state"><h2>{{ t("No new suggestions right now.") }}</h2><p>{{ t("Try choosing more films, rating your library or showing hidden suggestions again.") }}</p><a href="/taste">{{ t("Update your picks →") }}</a></div>{% endfor %}
 </div>
 {% if waiting %}
     <section class="waiting-picks">
-        <h2>Already on your watchlist</h2>
-        <p>A few saved films to consider tonight.</p>
+        <h2>{{ t("Already on your watchlist") }}</h2>
+        <p>{{ t("A few saved films to consider tonight.") }}</p>
         <div class="results-grid">
             {% for film in waiting %}<a class="catalog-card"
-   href="{{ url_for('movie', movie_id=film.id, back='/recommendations') }}"><div><p class="eyebrow">FROM YOUR LIBRARY</p><h2>{{ film.title }}</h2><p>{{ film.genre or 'Saved for later' }}</p></div></a>{% endfor %}
+   href="{{ url_for('movie', movie_id=film.id, back='/recommendations') }}"><div><p class="eyebrow">{{ t("FROM YOUR LIBRARY") }}</p><h2>{{ film.title }}</h2><p>{{ film.genre or t("Saved for later") }}</p></div></a>{% endfor %}
         </div>
     </section>
 {% endif %}

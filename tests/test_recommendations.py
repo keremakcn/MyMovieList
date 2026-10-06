@@ -39,8 +39,12 @@ def mock_recommendations(app):
     def get(path, **params):
         calls.append((path, params))
         if path.startswith("movie/"):
+            mid = int(path.split("/")[1])
             return dict(
-                MOVIE, id=int(path.split("/")[1]), title=f"Film {path.split('/')[1]}"
+                MOVIE, id=mid, title=f"Film {mid}",
+                credits={"cast": [{"id": mid + 100000, "name": f"Actor {mid}"}],
+                         "crew": [{"id": mid + 200000, "name": f"Director {mid}", "job": "Director"}]},
+                keywords={"keywords": []},
             )
         if path == "discover/movie":
             genre = int(str(params["with_genres"]).split("|")[0])
@@ -169,13 +173,17 @@ def test_parallel_survey_and_add_never_duplicate(app):
     assert len(db.query("SELECT * FROM recommendation_likes")) == 1
 
 
-def test_candidates_do_not_transmit_personal_preferences(app, client):
+def test_candidates_do_not_transmit_personal_preferences(app, tmp_path):
     calls = mock_recommendations(app)
     service = app.extensions["recommender"]
     service.recommend()
     initial = sorted((path, str(sorted(params.items()))) for path, params in calls)
-    calls.clear()
-    app.extensions["db"].add_tmdb(
+    from app import create_app
+    folder = tmp_path / "second-device"
+    other = create_app(dict(TESTING=True, SECRET_KEY="test", DATA_DIR=str(folder),
+                            DATABASE=str(folder / "library.db"), UI_LANGUAGE_DETECTOR=lambda: "en"))
+    other_calls = mock_recommendations(other)
+    other.extensions["db"].add_tmdb(
         dict(
             tmdb_id=999,
             title="Private selection",
@@ -186,11 +194,12 @@ def test_candidates_do_not_transmit_personal_preferences(app, client):
             note="Private note",
         )
     )
-    Recommender(app.extensions["db"], app.extensions["tmdb"]).recommend()
+    other.extensions["recommender"].recommend()
     assert (
-        sorted((path, str(sorted(params.items()))) for path, params in calls) == initial
+        sorted((path, str(sorted(params.items()))) for path, params in other_calls) == initial
     )
-    assert all(path == "discover/movie" for path, _ in calls)
+    assert all(path != "movie/999" for path, _ in other_calls)
+    assert all("Private" not in str(params) for _, params in other_calls)
 
 
 def test_recommendation_endpoints_dismiss_restore_and_waiting(app, client):
@@ -290,8 +299,8 @@ def test_v1_migration_backups_preserve_all_movie_data(tmp_path):
         con.execute("PRAGMA user_version=1")
     db.migrate()
     assert db.movie(mid) == before
-    assert len(list(tmp_path.glob("*.before-v2-*.bak"))) == 1
-    assert db.query("PRAGMA user_version")[0]["user_version"] == 2
+    assert len(list(tmp_path.glob("*.before-v3-*.bak"))) == 1
+    assert db.query("PRAGMA user_version")[0]["user_version"] == 3
     db.migrate()
     assert len(list(tmp_path.glob("*.bak"))) == 1
 
@@ -375,7 +384,9 @@ def test_parallel_requests_share_one_session_selection(app):
     with ThreadPoolExecutor(max_workers=4) as pool:
         results = list(pool.map(lambda _: service.recommend()["movies"], range(4)))
     assert all(result == results[0] for result in results)
-    assert len(calls) == 8
+    assert len([p for p, _ in calls if p == "discover/movie"]) == 10
+    details = [p for p, _ in calls if p.startswith("movie/")]
+    assert len(details) == len(set(details)) == 24
 
 
 def test_manual_refresh_changes_only_selected_mode_and_keeps_exclusions(app, client):
@@ -464,12 +475,15 @@ def test_refresh_expands_public_pool_and_failed_fetch_does_not_advance(app):
     service = app.extensions["recommender"]
     service.recommend()
     original_ids = set(service.public_pool)
-    assert {params["page"] for _, params in calls} == {1}
+    assert {params["page"] for path, params in calls if path == "discover/movie"} == {1}
     calls.clear()
     service.recommend("explore")
     assert not calls  # Modes reuse the same public pool.
     service.recommend(refresh=True)
-    assert {params["page"] for _, params in calls} == {2}
+    popular = [params for path, params in calls if path == "discover/movie" and params["sort_by"] == "popularity.desc"]
+    assert len(popular) == 8 and {p["page"] for p in popular} == {2}
+    world = [params for path, params in calls if path == "discover/movie" and "with_original_language" in params]
+    assert world[0]["with_original_language"] == "ko" and world[0]["page"] == 1
     assert set(service.public_pool) > original_ids
     page = service.pool_page
     cached = dict(service.public_pool)
