@@ -20,11 +20,11 @@
 
 **Assets** bölümünden `MyMovieList-3.5.0-android-beta.3.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
 
-## Neler yapabilirsin?
+**macOS — v3.5.0 beta**
 
-**macOS beta hazırlığı:** Apple Silicon ve Intel için derleme desteği eklendi.
-DMG'ler yayınlanmadan önce Mac derlemesi ve gerçek cihaz testleri tamamlanmalıdır.
-Bkz. [Mac derleme ve kurulum yönergeleri](MACOS.md).
+macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. Güncel kaynakta HTTPS sertifika düzeltmesi bulunuyor; yeni DMG'lerin Mac ortamında yeniden derlenmesi ve denenmesi gerekiyor. Önceki beta dosyaları açılıyor ancak keşif ve hesap bağlantılarında sorun bildirildi. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
+
+## Neler yapabilirsin?
 
 - **Sosyal.** İsim veya kullanıcı adıyla açık profilleri bul, seçilmiş vitrinlere uygulama içinden ulaş. Bu hafta bölümünde yalnızca vitrindeki izleme tarihi girilmiş filmler görünür. Özel notlar ve kütüphanenin geri kalanı gizli kalır. Vitrinini paylaşmak isteğe bağlıdır; profil paylaşımını açana kadar hesabın gizli kalır.
 - **Türkçe veya İngilizce kullan.** İlk açılışta cihazının arayüz dili esas alınır; Türkçe dışındaki diller için İngilizce kullanılır. Tercihini **Ayarlar → Dil** bölümünden değiştirebilirsin. Türkçe filmler özgün Türkçe adlarıyla gösterilir; özetlerde mevcut Türkçe çeviri, bulunamazsa İngilizce metin kullanılır.
@@ -32,7 +32,7 @@ Bkz. [Mac derleme ve kurulum yönergeleri](MACOS.md).
 - **Film ayrıntılarını sakla.** Oyuncular, yönetmenler, senaristler, yapımcılar ve stüdyolar film eklenirken kaydedilir. Eski kayıtların eksik bilgileri çevrimiçi gezinirken tamamlanır; kaydedilen ayrıntılar ve iki dildeki mevcut özetler çevrimdışı da okunabilir.
 - **Keşfet.** Günlük veya haftalık trendler, en yüksek puanlı filmler, yeni çıkanlar ve türler arasında gezin. Kütüphanendeki filmleri gizle, afiş kartından doğrudan film ekle; oyuncu, yönetmen ve yapım şirketlerinin diğer filmlerine göz at.
 - **Zevkine göre öneriler bul.** Puanların, favorilerin ve sevdiğin film seçimlerin; türler, mevcut temalar, yönetmenler ve başrol oyuncularıyla birlikte değerlendirilir. Üç keşif seçeneği tanıdık tercihlerle yeni ilgi alanlarını farklı oranlarda bir araya getirir. Yeni öneriler istediğinde, seçenekler elverdiği ölçüde yakın zamanda gösterilen filmler ve benzer temalar daha az tekrarlanır.
-- **Aradığını hızlıca bul.** Arama sonuçlarından ayrılmadan film ekle. **Ctrl+K** ile aramayı aç; önerilerde ve arayüzde klavyeyle gezinebilirsin.
+- **Aradığını hızlıca bul.** Arama sonuçlarından ayrılmadan film ekle. **Ctrl+K** (Mac'te **⌘K**) ile aramayı aç; önerilerde ve arayüzde klavyeyle gezinebilirsin.
 
 ## Ekran görüntüleri
 

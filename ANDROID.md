@@ -59,9 +59,11 @@ Apply Supabase migrations 001–005 before announcing accounts and Social. They 
 
 Android remains a beta until the actual APK is tested for installation/update, keyboard/insets, navigation, rotation, process restart, Keystore session restoration and cross-device sync. An AAB build does not publish or approve the application on Google Play; store setup, privacy disclosures and review are separate steps.
 
-## Current build — October 8, 2026
+## Current build — October 9, 2026
 
-The signed beta.3 APK/AAB include Social discovery and all current shared source,
+The signed beta.3 APK/AAB were cleanly rebuilt from commit `37787eb` on October 9.
+All **480 source tests passed**; signatures, package structure and 16 KB alignment
+checks passed. They include Social discovery and all current shared source,
 using versionCode=7. Package verification is recorded in [QA_RESULTS.md](QA_RESULTS.md).
 Downloads are collected beside the Windows ZIP in dist/releases/v3.5.0/.
 The existing application ID and signing certificate are retained. Physical-device

@@ -60,6 +60,8 @@ def test_macos_assets_resolve_from_separate_spec_directory(tmp_path, monkeypatch
     options = cli.generate_parser().parse_args(commands[0][3:])
     assert Path(options.specpath) == project / "build/macos" / arch
     assert options.target_arch == arch
+    assert "certifi" in options.collect_data
+    assert options.runtime_hooks == [str(project / "scripts/pyi_rth_macos_https.py")]
     # PyInstaller resolves relative data sources from the generated .spec folder.
     # Calling its resolver reproduces the hosted build failure before this fix.
     resolved = format_binaries_and_datas(options.datas, workingdir=options.specpath)

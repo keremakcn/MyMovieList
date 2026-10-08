@@ -1,4 +1,4 @@
-# MyMovieList for macOS — beta build preparation
+# MyMovieList for macOS — beta packages
 
 The main repository now includes macOS data paths, native UI-language detection,
 Keychain sessions and a manual GitHub Actions workflow for separate Apple Silicon
@@ -7,20 +7,23 @@ shared modules, templates and bundled translations used by the Mac build.
 Supabase migration 005 is installed on the hosted service. Windows and Android
 packages are rebuilt separately.
 
-**Status — October 9, 2026:** after the launcher-test fix, both native jobs
-passed source validation. Run `37844056782` then stopped during packaging:
-PyInstaller resolved relative asset paths from `build/macos/<arch>`, where
-the generated spec lives, instead of the project root. The builder now uses
-absolute project paths for templates, static assets, public cloud configuration
-and the launcher; bundle destinations remain unchanged.
+**Status — October 9, 2026:** the first DMGs from
+[hosted run 37852453775](https://github.com/keremakcn/MyMovieList/actions/runs/37852453775),
+commit `37787eb`, passed the original native package checks. Actual-Mac testing
+confirmed the app opens but reported discovery/account connection failures,
+while Safari can reach the discovery gateway. Those checks did not test outbound
+HTTPS and the package did not include its own CA certificate bundle.
 
-The exact missing-template failure was reproduced for both architectures using
-PyInstaller's own command parser and data resolver. Those checks now pass,
-alongside the existing launcher/Mac checks: **34 passed**. Native icon generation,
-signing and DMG creation still require another hosted run. Push this correction
-and start **Run workflow on main**; rerunning an old run uses its old commit.
-No successful DMG or physical-Mac compatibility is claimed until native checks
-and manual tests pass. Windows and Android packages need no rebuild for this fix.
+The current source bundles trusted certificates and configures the Mac executable
+to use them before starting the app. New package checks make real read-only HTTPS
+requests to both discovery and Supabase. **Push this correction and start a fresh
+workflow; the earlier run's artifacts do not include it.** Native builds and
+actual-Mac account/sync/update tests for the correction remain pending.
+
+The earlier launcher-test and asset-path failures are resolved. The October 9
+Windows EXE/ZIP and Android beta.3 APK/AAB keep their existing verified app code;
+this Mac-only correction does not require rebuilding them. Mac packages remain
+ad-hoc signed and not notarized by Apple.
 
 ## Requirements
 
@@ -39,7 +42,7 @@ and manual tests pass. Windows and Android packages need no rebuild for this fix
 4. The `macos-15` job builds Apple Silicon; `macos-15-intel` builds Intel.
 5. Both jobs run all source tests, upload a per-architecture test report even
    if tests fail, generate the current logo's `.icns`, build the `.app`,
-   verify the native package and assemble a DMG.
+   verify the native package including both live HTTPS services, and assemble a DMG.
 6. Download the two job artifacts after successful completion. Each artifact ZIP
    contains a DMG, its SHA-256 checksum and verification report.
 7. Test on actual Macs, then attach the **DMG files themselves** and their
@@ -115,6 +118,12 @@ The workflow does not disable Gatekeeper or remove quarantine attributes.
 - Shared version, bundle identity, minimum OS and icon.
 - All shared Python modules and the launcher match the source; static/template
   files and the public cloud configuration match byte for byte.
+- The bundled `certifi` CA file and HTTPS runtime hook match the build inputs.
+  With runner-specific Python/CA environment variables removed, the executable
+  fetches a public movie from `api.myshelf.cloud` and public authentication settings
+  from Supabase. Certificate and hostname verification stay enabled. This runs
+  before application startup and does not create accounts, send emails, open a
+  library or access Keychain. Both the app and the mounted DMG must pass.
 - Native binaries have the selected architecture; nested signatures verify.
 - Private databases, session files, signing material and QA sources are absent.
 - The real packaged executable imports Cocoa, starts its loopback server, loads
@@ -131,6 +140,25 @@ window and physical-device tests. Before publishing, check first opening from a
 downloaded DMG, keyboard/focus, resizing, external links, backup import/export,
 real sign-in, restarting, offline edits and cross-device sync.
 
+## HTTPS diagnostics
+
+The Mac-only runtime hook sets `SSL_CERT_FILE` to the bundled Mozilla trust store
+provided by `certifi`. An explicitly configured corporate trust-store path is
+preserved. HTTPS verification is never disabled. Finder launches no longer depend
+on certificates installed separately alongside the build runner's Python.
+
+After installing a newly built app, this read-only Terminal check tests the actual
+package without opening its interface or changing saved data:
+
+```sh
+/Applications/MyMovieList.app/Contents/MacOS/MyMovieList --https-self-test
+```
+
+A successful JSON result reports `movie_discovery_https` and `cloud_auth_https`
+as `true`. A failure reports only the check and exception types; credentials and
+provider response bodies are not printed. Check movie search and normal sign-in
+in the app afterward; the probe alone does not test a real account's sync.
+
 ## References
 
 - [GitHub: manually run a workflow](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
@@ -138,3 +166,5 @@ real sign-in, restarting, offline edits and cross-device sync.
 - [Apple: open downloaded apps](https://support.apple.com/en-us/102445)
 - [PyInstaller: Mac bundles](https://pyinstaller.org/en/stable/usage.html#building-macos-app-bundles)
 - [Keyring: explicit macOS Keychain backend](https://keyring.readthedocs.io/en/stable/)
+- [Certifi: trusted root certificates for HTTPS](https://github.com/certifi/python-certifi)
+- [Python: verified default SSL contexts](https://docs.python.org/3.12/library/ssl.html#ssl.create_default_context)

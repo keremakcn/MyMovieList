@@ -99,6 +99,7 @@ def normalize(code):
 
 
 def verify_app(app, arch):
+    import certifi
     from PyInstaller.archive.readers import CArchiveReader
 
     app = app.resolve()
@@ -129,11 +130,24 @@ def verify_app(app, arch):
             )
         ), name
     assert "keyring.backends.macOS" in pyz.toc and "webview.platforms.cocoa" in pyz.toc
+    assert "certifi" in pyz.toc
+    https_hook = marshal.loads(archive.extract("pyi_rth_macos_https"))
+    assert normalize(https_hook) == normalize(
+        compile(
+            (ROOT / "scripts/pyi_rth_macos_https.py").read_bytes(),
+            "<source>",
+            "exec",
+            optimize=0,
+        )
+    )
     script = marshal.loads(archive.extract("run_desktop"))
     assert normalize(script) == normalize(
         compile((ROOT / "run_desktop.py").read_bytes(), "<source>", "exec", optimize=0)
     )
     resources = app / "Contents/Resources"
+    certificates = resources / "certifi/cacert.pem"
+    assert certificates.resolve().is_relative_to(app) and certificates.is_file()
+    assert certificates.read_bytes() == Path(certifi.where()).read_bytes()
     assets = [
         p
         for folder in ("static", "templates")
@@ -177,6 +191,19 @@ def verify_app(app, arch):
                 assert run("lipo", "-archs", path).strip().split() == [arch], str(path)
                 native += 1
     assert native > 0
+    # Finder-launched apps must work without Python/CA settings from the runner.
+    network_env = dict(os.environ)
+    for variable in ("SSL_CERT_FILE", "SSL_CERT_DIR", "PYTHONPATH", "PYTHONHOME"):
+        network_env.pop(variable, None)
+    network_output = run(executable, "--https-self-test", env=network_env, timeout=60)
+    network_results = [
+        json.loads(line)
+        for line in network_output.splitlines()
+        if line.startswith('{"result":')
+    ]
+    assert len(network_results) == 1 and network_results[0]["result"] == "passed", (
+        network_output
+    )
     # The native test rejects nonempty folders before creating an app or touching Keychain.
     with tempfile.TemporaryDirectory(prefix="mymovielist-mac-qa-") as temporary:
         env = dict(os.environ, MOVIE_WATCHLIST_DATA_DIR=temporary)
@@ -199,6 +226,8 @@ def verify_app(app, arch):
         "apple_notarized": False,
         "private_files_excluded": True,
         "smoke": results[0],
+        "https": network_results[0],
+        "ca_bundle_matched": True,
         "graphical_window_tested": False,
     }
 

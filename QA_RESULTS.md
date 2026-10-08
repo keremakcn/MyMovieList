@@ -1,3 +1,54 @@
+# macOS HTTPS correction — 2026-10-09
+
+- Actual-Mac testing of the first beta confirmed graphical startup but reported
+  discovery/account connection failures; Safari reached the configured gateway.
+  The original package checks covered loopback startup but not outbound HTTPS.
+  The missing packaged CA trust store explains a shared TLS failure; no native
+  exception traceback has yet been supplied to confirm that diagnosis directly.
+- Mac requirements now include certifi. A Mac-only PyInstaller runtime hook loads
+  the packaged trust store before application imports and preserves an explicit
+  corporate trust-store setting. Certificate/hostname verification stays enabled.
+  Shared app code, Windows and Android runtime behavior are unchanged.
+- The native verifier checks CA bytes and compiled hook provenance, then removes
+  runner Python/CA environment settings and executes read-only live movie and
+  Supabase auth-settings requests. Both the original app and mounted delivered
+  DMG must pass. No signup, email, library or Keychain operation is performed.
+- **43 focused tests and 489 full isolated source tests passed** on Windows.
+  Targeted lint and formatting passed. A separate frozen Windows QA executable,
+  using the exact Mac hook and bundled CA file, passed both real HTTPS probes
+  after relocation with no host Python/CA environment. This validates the frozen
+  bootstrap; it is not a native Mac or real-account sync test.
+- Applied to the authoritative **Desktop/movie-watchlist** source. Shared version
+  remains **3.5.0**. Native ARM/Intel builds and real-Mac testing for this correction
+  require a fresh workflow on the updated commit. The older hosted artifacts do
+  not contain the fix. Windows/Android binaries need no rebuild; release notes
+  and the Windows ZIP/checksums are refreshed as documentation only.
+
+# Current release verification — 2026-10-09
+
+- Cleanly rebuilt the Windows EXE/ZIP and signed Android beta.3 APK/AAB from
+  the authoritative **Desktop/movie-watchlist** source, commit **37787eb**.
+  Delivery completed at **01:33 Europe/Istanbul**; the Desktop EXE was replaced.
+  Shared version remains **3.5.0**, Android **beta.3 / versionCode 7**.
+- **480 isolated source tests passed**. Windows and Android payload checks
+  matched all **27 shared/bridge modules** and **69 UI assets** to current source.
+  The real Windows EXE passed isolated startup, EN/TR language switching,
+  restart persistence, saved movie data, registration and Social checks.
+- Android APK v2 signature, AAB signature/structure and 16 KB alignment checks
+  passed. The existing application ID and signing certificate are retained.
+  Release lint has **0 errors and 4 existing warnings**. No phone was connected;
+  physical installation, upgrade, lifecycle and cross-device tests remain pending.
+- Mac hosted [run 37852453775](https://github.com/keremakcn/MyMovieList/actions/runs/37852453775)
+  succeeded for **arm64 and x86_64** at the same source commit. Source validation,
+  native packaging, signature verification, DMG checks and artifact uploads passed.
+  Mac packages remain an ad-hoc signed beta without Apple notarization;
+  subsequent actual-Mac testing confirmed opening and identified the HTTPS issue
+  described above. Corrected native packages and account-sync tests remain pending.
+- EN/TR README, release notes and platform guides now describe those results.
+  The Windows ZIP's bundled release notes and combined SHA-256 checksums were
+  refreshed after documentation changes. This refresh does not change app code.
+  Earlier results below describe the earlier stages, not current release status.
+
 # macOS packaging asset-path correction — 2026-10-09
 
 - Hosted run **37844056782**, commit **e418cf2**, passed source validation on

@@ -106,6 +106,10 @@ def build(arch):
         "keyring",
         "--collect-submodules",
         "keyring.backends.macOS",
+        "--collect-data",
+        "certifi",
+        "--runtime-hook",
+        ROOT / "scripts/pyi_rth_macos_https.py",
         # PyInstaller resolves data sources relative to --specpath.
         # Keep sources rooted in the project and destinations inside the bundle.
         "--add-data",

@@ -1,4 +1,6 @@
 -r requirements-desktop.txt
+# Bundled OpenSSL must not rely on the build runner's external CA installation.
+certifi>=2025.1.31
 # The explicit macOS backend stores sessions in Apple Keychain, never plaintext.
 keyring>=25.7,<26; sys_platform == "darwin"
 # Cocoa/WebKit integration and the native UI-language preference.

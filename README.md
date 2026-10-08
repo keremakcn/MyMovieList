@@ -20,11 +20,11 @@
 
 Download `MyMovieList-3.5.0-android-beta.3.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
 
-## Features
+**macOS — v3.5.0 beta**
 
-**macOS beta preparation:** Apple Silicon and Intel build support is now included.
-DMGs still need a successful Mac build and device testing before publication.
-See [Mac build and installation](MACOS.md).
+Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. The current source includes an HTTPS certificate fix; refreshed DMGs still need a new native build and Mac testing. Earlier beta artifacts open but have a reported discovery/account connection problem. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
+
+## Features
 
 - **Social:** find public profiles by name or username, open chosen showcases inside the app, and browse this week’s dated watches from selected showcase films. Private notes and the rest of each library stay private. Public sharing is optional; accounts remain private until their owners choose to share.
 - **English and Turkish interface:** first launch follows your device's UI language (Turkish or English fallback), then remembers your choice locally. Change it in **Settings → Language**. Turkish-original films show their Turkish names, and synopses use available Turkish translations with English fallback. Movie identity and personal notes stay unchanged.
@@ -38,7 +38,7 @@ See [Mac build and installation](MACOS.md).
 - Choose films you enjoyed to help personalize recommendations.
 - Filter and sort your library. Undo removal without losing notes, ratings or the original added order.
 - Compact cards with a one-line note preview; open the detail page to read or edit.
-- Keyboard-friendly search, suggestions and navigation. Press **Ctrl+K** to search.
+- Keyboard-friendly search, suggestions and navigation. Press **Ctrl+K** (**⌘K** on Mac) to search.
 
 ## Screenshots
 
@@ -127,6 +127,8 @@ Not every reaction needs an audience. Write honestly without publishing your not
 Recommendations are ranked on your device. Private notes are not analyzed.
 
 Searches and catalog requests pass through `api.myshelf.cloud` to TMDB. Discovery and remote images need internet; saved library information and downloaded posters remain available offline. Local storage is not encrypted.
+
+**Mac updates preserve your library** in `~/Library/Application Support/MyMovieList`. Close the app before replacing it in Applications.
 
 **Updates preserve your Windows library.** Close the app before replacing the EXE. Existing data remains in `%APPDATA%\MovieWatchlist`; the original folder name is retained for compatibility. Android data stays in private app storage; uninstalling the app or clearing its storage deletes that library.
 
