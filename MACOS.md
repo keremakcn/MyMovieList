@@ -5,18 +5,22 @@ Keychain sessions and a manual GitHub Actions workflow for separate Apple Silico
 and Intel DMGs. The shared version remains **3.5.0**. Social discovery is included in the
 shared modules, templates and bundled translations used by the Mac build.
 Supabase migration 005 is installed on the hosted service. Windows and Android
-packages are rebuilt separately. The first native Mac workflow ran on October 8
-and stopped during source tests; it did not reach the DMG build step.
+packages are rebuilt separately.
 
-**Status:** the first native run passed dependency setup but failed two launcher
-tests that changed the interpreter's global platform to Windows. This made
-Mac Python try to enumerate Windows TLS certificates. The tests now preserve
-the real platform and verify that runner's native library folder and custom
-data override. Production TLS and application code are unchanged. The exact
-failure was reproduced locally; all 32 launcher/Mac checks pass with the Mac
-flag and no Windows certificate enumerator. A new native workflow run is still
-required; no DMG or physical-Mac compatibility is claimed until native checks
-and manual tests pass.
+**Status — October 9, 2026:** after the launcher-test fix, both native jobs
+passed source validation. Run `37844056782` then stopped during packaging:
+PyInstaller resolved relative asset paths from `build/macos/<arch>`, where
+the generated spec lives, instead of the project root. The builder now uses
+absolute project paths for templates, static assets, public cloud configuration
+and the launcher; bundle destinations remain unchanged.
+
+The exact missing-template failure was reproduced for both architectures using
+PyInstaller's own command parser and data resolver. Those checks now pass,
+alongside the existing launcher/Mac checks: **34 passed**. Native icon generation,
+signing and DMG creation still require another hosted run. Push this correction
+and start **Run workflow on main**; rerunning an old run uses its old commit.
+No successful DMG or physical-Mac compatibility is claimed until native checks
+and manual tests pass. Windows and Android packages need no rebuild for this fix.
 
 ## Requirements
 

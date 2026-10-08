@@ -40,7 +40,7 @@ def build(arch):
     version = re.search(
         r'^APP_VERSION = "([^"]+)"$',
         (ROOT / "version.py").read_text(encoding="utf-8"),
-        re.M,
+        re.MULTILINE,
     )[1]
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
         raise RuntimeError("Invalid shared release version.")
@@ -106,12 +106,14 @@ def build(arch):
         "keyring",
         "--collect-submodules",
         "keyring.backends.macOS",
+        # PyInstaller resolves data sources relative to --specpath.
+        # Keep sources rooted in the project and destinations inside the bundle.
         "--add-data",
-        "templates:templates",
+        f"{ROOT / 'templates'}:templates",
         "--add-data",
-        "static:static",
+        f"{ROOT / 'static'}:static",
         "--add-data",
-        "supabase/project.json:supabase",
+        f"{ROOT / 'supabase/project.json'}:supabase",
         "--codesign-identity",
         "-",
         "--distpath",
@@ -120,7 +122,7 @@ def build(arch):
         work / "pyinstaller",
         "--specpath",
         work,
-        "run_desktop.py",
+        ROOT / "run_desktop.py",
     )
     app = work / "dist/MyMovieList.app"
     plist = app / "Contents/Info.plist"

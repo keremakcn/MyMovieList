@@ -1,3 +1,26 @@
+# macOS packaging asset-path correction — 2026-10-09
+
+- Hosted run **37844056782**, commit **e418cf2**, passed source validation on
+  both native architectures. Packaging then failed because relative data sources
+  were resolved from the architecture-specific spec directory instead of the
+  repository root. The supplied ARM log identifies the missing templates path.
+- The Mac builder now passes absolute project paths for templates, static assets,
+  public Supabase configuration and the launcher. Bundle destinations, native
+  architecture checks, signing and package verification are unchanged.
+- Two regression cases use the actual PyInstaller command parser and data
+  resolver, with separate spec folders and a project path containing spaces.
+  Both reproduce the hosted missing-template error before the fix and pass
+  afterward. They verify the complete fixture asset set and exclude a private
+  root-file fixture; native Mac tools are mocked, not claimed as tested.
+- **34 focused packaging, launcher and Mac-source checks passed** after the fix.
+  Targeted lint and formatting checks pass. The earlier complete Windows suite
+  result remains **478 passed**; it was not rerun for this Mac-only change.
+- Applied to the authoritative **Desktop/movie-watchlist** source. Shared version
+  remains **3.5.0**. Windows and Android packages require no rebuild. Push the
+  correction and start a new workflow on the updated main branch; a rerun of an
+  old workflow retains that run's old commit. Native DMGs and real-device runtime
+  tests remain pending.
+
 # macOS CI launcher-test correction — 2026-10-08
 
 - The first hosted ARM/Intel workflow stopped in source validation before
