@@ -7,7 +7,7 @@ October 8, followed by username migration 003. Registration/name-policy migratio
 (`mymovielist-usernames`, protocol 2). Resend SMTP, email verification, password recovery and
 library restoration on a second isolated device instance were tested by the user.
 The updated registration/profile UI and sync behavior are covered by local tests.
-Windows 3.5.0 and signed Android 3.5.0 beta.1 downloads were rebuilt with the
+Windows 3.5.0 and signed Android 3.5.0 beta.2 downloads were rebuilt with the
 registration, profile and sync modules. No further rebuild is needed after applying 004. Hosted two-owner
 access separation and native Android lifecycle still require final release QA.
 
@@ -102,8 +102,16 @@ source. Rebuilding is necessary before this appears in distributed applications.
   Network/quota failures retain the outbox and use bounded retry delays.
 - The header contains account access and a profile menu. Import/export is in
   Settings. Conflicting notes keep both versions and can be reviewed in Profile.
-- Guest adoption is explicit and leaves the original library intact. Copied
-  private notes are included in automatic sync; the UI states this before copying.
+- New registration automatically copies the device's guest library, after a
+  disclosure on the registration screen. Sign-in to an existing account never
+  copies it automatically; account settings offer an explicit copy action.
+  Both paths leave the original intact and retain existing account notes/ratings.
+  Private notes in the copied account library participate in automatic sync.
+  A single local transaction copies personal fields and available public details
+  before completing the new account's password. A lost completion response or
+  failed session save cannot lose that staged library; later sign-in opens it.
+  The Windows v3.5.0 rebuild and Android beta.2 packages include this behavior;
+  it requires no additional Supabase migration.
 - A private display name and one avatar ID are stored in `user_metadata.mml_profile`
   through the authenticated Auth user endpoint. The SVG avatar pack ships in
   `static/avatars`; no Storage bucket or additional SQL migration is needed.

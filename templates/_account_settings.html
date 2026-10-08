@@ -16,6 +16,7 @@
         <h2 id="adopt-heading">{{ t('Bring your existing local library') }}</h2>
         <p>{{ t('Your original local library has {count} films. Copy them into this account library; existing account records will be kept.',count=guest_count) }}</p>
         <p class="settings-note">{{ t('Copied films, including their private notes, will sync to this account. Your original local library stays intact.') }}</p>
+        <p class="settings-note">{{ t('Films already in your account keep their notes and ratings. Any different local versions remain in your original local library; sign out to open it.') }}</p>
         <form action="{{ url_for('accounts.adopt_local') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="confirm" value="yes"><button class="secondary" type="submit">{{ t('Copy local library into this account') }}</button></form>
     </section>
 {% endif %}

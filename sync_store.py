@@ -52,16 +52,21 @@ class SyncStore:
 
     def export(self):
         with self.db.connect() as con:
-            records = [
-                {"record_key": r["record_key"], "data": from_movie(dict(r))}
-                for r in con.execute("SELECT * FROM movies ORDER BY order_key")
-            ]
-            archived = [
-                dict(r)
-                for r in con.execute(
-                    "SELECT * FROM sync_conflict_archive ORDER BY created_at"
-                )
-            ]
+            con.execute("BEGIN")
+            return self._export(con)
+
+    @staticmethod
+    def _export(con):
+        records = [
+            {"record_key": r["record_key"], "data": from_movie(dict(r))}
+            for r in con.execute("SELECT * FROM movies ORDER BY order_key")
+        ]
+        archived = [
+            dict(r)
+            for r in con.execute(
+                "SELECT * FROM sync_conflict_archive ORDER BY created_at"
+            )
+        ]
         return {
             "format": "mymovielist-personal-library",
             "version": 1,
@@ -70,7 +75,24 @@ class SyncStore:
             "conflict_versions": archived,
         }
 
-    def import_new(self, document):
+    def copy_from(self, source):
+        """Copy a device library without replacing an existing account record."""
+        # One read snapshot keeps notes, ordering and offline details consistent
+        # even if another request edits the source during the copy.
+        with source.connect() as con:
+            con.execute("BEGIN")
+            document = self._export(con)
+            rows = [dict(row) for row in con.execute("SELECT * FROM movies")]
+            metadata = [
+                tuple(row)
+                for row in con.execute(
+                    "SELECT tmdb_id,english_title,original_title,turkish_title,data_json,fetched_at "
+                    "FROM movie_metadata"
+                )
+            ]
+        return self.import_new(document, _catalog_snapshot=(rows, metadata))
+
+    def import_new(self, document, *, _catalog_snapshot=None):
         if (
             not isinstance(document, dict)
             or document.get("format") != "mymovielist-personal-library"
@@ -122,7 +144,9 @@ class SyncStore:
                     timestamp(r["created_at"]),
                 )
             )
+        catalog_rows, metadata = _catalog_snapshot or ([], [])
         imported = skipped = 0
+        new_keys = set()
         with self.db.connect(write=True) as con:
             for key, data in validated:
                 if con.execute(
@@ -134,9 +158,49 @@ class SyncStore:
                 if self.db.owner_id:
                     con.execute("INSERT OR IGNORE INTO sync_dirty VALUES (?)", (key,))
                 imported += 1
+                new_keys.add(key)
             con.executemany(
                 "INSERT OR IGNORE INTO sync_conflict_archive VALUES (?,?,?,?,?,?)",
                 validated_archives,
+            )
+            # Personal records and their available offline details commit together.
+            # Existing account notes/ratings are retained; the original source is untouched.
+            for row in catalog_rows:
+                key = row["record_key"]
+                if key in new_keys:
+                    con.execute(
+                        "UPDATE movies SET created_at=?,updated_at=COALESCE(?,updated_at) "
+                        "WHERE record_key=?",
+                        (row["created_at"], row["updated_at"], key),
+                    )
+                if not row["tmdb_id"]:
+                    continue
+                for name in (
+                    "poster_path",
+                    "overview",
+                    "runtime",
+                    "director",
+                    "cast_list",
+                    "score_percent",
+                    "entities_json",
+                    "genre",
+                    "year",
+                ):
+                    if row.get(name) is not None:
+                        con.execute(
+                            f"UPDATE movies SET {name}=COALESCE({name},?) WHERE record_key=?",
+                            (row[name], key),
+                        )
+                con.execute(
+                    "UPDATE movies SET title=?,catalog_pending=? "
+                    "WHERE record_key=? AND catalog_pending=1",
+                    (row["title"], row["catalog_pending"], key),
+                )
+            con.executemany(
+                "INSERT OR IGNORE INTO movie_metadata "
+                "(tmdb_id,english_title,original_title,turkish_title,data_json,fetched_at) "
+                "VALUES (?,?,?,?,?,?)",
+                metadata,
             )
         return imported, skipped
 

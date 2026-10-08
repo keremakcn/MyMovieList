@@ -76,7 +76,15 @@ Storage schema 4 adds stable record/order keys and durable queue, baseline and c
 1. `personal_data.py` defines versioned provider-neutral data. JSON export/import includes personal/custom fields, tombstones and archived conflicts; tokens and public metadata are excluded. Import validates everything before committing and keeps existing records. This is a personal export, not a full poster/cache backup; a full user-facing backup is separate work.
 2. `sync_store.py` owns a durable outbox and three-way merges. Frozen operations retain their exact UUID/payload through restart and retries. Later local edits remain dirty for the next operation. Portable order retains legacy library order on another device.
 3. Storage helpers commit personal edits and queue entries together for add/edit, favorites/status, survey additions, removal and Undo. Public hydration never queues a user change. Recommendation dismissals/likes remain local in protocol v1.
-4. `cloud_sync.py` separates guest and account libraries while preserving the AppData path. Account databases live in `accounts/<Supabase-user-UUID>/library.db`. Explicit adoption copies guest data without deleting it. Requests bind their account; stale CSRF/scoped API requests reject a changed account.
+4. `cloud_sync.py` separates guest and account libraries while preserving the AppData path. Account databases live in `accounts/<Supabase-user-UUID>/library.db`. New signup stages a disclosed guest copy before completing the password; existing-account sign-in never copies guest data. The manual copy action uses the same `SyncStore.copy_from` transaction. Both paths retain the source and existing account personal fields. Requests bind their account; stale CSRF/scoped API requests reject a changed account.
+
+   Copying reads personal records, conflict archives and available public details
+   from one SQLite snapshot, then commits the target in one transaction. A failed
+   copy rolls back before remote password completion. If completion commits but
+   its response or secure session save fails, the staged account library remains
+   available on later sign-in. Repeated submissions never duplicate stable IDs.
+   A conflicting existing server record uses the usual two-version review and
+   preserves the server's immutable first-add date/order.
 5. `cloud_client.py` handles HTTPS Auth/RPC with redacted errors and refused redirects. `account_routes.py` and its bilingual UI provide optional sign-in/up, code verification/recovery, automatic sync/pause, conflict resolution and export/import. Windows sessions use DPAPI, Android Keystore support is prepared, and unsupported OSes keep sessions only in memory. Native loopback authentication and CSRF protection remain intact.
 
 Keep provider HTTP calls out of cards, templates and movie-rating logic. A compact provider boundary handles authentication, pulling changes and pushing changes. There is no need to replace the application with a new frontend or move catalog discovery into Supabase.
@@ -129,7 +137,7 @@ Use synthetic data for verification. Do not upload the existing personal library
 
 ## First external setup
 
-Public configuration is in `supabase/project.json`. The user ran the migration and shared its success result. Live Auth health and protocol status returned HTTP 200 (`mymovielist-sync`, protocol 1). Anonymous access to the library table and download RPC returned HTTP 401/SQLSTATE 42501. These probes created no accounts and read/wrote no personal records; they do not prove authenticated two-owner isolation. Follow `supabase/README.md` for remaining access checks and email-code templates/custom SMTP. Supabase's built-in sender is not a public registration service. Signing in starts automatic account-library sync; the UI explains the uploaded fields. Copying an existing guest library remains an explicit action.
+Public configuration is in `supabase/project.json`. The user ran the migration and shared its success result. Live Auth health and protocol status returned HTTP 200 (`mymovielist-sync`, protocol 1). Anonymous access to the library table and download RPC returned HTTP 401/SQLSTATE 42501. These probes created no accounts and read/wrote no personal records; they do not prove authenticated two-owner isolation. Follow `supabase/README.md` for remaining access checks and email-code templates/custom SMTP. Supabase's built-in sender is not a public registration service. Signing in starts automatic account-library sync; the UI explains the uploaded fields. Current source brings the guest library into a newly registered account after a signup disclosure; existing-account sign-in still requires an explicit copy action.
 
 ## References
 

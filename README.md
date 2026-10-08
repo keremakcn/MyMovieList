@@ -16,9 +16,9 @@
 2. Extract it and open `MyMovieList-v3.5.0.exe`. No Python installation is needed.
 3. Search for a film and add it to your library. Discovery is ready without setup.
 
-**Android — 3.5.0 beta.1**
+**Android — 3.5.0 beta.2**
 
-Download `MyMovieList-3.5.0-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
+Download `MyMovieList-3.5.0-android-beta.2.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
 
 ## Features
 
@@ -37,37 +37,58 @@ Download `MyMovieList-3.5.0-android-beta.1.apk` from the release’s **Assets** 
 
 ## Screenshots
 
-Captured from the current app with a demo library and public catalog snapshots. See the [Turkish screenshots](README.tr.md#ekran-görüntüleri) for the Turkish interface.
+The current v3.5.0 interface, captured with a demo account and library. Film data and posters come from public catalog snapshots. [View the Turkish interface](README.tr.md#ekran-görüntüleri).
 
-### Your library
+### Your films, kept close
 
-![MyMovieList English library with posters, ratings, favorites and private note previews](screenshots/en/library.png)
+![MyMovieList library with watched films, ratings, favorites and private note previews](screenshots/en/library.png)
 
-### Discover your next film
+### Your profile, your showcase
 
-![MyMovieList English Explore page with trending and highly rated films](screenshots/en/explore.png)
+Choose the films that represent you. Your personal overview and the rest of your library stay separate from your public showcase.
 
-### A little more you
+![MyMovieList profile with a cat avatar, unique username and six chosen showcase films](screenshots/en/profile.png)
 
-![MyMovieList English personal recommendations and discovery modes](screenshots/en/recommendations.png)
+### Find your next favorite
+
+![MyMovieList Explore page with trending and highly rated films](screenshots/en/explore.png)
 
 <details>
-<summary>Movie details and filmmaker discovery</summary>
+<summary>Recommendations, movie details and filmmaker discovery</summary>
 
-![MyMovieList English movie detail with a personal note, synopsis and saved credits](screenshots/en/movie-details.png)
+![Personal recommendations with three discovery modes](screenshots/en/recommendations.png)
 
-![MyMovieList English Christopher Nolan profile and filmography](screenshots/en/director.png)
+![Film details with a private note, synopsis and saved cast and crew](screenshots/en/movie-details.png)
+
+![Christopher Nolan's profile and filmography](screenshots/en/director.png)
 
 </details>
 
 <details>
-<summary>Mobile layouts</summary>
+<summary>Registration, sign-in and your personal overview</summary>
 
-Responsive views of the shared interface at phone size.
+Register step by step: email → code → username → password. The registration screen explains how your saved local films come into the new account.
+
+![Email-first registration with verification steps and the local-library copy explanation](screenshots/en/registration.png)
+
+![Sign-in screen with email, password and account-free access](screenshots/en/sign-in.png)
+
+![Private personal overview with library counts and favorite films](screenshots/en/profile-personal.png)
+
+</details>
+
+<details>
+<summary>Phone layouts: library, discovery, profile and registration</summary>
+
+Responsive views of the shared interface at phone size, captured from the source preview.
 
 <p align="center">
   <img src="screenshots/en/mobile-library.png" alt="English library at phone size" width="44%">
-  <img src="screenshots/en/mobile-explore.png" alt="English Explore page at phone size" width="44%">
+  <img src="screenshots/en/mobile-explore.png" alt="English discovery at phone size" width="44%">
+</p>
+<p align="center">
+  <img src="screenshots/en/mobile-profile.png" alt="English profile and chosen showcase films at phone size" width="44%">
+  <img src="screenshots/en/mobile-registration.png" alt="English registration and local-library copy explanation at phone size" width="44%">
 </p>
 
 </details>
@@ -77,7 +98,8 @@ Responsive views of the shared interface at phone size.
 Keep using MyMovieList without an account, or sign in to take your private library across devices.
 
 - **Automatic sync:** your ratings, notes, favorites and watch status save locally first, then sync when connected. No manual Sync button is needed. You can pause sync; pending edits remain on your device.
-- **Separate libraries:** signing in opens your account library. Your original local library is copied only when you choose to; it is never silently uploaded.
+- **Keep your films when registering:** creating a new account automatically copies the films already saved on this device, with their notes, ratings, favorites and added order. The registration screen explains this before you finish. Your original local copy stays on the device.
+- **Separate libraries:** signing in to an existing account opens that account's library. You can copy the original local library from account settings; existing account records keep their notes and ratings.
 - **Simple registration:** email → verification code → unique username → password. Normal sign-in uses email and password; password recovery verifies its code before asking for a new password.
 - **Your identity:** choose a display name and one of 16 bundled cat avatars. Display names may repeat. Your unique username is chosen once and cannot currently be changed.
 - **Your showcase:** select and order up to six films yourself. Sharing is off by default. When you enable it, your address is `myshelf.cloud/u/<username>`. Only your chosen films are shared; displaying ratings and library counts is also optional.
@@ -87,7 +109,7 @@ Profile access is in the sidebar and top bar. Import/export remains in **Setting
 
 ## Your thoughts stay yours
 
-Not every reaction needs an audience. Write honestly without publishing your notes to a public profile. Your library, notes, ratings and favorites are saved on your device and are not uploaded to our discovery service or TMDB. If you use an optional account, your account library also syncs privately through Supabase. Your original guest library is copied into that account only when you choose to.
+Not every reaction needs an audience. Write honestly without publishing your notes to a public profile. Your library, notes, ratings and favorites are saved on your device and are not uploaded to our discovery service or TMDB. If you use an optional account, your account library also syncs privately through Supabase. New registration brings your saved local films into the account, as explained on the registration screen. Signing in to an existing account leaves that library separate until you choose to copy it.
 
 Recommendations are ranked on your device. Private notes are not analyzed.
 

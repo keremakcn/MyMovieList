@@ -1,3 +1,59 @@
+# Current Windows and Android packages — 2026-10-08
+
+- Rebuilt from the authoritative `Desktop/movie-watchlist` source after the
+  automatic guest-library-copy update. Shared version remains **3.5.0**; Android
+  is **3.5.0-android-beta.2**, `versionCode=6`, package `com.moviewatchlist`.
+- **14 onboarding-copy regression tests passed again** against the main source.
+  The earlier complete 404-test run and 40 browser-view checks remain recorded
+  below; this packaging update does not change their runtime implementation.
+- Windows package verification compares compiled code for all 23 shared Python
+  modules against main source, all 66 UI assets and public cloud configuration.
+  The ZIP contains only the matching EXE and current release notes.
+- The actual rebuilt Windows EXE passed isolated-library startup, TR/EN language
+  switching, restart persistence, offline movie details/full cast, unchanged
+  personal film fields, and registration disclosure before email submission.
+  One initial launch in the restricted test environment failed before startup;
+  rerunning under normal Windows permissions passed. User AppData was not used.
+- Clean signed Android APK and AAB builds passed archive CRC, all 24 shared/bridge
+  bytecode checks and 66 asset hashes. Both contain the guest-library-copy update.
+  The upgrade certificate matches the previous APK; APK v2 signing and 16 KB ZIP
+  alignment, AAB signing, bundle structure and manifest/version checks passed.
+- Native ELF inspection passed for 138 libraries and 408 load segments per
+  package. Release lint has no errors and four existing warnings. No connected
+  phone was available, so installation/runtime and native lifecycle remain
+  unverified on a physical device.
+- The release folder contains the Windows ZIP, Android beta.2 APK/AAB and combined
+  SHA-256 checksums. The desktop EXE copy was updated. Previous packages were
+  backed up; earlier Android outputs remain available. No signing key was replaced.
+- Hosted migrations 001–004 are already installed; no new Supabase migration
+  is required by this library-copy update. Earlier source-only/package-pending
+  notes below record the state before this rebuild.
+
+# New registration keeps the local library — 2026-10-08
+
+- New accounts automatically receive the guest library after disclosure before
+  email submission and password completion. Existing-account sign-in and password
+  recovery do not copy guest data. Manual copying shares the same transaction.
+- **404 isolated Python tests passed**, including 14 onboarding-copy scenarios:
+  empty/20-film libraries, notes/ratings/favorites/watch dates/original order,
+  offline details, unknown legacy dates, deletion markers, retry/replayed forms,
+  source edits during copying, target rollback, lost completion responses,
+  session-save failures, account switching and duplicate/conflicting records.
+- Personal data and available catalog details use one source read snapshot and
+  one target write transaction. Original libraries remain intact. Existing
+  account personal fields are retained; server conflicts keep both versions for
+  review and retain the server's first-add date/order.
+- **40 EN/TR browser views passed** at 320/390/768/1365px: the complete registration
+  flow, disclosure on email/password screens, Enter navigation, 20 preserved
+  guest films and 20 account films queued for sync, without horizontal overflow,
+  nested forms or script errors. Turkish phone screenshots were visually reviewed.
+- Changed runtime modules and tests pass targeted Ruff. QA used fictional
+  accounts, local fixtures and temporary databases; no real account was created
+  and no personal AppData library was used for these automated tests.
+- No additional Supabase SQL migration is required. The shared source applies
+  to Windows and Android; **existing 3.5.0 EXE/APK/AAB packages were not rebuilt**
+  for this follow-up. Previous package checks below describe the earlier builds.
+
 # Hosted registration setup completed — 2026-10-08
 
 - After the user ran migration 004, the anonymous live setup probe returned

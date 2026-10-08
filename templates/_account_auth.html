@@ -56,7 +56,10 @@
         {% if flow in ['verify','reset-code'] %}
             <div class="auth-code-actions"><form action="{{ url_for('accounts.resend') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="auth-resend" type="submit" data-resend data-seconds="{{ resend_after }}" data-countdown="{{ t('Resend in {seconds}s') }}" data-ready="{{ t('Resend code') }}" {{ 'disabled' if resend_after }}>{{ t('Resend in {seconds}s',seconds=resend_after) if resend_after else t('Resend code') }}</button></form><a href="{{ url_for('accounts.account',flow='signup' if signup_flow else 'recover') }}">{{ t('Change email') }}</a></div>
         {% endif %}
-        {% if flow in ['signup','password','signin'] %}<p class="auth-fineprint">{{ t('Signing in syncs your account library, including notes and ratings, across your devices. Your original local library is copied only if you choose to.') }}</p>{% endif %}
+        {% if flow in ['signup','password'] %}
+            {% if guest_count %}<p class="auth-fineprint" data-signup-library-copy>{{ t('Creating your account automatically copies the {count} films saved on this device, including notes, ratings and favorites, into your account. They will sync across your devices. Your original local library stays here.',count=guest_count) }}</p>
+            {% else %}<p class="auth-fineprint">{{ t('Your account library, including notes and ratings, syncs privately across your devices.') }}</p>{% endif %}
+        {% elif flow == 'signin' %}<p class="auth-fineprint">{{ t('Signing in syncs your account library, including notes and ratings, across your devices. Your original local library is copied only if you choose to.') }}</p>{% endif %}
         <div class="auth-local-link"><a href="/">{{ t('Continue without an account') }}</a></div>
     </section>
 </div>

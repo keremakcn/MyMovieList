@@ -219,8 +219,8 @@ class CloudWorkspace:
                 value["email"],
             )
             library.profile.receive(value["profile"])
-            # Signing into an account starts sync. The separate guest database
-            # is adopted only through the explicit library-copy action.
+            # Sign-in starts sync without merging the guest database. New signup
+            # stages its disclosed copy before accepting the session.
             library.db.execute(
                 "INSERT OR REPLACE INTO settings (key,value) "
                 "SELECT 'cloud_enabled', CASE WHEN EXISTS ("
@@ -229,6 +229,26 @@ class CloudWorkspace:
             )
             self.states.pop(owner, None)
             self.select(owner)
+
+    def prepare_signup_library(self, value):
+        """Stage the disclosed guest copy before completing a new registration.
+
+        No session is accepted and no upload is started here. If the password
+        succeeds but the response/session save fails, later sign-in still opens
+        the copied account library. Ordinary sign-in never calls this method.
+        """
+        if not isinstance(value, dict) or value.get("registration_pending") is not True:
+            raise ValueError(
+                "This email already has an account. Sign in with your password."
+            )
+        value = self.checked_session(value)
+        with self.lock:
+            if self.selected or self.current().owner or self.scope() != self.epoch:
+                raise ValueError(
+                    "Sign out before creating a new account on this device."
+                )
+            library = self._library(value["user_id"])
+            return library.store.copy_from(self.guest)
 
     def token(self, owner):
         with self.auth_lock:

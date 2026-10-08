@@ -663,5 +663,12 @@
   "Choose carefully: your username cannot be changed. Your display name and avatar can.": "Dikkatli seç: kullanıcı adın değiştirilemez. Görünen ismini ve avatarını değiştirebilirsin.",
   "This name is not allowed. Choose another one.": "Bu isim kullanılamaz. Başka bir isim seç.",
   "Usernames are being prepared. Please try again later.": "Kullanıcı adı sistemi hazırlanıyor. Lütfen daha sonra yeniden dene.",
-  "Continue": "Devam et"
+  "Continue": "Devam et",
+  "Creating your account automatically copies the {count} films saved on this device, including notes, ratings and favorites, into your account. They will sync across your devices. Your original local library stays here.": "Hesabını oluşturunca bu cihazdaki {count} film; notların, puanların ve favorilerinle birlikte otomatik olarak hesabına kopyalanır ve cihazların arasında eşitlenir. Asıl yerel kütüphanen burada kalır.",
+  "Your account library, including notes and ratings, syncs privately across your devices.": "Hesap kütüphanen, notların ve puanlarınla birlikte cihazların arasında özel olarak eşitlenir.",
+  "Your saved films are in your new account. Your original local library stays on this device.": "Kaydettiğin filmler yeni hesabında. Asıl yerel kütüphanen bu cihazda kalır.",
+  "Sign out before creating a new account on this device.": "Bu cihazda yeni bir hesap oluşturmadan önce mevcut hesabından çıkış yap.",
+  "Could not copy your local library. Your saved films are unchanged. Please try again.": "Yerel kütüphanen kopyalanamadı. Kaydettiğin filmler korundu. Lütfen yeniden dene.",
+  "Films already in your account kept their notes and ratings. The other versions remain in your original local library.": "Hesabında zaten bulunan filmlerin notları ve puanları korundu. Diğer sürümler asıl yerel kütüphanende duruyor.",
+  "Films already in your account keep their notes and ratings. Any different local versions remain in your original local library; sign out to open it.": "Hesabında zaten bulunan filmlerin notları ve puanları korunur. Farklı yerel sürümler asıl yerel kütüphanende kalır; açmak için hesabından çıkış yap."
 }

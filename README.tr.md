@@ -16,9 +16,9 @@
 2. Arşivi çıkar ve `MyMovieList-v3.5.0.exe` dosyasını aç. Python kurman gerekmez.
 3. Bir film arayıp kütüphanene ekle. Keşif için ek ayar gerekmez.
 
-**Android — 3.5.0-android-beta.1**
+**Android — 3.5.0-android-beta.2**
 
-**Assets** bölümünden `MyMovieList-3.5.0-android-beta.1.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
+**Assets** bölümünden `MyMovieList-3.5.0-android-beta.2.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
 
 ## Neler yapabilirsin?
 
@@ -31,37 +31,58 @@
 
 ## Ekran görüntüleri
 
-Görüntüler güncel uygulamadan, örnek bir kütüphane ve herkese açık katalog verileriyle alınmıştır. [İngilizce ekran görüntülerine](README.md#screenshots) de göz atabilirsin.
+Güncel v3.5.0 arayüzünden, örnek bir hesap ve kütüphaneyle alınmıştır. Film bilgileri ve afişler herkese açık katalog verileridir. [İngilizce arayüze göz at](README.md#screenshots).
 
-### Film kütüphanen
+### Filmlerin, sana ait bir alan
 
-![MyMovieList Türkçe film kütüphanesi](screenshots/tr/library.png)
+![İzlenen filmler, puanlar, favoriler ve kişisel not önizlemeleriyle MyMovieList kütüphanesi](screenshots/tr/library.png)
 
-### Yeni filmler keşfet
+### Profilin ve seçtiğin filmler
 
-![MyMovieList Türkçe Keşfet sayfası](screenshots/tr/explore.png)
+Seni anlatan filmleri kendin seç. Kişisel özetin ve kütüphanenin geri kalanı herkese açık vitrinden ayrı tutulur.
 
-### Sana göre öneriler
+![Kedi avatarı, benzersiz kullanıcı adı ve altı seçilmiş filmle MyMovieList profili](screenshots/tr/profile.png)
 
-![MyMovieList Türkçe kişisel film önerileri](screenshots/tr/recommendations.png)
+### Yeni favorini keşfet
+
+![Trendler ve yüksek puanlı filmlerle MyMovieList Keşfet sayfası](screenshots/tr/explore.png)
 
 <details>
-<summary>Film ayrıntıları ve yönetmen sayfası</summary>
+<summary>Öneriler, film ayrıntıları ve yönetmen keşfi</summary>
 
-![MyMovieList Türkçe film ayrıntıları](screenshots/tr/movie-details.png)
+![Üç keşif seçeneğiyle kişisel film önerileri](screenshots/tr/recommendations.png)
 
-![MyMovieList Türkçe yönetmen sayfası](screenshots/tr/director.png)
+![Kişisel not, film özeti ve kayıtlı oyuncu ve ekip bilgileri](screenshots/tr/movie-details.png)
+
+![Christopher Nolan'ın profili ve filmografisi](screenshots/tr/director.png)
 
 </details>
 
 <details>
-<summary>Telefon boyutunda görünümler</summary>
+<summary>Kayıt, giriş ve kişisel özetin</summary>
 
-Bu görseller, arayüzün dar ekranlara uyarlanan görünümünü gösterir.
+Adım adım kayıt: e-posta → kod → kullanıcı adı → şifre. Kayıt ekranında, cihazındaki filmlerin yeni hesabına nasıl alınacağı açıklanır.
+
+![Doğrulama adımları ve yerel kütüphane aktarım açıklamasıyla e-posta üzerinden kayıt](screenshots/tr/registration.png)
+
+![E-posta ve şifreyle giriş, hesap açmadan devam etme seçeneği](screenshots/tr/sign-in.png)
+
+![Kütüphane sayaçları ve favori filmlerle özel kişisel özet](screenshots/tr/profile-personal.png)
+
+</details>
+
+<details>
+<summary>Telefon görünümü: kütüphane, keşif, profil ve kayıt</summary>
+
+Ortak arayüzün telefon boyutuna uyarlanan görünümü; kaynak kod önizlemesinden alınmıştır.
 
 <p align="center">
-  <img src="screenshots/tr/mobile-library.png" alt="Türkçe film kütüphanesinin mobil görünümü" width="44%">
-  <img src="screenshots/tr/mobile-explore.png" alt="Türkçe Keşfet sayfasının mobil görünümü" width="44%">
+  <img src="screenshots/tr/mobile-library.png" alt="Türkçe film kütüphanesinin telefon görünümü" width="44%">
+  <img src="screenshots/tr/mobile-explore.png" alt="Türkçe keşif sayfasının telefon görünümü" width="44%">
+</p>
+<p align="center">
+  <img src="screenshots/tr/mobile-profile.png" alt="Türkçe profil ve seçilen vitrin filmlerinin telefon görünümü" width="44%">
+  <img src="screenshots/tr/mobile-registration.png" alt="Türkçe kayıt ve yerel kütüphane açıklamasının telefon görünümü" width="44%">
 </p>
 
 </details>
@@ -71,7 +92,8 @@ Bu görseller, arayüzün dar ekranlara uyarlanan görünümünü gösterir.
 Hesap açmadan kullanmaya devam edebilir veya özel kütüphaneni cihazlar arasında taşımak için giriş yapabilirsin.
 
 - **Otomatik eşitleme:** puanların, notların, favorilerin ve izleme durumun önce cihazına kaydedilir, bağlantı varsa buluta eşitlenir. Eşitle düğmesine basman gerekmez. Eşitlemeyi duraklatabilirsin; bekleyen değişiklikler cihazında kalır.
-- **Ayrı kütüphaneler:** giriş yaptığında hesap kütüphanen açılır. Önceki yerel kütüphanen yalnızca sen seçersen hesaba kopyalanır; kendiliğinden yüklenmez.
+- **Kayıt olurken filmlerin korunur:** yeni hesap oluşturduğunda bu cihazda kayıtlı filmler; notları, puanları, favorileri ve eklenme sırasıyla otomatik olarak hesabına kopyalanır. Kayıt ekranında işlem önceden açıklanır. İlk yerel kopyan cihazında kalır.
+- **Ayrı kütüphaneler:** mevcut hesaba giriş yaptığında o hesabın kütüphanesi açılır. İlk yerel kütüphaneni hesap ayarlarından kopyalayabilirsin; hesapta zaten bulunan filmlerin notları ve puanları korunur.
 - **Adım adım kayıt:** e-posta → doğrulama kodu → benzersiz kullanıcı adı → şifre. Normal giriş e-posta ve şifreyle yapılır. Şifre yenilemede önce kod doğrulanır, sonra yeni şifre istenir.
 - **Sana ait profil:** görünen isim ve 16 hazır kedi avatarından birini seç. Görünen isimler aynı olabilir. Benzersiz kullanıcı adı bir kez seçilir ve şimdilik değiştirilemez.
 - **Vitrinin:** sergilemek istediğin en fazla altı filmi kendin seçip sırala. Paylaşım başlangıçta kapalıdır. Açarsan adresin `myshelf.cloud/u/<kullanıcı_adı>` olur. Yalnızca seçtiğin filmler paylaşılır; puanları ve kütüphane sayaçlarını göstermek de isteğe bağlıdır.
@@ -81,7 +103,7 @@ Profiline sol menüden veya üst çubuktan ulaşabilirsin. Masaüstünde içe/d�
 
 ## Düşüncelerin sana ait kalsın
 
-Her filmin ardından yazdıklarını paylaşmak zorunda değilsin. Kütüphanen, notların, puanların ve favorilerin cihazına kaydedilir; keşif servisine veya TMDB’ye yüklenmez. İsteğe bağlı bir hesap kullanırsan hesaba ait kütüphane Supabase üzerinden özel olarak eşitlenir. İlk yerel kütüphanen bu hesaba yalnızca sen seçersen kopyalanır. Öneri sıralaması cihazında yapılır; kişisel notların analiz edilmez.
+Her filmin ardından yazdıklarını paylaşmak zorunda değilsin. Kütüphanen, notların, puanların ve favorilerin cihazına kaydedilir; keşif servisine veya TMDB’ye yüklenmez. İsteğe bağlı bir hesap kullanırsan hesaba ait kütüphane Supabase üzerinden özel olarak eşitlenir. Yeni kayıt, kayıt ekranında açıklandığı üzere yerel filmlerini hesaba taşır. Mevcut hesaba girişte ilk yerel kütüphane sen kopyalamayı seçene kadar ayrı kalır. Öneri sıralaması cihazında yapılır; kişisel notların analiz edilmez.
 
 Aramalar ve film kataloğu istekleri `api.myshelf.cloud` üzerinden TMDB’ye iletilir. Keşif ve uzak görseller için internet gerekir; kaydedilmiş film bilgileri ve indirilmiş afişler çevrimdışı kullanılabilir. Önerilerde kullanılan herkese açık film havuzu cihazında önbelleğe alınır; çevrimdışı sonuçlar bu havuzdaki verilere bağlıdır. Uygulama yerel verileri ayrıca şifrelemez.
 

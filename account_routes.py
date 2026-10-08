@@ -2,6 +2,7 @@
 
 import json
 import re
+import sqlite3
 from datetime import date, datetime, timezone
 from io import BytesIO
 
@@ -25,7 +26,6 @@ from cloud_client import CloudError
 from name_policy import require_allowed_name
 from personal_data import from_movie
 from profile_sharing import sharing_badge, sharing_label
-from sync_store import SyncStore
 
 
 def register_accounts(app, cloud):
@@ -114,6 +114,9 @@ def register_accounts(app, cloud):
             and not status["signed_in"]
         ):
             flow = "signin"
+        if status["owner"] and flow == "signup":
+            flow = "profile"
+            error = error or "Sign out before creating a new account on this device."
         conflicts = []
         if status["owner"] and flow == "settings":
             for r in cloud.current().db.query("""SELECT c.*,m.title,m.id FROM sync_conflicts c
@@ -194,7 +197,7 @@ def register_accounts(app, cloud):
             resend_after=max(0, int(60 - (flows.clock() - pending["sent_at"])) + 1)
             if pending
             else 0,
-            guest_count=cloud.guest.query("SELECT COUNT(*) n FROM movies")[0]["n"],
+            guest_count=cloud.guest.library_stats()["total"],
             conflicts=conflicts,
         )
 
@@ -309,6 +312,8 @@ def register_accounts(app, cloud):
             ), 422
 
     def new_flow(purpose, address):
+        if purpose == "signup" and (cloud.selected or cloud.current().owner):
+            raise ValueError("Sign out before creating a new account on this device.")
         current = flows.view(session.get("auth_flow"), cloud.scope())
         if (
             current
@@ -405,6 +410,12 @@ def register_accounts(app, cloud):
             with flows.use(key, cloud.scope(), "signup", "password") as step:
                 name = step["username"]
                 value = step["credentials"]
+                try:
+                    cloud.prepare_signup_library(value)
+                except (sqlite3.Error, OSError):
+                    raise ValueError(
+                        "Could not copy your local library. Your saved films are unchanged. Please try again."
+                    ) from None
                 cloud.client.complete_signup(value["access_token"], new)
                 with cloud.lock:
                     if cloud.scope() != cloud.epoch:
@@ -420,6 +431,10 @@ def register_accounts(app, cloud):
             session.pop("csrf_token", None)
             session.pop("csrf_scope", None)
             flash("Your account is ready. Your library syncs automatically.")
+            if cloud.guest.library_stats()["total"]:
+                flash(
+                    "Your saved films are in your new account. Your original local library stays on this device."
+                )
             return redirect(url_for("accounts.account", flow="personalize"), code=303)
         except (CloudError, ValueError, OSError) as error:
             return page(
@@ -617,41 +632,14 @@ def register_accounts(app, cloud):
         library = cloud.current()
         if not library.owner or request.form.get("confirm") != "yes":
             abort(400)
-        count, skipped = library.store.import_new(SyncStore(cloud.guest).export())
-        # Copy available public caches locally, never into cloud records.
-        originals = {
-            r["record_key"]: r for r in cloud.guest.query("SELECT * FROM movies")
-        }
-        with library.db.connect(write=True) as con:
-            for key, row in originals.items():
-                if not row["tmdb_id"]:
-                    continue
-                for name in (
-                    "poster_path",
-                    "overview",
-                    "runtime",
-                    "director",
-                    "cast_list",
-                    "score_percent",
-                    "entities_json",
-                    "genre",
-                    "year",
-                ):
-                    if row.get(name) is not None:
-                        con.execute(
-                            f"UPDATE movies SET {name}=COALESCE({name},?) WHERE record_key=?",
-                            (row[name], key),
-                        )
-                if row["tmdb_id"]:
-                    con.execute(
-                        "UPDATE movies SET title=?,catalog_pending=0 WHERE record_key=? AND catalog_pending=1",
-                        (row["title"], key),
-                    )
-            for record in cloud.guest.query("SELECT * FROM movie_metadata"):
-                con.execute(
-                    "INSERT OR IGNORE INTO movie_metadata VALUES (?,?,?,?,?,?)",
-                    tuple(record.values()),
-                )
+        try:
+            count, skipped = library.store.copy_from(cloud.guest)
+        except (sqlite3.Error, OSError):
+            return page(
+                "Could not copy your local library. Your saved films are unchanged. Please try again.",
+                flow="settings",
+            ), 503
+        cloud.wake.set()
         flash(
             t(
                 "{count} films imported. {skipped} existing records were kept.",
@@ -659,6 +647,10 @@ def register_accounts(app, cloud):
                 skipped=skipped,
             )
         )
+        if skipped:
+            flash(
+                "Films already in your account kept their notes and ratings. The other versions remain in your original local library."
+            )
         return redirect(url_for("accounts.settings"), code=303)
 
     @bp.post("/account/resolve")

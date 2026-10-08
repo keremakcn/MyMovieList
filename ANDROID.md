@@ -1,16 +1,18 @@
-# Android — MyMovieList 3.5.0 beta.1
+# Android — MyMovieList 3.5.0 beta.2
 
-The app runs its library on the phone itself and works without a desktop computer. Android `3.5.0-android-beta.1` includes the same bilingual discovery, recommendations, optional accounts, profiles and automatic library sync as Windows v3.5.0.
+The app runs its library on the phone itself and works without a desktop computer. Android `3.5.0-android-beta.2` includes the same bilingual discovery, recommendations, optional accounts, profiles and automatic library sync as Windows v3.5.0.
 
 ## Library and accounts
 
 - Guest data stays in the app's private `files/library/` directory. Each signed-in account has a separate SQLite library under `files/library/accounts/`.
-- Accounts are optional. Signing in opens that account's library; the original guest library is copied only when the user chooses to. The same account can sync personal film data between Windows and Android.
+- Accounts are optional. Signing in to an existing account opens that account's library; copying the guest library is a separate choice. The same account can sync personal film data between Windows and Android.
 - Successful local edits wake the sync worker while the app process is running. Offline edits remain queued for a later connection. Android may stop the background process; this app does not promise continuous background sync when closed.
 - Authentication sessions are encrypted with an app-scoped Android Keystore key. Private notes sync only within the owner's account; public showcases expose only the selected films and opted-in fields.
 - Normal signed updates preserve storage. Uninstalling or clearing storage deletes local data. Android OS backup/device-transfer backup is disabled. Movie databases are not encrypted by the application.
 
 The release ID remains `com.moviewatchlist`; its usual data path is `/data/user/0/com.moviewatchlist/files/library/`. Keep the existing signing key for updates.
+
+New registration automatically copies the guest library into the account after a disclosure on the registration screen. Notes, ratings, favorites and original order are preserved; the guest copy stays on the device. This is included in the Windows v3.5.0 rebuild and Android `3.5.0-android-beta.2` packages; it requires no additional Supabase migration.
 
 ## Architecture
 
@@ -39,13 +41,13 @@ From the repository root:
 
 Release signing must already be configured in `android/keystore.properties`. Use `scripts/create_android_signing.ps1` only for the initial setup; never replace the signing key for an update. Back up `.android-signing/release.jks` and `android/keystore.properties` privately.
 
-Artifacts are written to `dist/android/3.5.0-android-beta.1/`:
+Artifacts are written to `dist/android/3.5.0-android-beta.2/`:
 
-- `MyMovieList-3.5.0-android-beta.1.apk`: installable GitHub download.
-- `MyMovieList-3.5.0-android-beta.1.aab`: future Google Play submission.
+- `MyMovieList-3.5.0-android-beta.2.apk`: installable GitHub download.
+- `MyMovieList-3.5.0-android-beta.2.aab`: future Google Play submission.
 - `SHA256SUMS.txt`: package hashes.
 
-`version.py` supplies the shared 3.5.0 version. Android uses `versionCode=5` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
+`version.py` supplies the shared 3.5.0 version. Android uses `versionCode=6` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
 
 The **Android packages** GitHub Actions workflow also supports debug and release builds. Release mode needs the four Android signing secrets from the same existing key. It builds artifacts without publishing a GitHub Release.
 
@@ -59,9 +61,7 @@ Android remains a beta until the actual APK is tested for installation/update, k
 
 ## Current build — October 8, 2026
 
-The clean signed APK/AAB build completed successfully. APK signature and 16 KB alignment, matching upgrade certificate, AAB signature and bundletool validation passed. Both packages include all 24 shared/bridge Python modules, 66 UI assets, bundled avatars, public account configuration and the native session helper; their source/build hashes were verified. Release lint has no errors and four existing warnings.
-
-Copies are available beside the Windows ZIP in `dist/releases/v3.5.0/`, with combined checksums. Physical-device testing remains pending; no connected phone was available for this build. The user applied hosted Supabase migration 004 after packaging; the live setup probe returned username protocol 2 on October 8. These packages already include its registration flow and do not need rebuilding for that server change.
+The Android beta.2 rebuild includes automatic guest-library copying on new registration and uses `versionCode=6`. Package verification results are recorded in [QA_RESULTS.md](QA_RESULTS.md). Copies are collected beside the Windows ZIP in `dist/releases/v3.5.0/`. Physical-device testing remains pending. Hosted Supabase migration 004 is installed; this update needs no additional server migration.
 
 ## Previous build — October 7, 2026
 
