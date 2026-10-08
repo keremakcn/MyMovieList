@@ -299,8 +299,8 @@ def test_v1_migration_backups_preserve_all_movie_data(tmp_path):
         con.execute("PRAGMA user_version=1")
     db.migrate()
     assert db.movie(mid) == before
-    assert len(list(tmp_path.glob("*.before-v3-*.bak"))) == 1
-    assert db.query("PRAGMA user_version")[0]["user_version"] == 3
+    assert len(list(tmp_path.glob("*.before-v4-*.bak"))) == 1
+    assert db.query("PRAGMA user_version")[0]["user_version"] == 4
     db.migrate()
     assert len(list(tmp_path.glob("*.bak"))) == 1
 

@@ -1,3 +1,219 @@
+# Hosted registration setup completed — 2026-10-08
+
+- After the user ran migration 004, the anonymous live setup probe returned
+  `registration_setup_ready: true` with the expected username protocol 2.
+  It created no accounts and accessed no private library records.
+- Windows 3.5.0 and Android 3.5.0 beta.1 already contain the corresponding
+  registration, immutable-username, name-policy, profile and automatic-sync code.
+  Applying this server migration does not require rebuilding the downloads.
+- Earlier SQL-pending statements below record the state before this follow-up.
+  Complete real email-first registration and physical-device lifecycle testing
+  remain separate from this read-only setup verification.
+
+# Registration usernames and name policy — 2026-10-08
+
+- Usernames remain fixed after their first successful claim, as requested. The
+  profile editor exposes a read-only handle; display name and avatar stay editable.
+  There is no rename RPC, username revision or alias registry in migration 004.
+- Signup is email → verification code → unique username → password → optional
+  profile details. Existing confirmed accounts cannot change passwords through
+  signup; recovery retains its own verified-code flow.
+- **386 isolated Python tests passed**, including forbidden/taken names, expired
+  and cross-purpose steps, response-loss recovery, simultaneous form submissions,
+  immutable claims, setup failures before email delivery, redacted policy errors
+  and prevention of guest-cache contamination at account acceptance.
+- PostgreSQL/PGlite contract checks passed for migrations 001/002/003/004. Direct
+  RPC calls cannot bypass the name policy; canonical ownership remains unique,
+  legacy invalid names are suppressed publicly without deletion, and privacy
+  revocation/safe migration replay work. This does not prove hosted multi-session
+  concurrency.
+- **64 EN/TR browser views passed** at 320/390/768/1365px: the complete signup
+  flow, forbidden/taken-name errors, Enter navigation, fixed-handle profile screen
+  and editable display names, with no overflow, nested forms or script errors.
+  Turkish phone screenshots were visually reviewed.
+- Changed runtime modules and the new tests pass Ruff; JavaScript syntax passes.
+  A broader lint scan found existing findings outside this update; no repository-
+  wide lint-clean claim is made. No personal library was used for QA.
+- Hosted 003 is installed. **004 still requires SQL Editor execution**. New
+  registration checks its availability before sending email; existing sign-in,
+  recovery and private library sync remain available. No real username was
+  claimed and no showcase was published on a user's behalf. No binary was built.
+- Twenty source/documentation files were transferred with verified backups and
+  matching SHA256 hashes. On the authoritative Desktop/movie-watchlist source,
+  **62 username/registration tests** and targeted Ruff passed again. Eight
+  read-only views of the real isolated preview passed with sharing preserved and
+  no script errors. An anonymous hosted probe confirmed 004 is not installed yet.
+
+# Unique usernames and profile addresses — 2026-10-08
+
+- Main source now separates a canonical username from a non-unique display
+  name. The public address is `https://myshelf.cloud/u/<username>`; existing
+  share UUID links continue to work. Choosing a username never publishes a
+  profile. Private profiles continue to hide identity from anonymous readers.
+- The full isolated Python suite passed: **346 tests**. After adding protection
+  against a late background null status erasing a foreground username claim,
+  all **23 username tests** and lint checks passed. Coverage includes duplicate
+  display names, case-insensitive handles, reserved/invalid names, idempotence,
+  per-account cache isolation, paused sync, setup/offline errors, public visits,
+  revocation and legacy links.
+- PostgreSQL/PGlite contract checks passed for migrations 001/002/003, including
+  unique owner/name constraints, canonical claims, privilege denial, duplicate
+  display names, strict private projection, stable old RPCs and safe reruns.
+  This isolated contract does not prove hosted multi-connection behavior.
+- **12 Worker tests** passed: fixed anonymous username/UUID lookup, response
+  identity checks, privacy, bounded responses, gateway fallback, request limits,
+  no open proxy or source exposure, and `/u/*` asset routing.
+- **56 EN/TR browser views** passed at 320/390/768/1365px with isolated fake
+  accounts. Actual form flow: choose canonical username → save display name →
+  consented publication → named visitor page. No overflow, nested forms or
+  script errors. Phone screenshots were visually reviewed.
+- Updated Worker deployed with `myshelf.cloud/u/*` and the existing profile
+  Custom Domain. Root-domain shell/script/style and the existing live UUID
+  shell returned HTTP 200/no-store. Eight read-only main-source views passed.
+- Hosted migration **003 was subsequently applied and RPC availability verified**. No real
+  username was claimed or profile automatically published for QA. Native
+  Windows/Android builds and a hosted two-account simultaneous claim rehearsal
+  remain release checks. No APK/EXE was rebuilt in this change.
+
+# Optional public showcases — 2026-10-08
+
+- Public consent is separate from private Auth metadata. Profiles remain private
+  by default. Anonymous projection exposes only identity, ordered TMDB picks and
+  explicitly enabled ratings/counts. Notes, email, custom films and unselected
+  film IDs are excluded. Public share UUID differs from account UUID.
+- The 322-test Python regression suite passed with isolated databases, followed
+  by 62 final cloud/sharing tests including duplicate publication and paused
+  visibility refresh. New coverage checks consent,
+  automatic edits, pending publication follow-ups, durable offline revocation
+  while sync is paused, stale-device privacy protection, unavailable setup,
+  guest visitor rendering and strict rejection of private/invalid fields.
+- Isolated PGlite/PostgreSQL showcase migration tests passed: owner/anonymous
+  privileges, private library and sharing-table denial, two-user separation,
+  ordered picks, flags, deletion/Undo, stale writes, idempotency and safe rerun.
+- Nine Worker tests passed: fixed anonymous RPC, no client JWT forwarding, strict
+  DTO, visibility re-read/no-store, limits, closed arbitrary-proxy paths,
+  malformed/oversized responses, provider errors and catalog fallback.
+- 80 EN/TR headless Edge views passed at 320/390/768/1365px: owner and public
+  pages, consent/publish/link/visitor/revoke flows, private/error/empty/offline/
+  setup/paused states, no horizontal overflow and zero browser script errors.
+  Desktop and phone screenshots were visually inspected using synthetic art.
+- Separate `myshelf-profiles` Worker deployed at `profiles.myshelf.cloud`.
+  Root HTML returned HTTP 200/no-store. After the user applied migration 002,
+  a random profile probe returned HTTP 404/no-store with only `found:false`.
+  Direct anonymous projection returned HTTP 200, while private library reads
+  (zero rows requested), owner status and write RPCs returned HTTP 401/42501.
+  Authenticated preview sharing status was checked/private with no setup error.
+  The owner subsequently enabled sharing through the UI. A separate signed-out
+  browser and HTTP probe read the empty public projection with HTTP 200/no-store;
+  390/1365px live views had no overflow or script errors. Live chosen-film
+  metadata hydration still needs a populated showcase rehearsal.
+  Eight main-source desktop/mobile views passed without script errors.
+  No real profile was published or personal AppData library opened for QA.
+- Hosted two-owner sharing and multi-connection concurrency verification remain
+  release QA requirements. All 48 initially transferred files were SHA256 checked;
+  follow-up fixes and documentation were also copied with backups/hash checks.
+  Existing Windows/Android packages were not rebuilt for this source update.
+
+# Curated private profile showcase — 2026-10-08
+
+- The default Profile tab is now My showcase. It starts empty and shows only the owner's explicit, ordered selection of up to six library films. Picks are independent of favorites; rating badges and library counts are off until enabled. Automatic favorites/recent watches and filter shortcuts remain in the separate owner-only Personal overview tab.
+- The editor searches the local library in pages of 20 with cached localized titles, a 250 ms debounce, request cancellation and stale-response protection. Keyboard selection, move/remove controls, a six-film cap, loading/empty/error/retry feedback and a discard guard are implemented. The save bar stays visible above phone navigation while scrolling.
+- The profile's private Auth metadata stores stable record keys and two boolean display preferences. Identity/showcase partial saves merge inside a SQLite write transaction. Invalid, duplicate, excessive or newly foreign-library picks are rejected. Existing unavailable picks can be retained or removed; rendering resolves only the active owner's local rows, and deletion/Undo hides/restores a pick in the same position. No notes, posters or descriptions are added to profile metadata. No hosted schema, RLS or public sharing permission was changed.
+- 308 full Python regression tests and 50 focused profile/account tests passed in the source staging copy. New coverage checks private empty defaults, optional fields, explicit order, favorite independence, deletion/Undo, validation rollback, account/guest/stale-scope isolation, bounded literal/localized search, concurrent partial writes, metadata recovery, offline persistence and restoration on a second device with different numeric movie IDs. No real account or personal AppData library was mutated by these tests.
+- 80 final isolated Edge views passed in EN/TR at 320/390/768/1365 px, covering empty/populated/long-name/offline/paused profiles, optional information, private overview and editors. Interaction checks verify keyboard add, reorder/remove, pagination, search/empty/error/retry, cap, discard cancellation, save/reopen, stale-request cancellation and film navigation. No overflow, unlabeled fields, short tested controls or script errors. A separate 16-position check confirms the sticky save button remains visible and clickable across four widths and four scroll positions. Desktop and phone screenshots were visually reviewed; sample poster art exists only in QA.
+- Changed Python lint/format and JavaScript syntax checks passed, with the pre-existing calendar-date DTZ finding excluded. English/Turkish READMEs and the cloud design document describe the selected showcase and distinguish it from future public sharing. No desktop or Android build was performed.
+
+# Private profile showcase — 2026-10-08
+
+- Profile now leads with the account avatar/name, a private badge and a separate edit action. Four compact counters open the corresponding library filters. Favorite posters and dated recent watches show at most six films each; without saved watch dates, the second shelf shows recent additions.
+- The shelves use only the selected local library and cached catalog translations; removed films are excluded, Undo restores them, personal notes are not selected, and profile viewing makes no hosted catalog request. No schema or public cloud permissions changed.
+- Name/avatar editing lives on its own screen, with keyboard radio selection, live avatar preview, local-first saves, validation that retains the draft and an unsaved-change guard. Account/email, sync pause/resume, guest-library copying, conflict resolution and security actions live under Settings → Account & sync. Import/export remains in Settings.
+- 288 full regression tests passed against the transferred main source, after 287 staging regression and 30 focused account/profile tests during implementation. New coverage verifies shelf limits, account/guest isolation, deletion/Undo, date ordering/fallback, offline reads, safe translated identity, separate editing/settings and preserved conflict review. Ruff lint/format passed for changed Python files, excluding existing calendar-date DTZ findings.
+- 72 isolated Edge browser views passed in English/Turkish at 320/390/768/1365px: populated/empty/long-name/offline/paused/undated profiles, editor and account settings. Verified keyboard edit/avatar/save, discard cancellation, film-detail navigation, sync pause/resume, image fallback, four-item phone navigation, no page overflow and zero script errors. Desktop, phone, empty and edit screenshots were visually reviewed; sample artwork exists only in the QA fixture.
+- Nineteen changed source/documentation files were transferred to the authoritative Desktop/movie-watchlist project with optimistic hash checks, backups and SHA256 verification. The main-source preview passed read-only profile/editor/settings/signup/phone checks; its existing test account/library was preserved. Public sharing remains unimplemented and private by default. No personal AppData library, desktop binary or Android package was changed by the design work.
+
+# Private profile overview and sidebar — 2026-10-08
+
+- Desktop/tablet sidebar adds Profile between For you and Settings, with its own active state. Phone navigation keeps four items; account access stays in the header.
+- Profile shows total, watched, favorite and want-to-watch counts. Each is a keyboard-accessible shortcut to the corresponding library filter. The same SQLite summary query serves Library and Profile; removed films are excluded and Undo restores their contribution.
+- Counts use only the selected account's local library. No additional statistics, favorite IDs or notes are sent to the cloud by this change, and no public profile endpoint is enabled.
+- 91 focused account/cloud/application tests passed. Added coverage checks owner separation, guest exclusion, empty accounts, removal/Undo counts, rating averages and filter links/active navigation. Ruff passed with unchanged calendar-date DTZ findings excluded.
+- 24 isolated headless Edge views passed in English/Turkish at 320/390/768/1365px: correct counters, profile selection, filtered-library navigation, four-item phone bar, no horizontal overflow and no script errors. Turkish phone profile visually reviewed.
+- Public sharing remains a documented proposal in CLOUD_SYNC_DESIGN.md. A separate sharing table, field-specific consent, permission tests and hosted migration are needed before users can visit one another's profiles. No personal library or public cloud permissions were changed; no app build was performed.
+
+# Hosted SQL preliminary verification — 2026-10-07
+
+The user applied the SQL migration and shared `Success. No rows returned.`.
+Live checks returned HTTP 200 for Auth health and protocol status
+(`mymovielist-sync`, protocol 1). Anonymous library-table and download-RPC access
+were rejected with HTTP 401 / SQLSTATE 42501. The table probe requested zero rows;
+no personal records were read or written and no Auth users/emails were created.
+
+This verifies public service readiness and anonymous denial only. Authenticated
+two-user isolation, email delivery, concurrent transactions and native devices
+still require verification. `accounts_enabled` remains false; no packages were built.
+The staging/SQL-pending statements below describe the earlier local verification.
+
+---
+
+# Optional cloud integration — 2026-10-07
+
+Prepared in a source-only staging copy and verified with synthetic data. The
+personal AppData library was not opened, migrated or uploaded. Cloud accounts
+remain disabled in `supabase/project.json`; the hosted SQL setup is still pending.
+
+- **250 Python tests passed**, including all existing application regressions and
+  **38 cloud tests**, after the final validation/configuration changes.
+- Schema-3/v4 backup and migration checks retain original fields, null legacy
+  dates, stable identities and order. Personal writes and queued changes roll
+  back together if interrupted.
+- Synthetic two-device checks cover personal restoration, offline placeholders,
+  public catalog hydration without uploads, independent edits, competing notes,
+  deletion/Undo and retained order. Conflicting versions survive resolution and
+  neutral JSON export/import.
+- Restart/frozen-operation retries, timeout after commit, service limits, offline
+  usage, explicit sync consent, account switching and stale page/CSRF isolation
+  passed. A delayed refresh cannot block local reads or revive a signed-out session.
+- HTTPS adapter checks cover authenticated RPC headers, refused redirects,
+  redacted errors, retry bounds and malformed/oversized responses. Tokens and
+  passwords are absent from rendered pages and personal exports.
+- Windows DPAPI session round-trip/clear tests passed; saved sessions are sealed,
+  and failed writes do not replace the previous session.
+- Isolated PGlite PostgreSQL checks passed: two-owner RLS, anonymous/direct-write
+  denial, RPC ownership, idempotent retries, conflict revisions, tombstones/Undo,
+  immutable addition fields, validation, pagination and safe migration reruns.
+- **42 responsive account views passed**: setup, sign-in/up, verification,
+  recovery/reset and signed-in conflict screens in EN/TR at 320, 390 and 1365 px.
+  No horizontal overflow, unlabeled inputs, exposed tokens or browser errors.
+  Enabled account buttons provide at least 44 px of touch height. Desktop/phone
+  screenshots were inspected. This is browser QA, not an Android device test.
+- New cloud-module lint, changed existing-module E9/F checks, account-template
+  lint and application JavaScript syntax checks passed. Runtime dependencies are
+  unchanged. Windows/Android packaging source includes only the public project
+  configuration and shared modules; private data remains excluded.
+
+**Not yet verified:** hosted migration/grants/RLS, real Auth/email delivery,
+multi-connection PostgreSQL concurrency, Android Keystore/device lifecycle and
+new native packages. No desktop/Android build or cloud deployment was performed.
+These checks are required before enabling public accounts. Historical package
+checks below describe existing downloads, not the new cloud source.
+
+---
+
+# Android clean rebuild — 2026-10-07
+
+- Clean release build completed in the main `Desktop/movie-watchlist` project: signed APK and AAB for `3.4.0-android-beta.2`, Android `versionCode=4`, unchanged `com.moviewatchlist` identity and release signing certificate. Windows remains v3.4.0.
+- APK metadata confirms Android API 24 minimum, API 36 target and ARM64/x86_64 support. This is a single standalone APK, with no split filters.
+- APK v2 signature and 16 KB ZIP alignment passed. The certificate matches the previous 3.3.0 and 3.4.0 beta.1 releases. Bundletool structure validation and AAB JAR signature verification passed.
+- Both ZIP packages and their eight nested Python archives passed CRC checks. Each package contains 12 matching shared/bridge modules and 35 UI assets. Python verification follows main/staged/build source hashes to packaged bytecode; UI assets are compared directly to main source.
+- Each package passed ELF checks for 138 native libraries and 408 load segments, including the nested Python archives, at 16 KB or greater. Personal databases, environment files and private signing material are excluded.
+- Release lint completed with zero errors and the same four existing warnings. Build-script syntax and artifact names derived from the compiled metadata were verified.
+- New artifacts and checksums are also collected in `dist/releases/v3.4.0/`. Earlier beta.1 files are retained as historical artifacts.
+- The previous APK passed independent package checks after a reported installation failure on a Xiaomi 14T Pro. No device was connected for installation testing; the exact failure cause and successful installation of beta.2 remain unconfirmed.
+- Shared application code and Windows binaries are unchanged. The earlier source/UI checks below remain historical; they were not rerun for this Android-only packaging update.
+
+---
+
 # Release verification — MyMovieList v3.4.0 — 2026-10-06
 
 This release packages the current shared application for Windows and Android. Test writes used synthetic libraries; the personal AppData library was not opened or rewritten.
@@ -281,3 +497,30 @@ Windows packaging verified: rebuilt standard MyMovieList-v3.3.0.exe and Windows 
 - Android was not rebuilt, and no version bump, Git commit or GitHub release publication was performed.
 
 Windows package verification: rebuilt MyMovieList-v3.3.0.exe and Windows ZIP. The real executable displayed saved Turkish/English movie titles, synopses and full cast offline, retained the English selection after restart, and preserved every completed movie field in an isolated library. All 32 packaged UI files match current source; the catalog/i18n modules and ID guard are included. Personal database/env/signing files are excluded; ZIP contents and SHA256 verified. No Android artifacts were rebuilt.
+
+
+## Stepped accounts, private profiles and automatic sync — 2026-10-08
+
+- Signup now separates email, code verification and password creation. Normal sign-in uses email/password. Recovery verifies its code before displaying the new-password form. Confirmed existing accounts cannot replace their password through signup.
+- Short-lived flow credentials remain in bounded server memory; browser sessions contain only opaque flow IDs. Purpose, stage, expiry and account-scope checks prevent bypass and cross-flow reuse. A per-step lock serializes concurrent completion; resend has a server-side cooldown.
+- Sixteen SVG avatars ship with the app. Only a validated avatar ID and optional display name sync through private Auth user metadata. Offline profile edits survive restart; generation checks preserve newer edits during upload. This profile metadata is never used for authorization.
+- Signed-in account libraries sync automatically. Explicit pause survives sign-out/sign-in; enable/pause flags update atomically. Local writes wake a coalesced worker; bounded retries retain offline edits. Guest adoption remains an explicit action explaining that copied private notes upload to the account.
+- The header offers Sign in/Create account or a profile menu. Import/export moved to Settings. English/Turkish forms support password reveal, mismatch validation, code paste, resend countdown, keyboard avatars and Escape to close the menu. Touch controls stay usable at phone/tablet widths while desktop cards retain their compact controls.
+- Full regression: 278 isolated Python tests passed. After the final backend adjustments, 66 focused auth/cloud tests passed. New account modules pass Ruff; app.py passes with existing calendar-date DTZ lint findings excluded (local watched-date semantics preserved).
+- Headless Edge passed 96 English/Turkish views at 320/390/768/1365px: no horizontal overflow, unlabelled fields, leaked synthetic credentials or browser script errors. End-to-end synthetic signup, recovery, password reveal/mismatch, keyboard avatar selection, menu Escape and Settings backup access passed. Desktop and phone signup/profile screenshots were visually reviewed; remaining profile translations corrected.
+- Main source transfer is backed up and verified by SHA256. QA uses isolated libraries; no personal AppData/source database, SMTP secret or signing key is modified. No EXE/APK/AAB build, version bump, commit or release publication is included.
+- Hosted SQL and anonymous access denial were checked earlier; the user verified SMTP, authentication/recovery and one-account restoration in two isolated instances. The new email-first signup still needs live SMTP verification. Hosted two-owner access isolation, multi-connection PostgreSQL concurrency and native Android lifecycle remain release checks.
+- Post-transfer verification from Desktop/movie-watchlist: all 278 Python tests passed again in isolated temporary libraries; all 41 transferred SHA256 hashes matched. Main-source browser checks passed for the profile form, all 16 loaded avatars, Turkish labels, 390px layout, email-first signup and Settings backups with zero script errors.
+- The previous separate live-auth preview was restarted from the updated main source. Its protected test-account session restored successfully; automatic sync was enabled, current, and had zero pending changes/conflicts. No personal AppData library was accessed. The final 96-view synthetic UI run passed again using a fresh test email so confirmed-account signup protection remains exercised independently.
+
+## MyMovieList 3.5.0 release verification — 2026-10-08
+
+- The authoritative source is Desktop/movie-watchlist. APP_VERSION is 3.5.0; README.md, README.tr.md, Android documentation and English release notes match the new downloads. Historical build records retain their original version numbers.
+- All 390 isolated Python tests passed from the main project. Added Android-wrapper coverage exercises native authentication, account/guest separation, offline upload retries, account restoration after restart, sign-out and stale native-token rejection. Java session-bridge tests verify round-trip/error handling; they do not substitute for real Android Keystore execution.
+- Python F lint and all six browser JavaScript syntax checks passed. The .gitignore rules were verified in an isolated Git repository: 27 private/generated paths ignored and 13 source/configuration paths remain trackable. Source tests, SQL migrations and the public Supabase configuration remain in version control; libraries, sessions, exports, signing keys and compiled downloads do not.
+- Windows MyMovieList-v3.5.0.exe and its release ZIP were rebuilt. The real executable started with an isolated test library, displayed Turkish/English saved metadata, offered email-first signup/recovery forms, retained English after restart and preserved every saved movie field. All 66 packaged UI assets and the public cloud configuration match the main source; all 23 shared Python modules are present. The public ZIP contains only the EXE and release notes.
+- A clean signed Android release build produced APK and AAB 3.5.0-android-beta.1. The application ID remains com.moviewatchlist; versionCode rises to 5. The SHA-256 signing-certificate fingerprint matches the previous 3.4.0 beta.2 APK and the new AAB. APK v2 signing, 16 KB ZIP alignment, AAB signature and bundletool structure validation passed.
+- Both Android packages pass nested archive CRC and private-file exclusion checks. All 24 Python modules, 66 UI assets, bundled avatars, public cloud configuration and the compiled CloudSessionStore class are included. Main/staged/build source hashes and packaged bytecode hashes match. Each package has 138 native libraries whose ELF LOAD segments pass 16 KB alignment checks.
+- Android release lint has zero errors and four existing warnings: UnusedAttribute, AndroidGradlePluginVersion, UnusedResources and IconLauncherShape. Build success and archive verification do not prove physical-device behavior. No phone was connected; installation/update, WebView keyboard/navigation, process lifecycle and real Keystore restoration still need device testing. The current wrapper has no native backup file picker/download handler.
+- Read-only live Supabase registration setup probing still reports setup incomplete. Apply supabase/migrations/004_registration_usernames.sql after 001–003 before announcing new registration. Existing password sign-in, recovery and private library sync are independent of this new protocol. No privileged database credential was supplied, so migration 004 was not applied by this local packaging work.
+- Downloads are collected in dist/releases/v3.5.0/ with combined SHA256SUMS.txt. Earlier downloads remain untouched. No Git commit, push, GitHub Release or Play Store submission was made. QA did not access or alter the user's personal AppData library.

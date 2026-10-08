@@ -1,0 +1,62 @@
+{% from "_icons.html" import icon %}
+{% macro password_field(id, name, label, autocomplete) %}
+    <div class="auth-field">
+        <label for="{{ id }}">{{ t(label) }}</label>
+        <div class="auth-password">
+            <input id="{{ id }}" name="{{ name }}" type="password"
+                   autocomplete="{{ autocomplete }}" minlength="8" maxlength="512" required>
+            <button type="button" class="password-toggle" data-password-toggle="{{ id }}"
+                    data-show="{{ t('Show password') }}" data-hide="{{ t('Hide password') }}"
+                    aria-controls="{{ id }}" aria-pressed="false">{{ t('Show password') }}</button>
+        </div>
+    </div>
+{% endmacro %}
+{% set signup_flow = flow in ['signup','verify','username','password'] %}
+{% set recovery_flow = flow in ['recover','reset-code','reset'] %}
+{% set step = 1 if flow in ['signup','recover'] else 2 if flow in ['verify','reset-code'] else 4 if flow == 'password' else 3 %}
+{% set endpoint = {'signin':'signin','signup':'signup','verify':'verify','username':'register_username','password':'create_password','recover':'recover','reset-code':'verify_reset','reset':'reset'}[flow] %}
+<div class="auth-layout auth-focused">
+    <section class="auth-panel" aria-labelledby="signin-heading">
+        <a class="auth-brand auth-brand-centered" href="/"><img src="{{ url_for('static',filename='branding/mymovielist-256.png') }}" width="40" height="40" alt=""><span>MyMovieList</span></a>
+        {% if flow in ['signin','signup'] %}
+            <nav class="account-tabs" aria-label="{{ t('Account options') }}"><a href="{{ url_for('accounts.account',flow='signin') }}" {{ 'aria-current=page' if flow == 'signin' }}>{{ t('Sign in') }}</a><a href="{{ url_for('accounts.account',flow='signup') }}" {{ 'aria-current=page' if flow == 'signup' }}>{{ t('Create account') }}</a></nav>
+        {% else %}<a class="auth-back" href="{{ url_for('accounts.account',flow='signin') }}">← {{ t('Back to sign in') }}</a>{% endif %}
+        {% if signup_flow or recovery_flow %}
+            <ol class="auth-steps" aria-label="{{ t('Registration steps') if signup_flow else t('Password reset steps') }}">
+                {% for label in (['Email','Code','Username','Password'] if signup_flow else ['Email','Code','Password']) %}<li {{ 'aria-current=step' if loop.index == step }} class="{{ 'complete' if loop.index < step }}"><span>{{ loop.index }}</span>{{ t(label) }}</li>{% endfor %}
+            </ol>
+        {% endif %}
+        <div class="auth-panel-heading">
+            <h2 id="signin-heading">{{ t('Welcome back') if flow == 'signin' else t('Create your account') if flow == 'signup' else t('Check your inbox') if flow in ['verify','reset-code'] else t('Choose your username') if flow == 'username' else t('Create your password') if flow == 'password' else t('Choose a new password') if flow == 'reset' else t('Forgot password?') }}</h2>
+            <p>{{ t('Sign in to bring your library across devices.') if flow == 'signin' else t('Start with your email. We will send a verification code.') if flow == 'signup' else t('Enter the code sent to {email}.',email=email) if flow in ['verify','reset-code'] else t('Email verified. Choose a unique username for your profile address.') if flow == 'username' else t('Your username is {username}. Choose a password to finish.',username=registration_username) if flow == 'password' else t('Your code is verified. Set a new password below.') if flow == 'reset' else t('We will email you a code to reset your password.') }}</p>
+        </div>
+        {% if error %}<p class="form-error" role="alert" tabindex="-1" data-auth-error>{{ t(error) }}</p>{% endif %}
+        {% if not cloud_status.ready %}<p class="account-notice" role="status">{{ t('Cloud accounts are being prepared. You can keep using your local library.') }}</p>{% endif %}
+        <form class="movie-form account-form auth-form" method="post" action="{{ url_for('accounts.' + endpoint) }}" data-loading="{{ t('Working…') }}" data-mismatch="{{ t('The passwords do not match.') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if flow in ['signin','signup','recover'] %}
+                <div class="auth-field"><label for="account-email">{{ t('Email address') }}</label><input id="account-email" type="email" name="email" value="{{ email }}" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254" required autofocus></div>
+            {% endif %}
+            {% if flow == 'signin' %}
+                {{ password_field('account-password','password','Password','current-password') }}
+                <a class="auth-forgot" href="{{ url_for('accounts.account',flow='recover') }}">{{ t('Forgot password?') }}</a>
+            {% elif flow in ['verify','reset-code'] %}
+                <div class="auth-field"><label for="verify-code">{{ t('Confirmation code') }}</label><input id="verify-code" class="auth-code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" required autofocus></div>
+            {% elif flow == 'username' %}
+                <div class="auth-field"><label for="register-username">{{ t('Username') }}</label><input id="register-username" name="username" type="text" value="{{ username_draft }}" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[A-Za-z][A-Za-z0-9_]{2,23}" minlength="3" maxlength="24" aria-describedby="register-username-hint" required autofocus></div>
+                <p class="auth-field-hint" id="register-username-hint">{{ t('Use 3–24 letters, numbers or underscores. Start with a letter.') }}</p>
+                <p class="auth-field-hint">{{ t('Choose carefully: your username cannot be changed. Your display name and avatar can.') }}</p>
+            {% elif flow in ['password','reset'] %}
+                {{ password_field('new-password','new_password','New password','new-password') }}
+                <p class="auth-field-hint">{{ t('Use at least 8 characters.') }}</p>
+                {{ password_field('confirm-password','confirm_password','Confirm password','new-password') }}
+            {% endif %}
+            <button class="auth-submit" type="submit" {{ 'disabled' if not cloud_status.ready }}><span data-submit-label>{{ t('Sign in') if flow == 'signin' else t('Send confirmation code') if flow == 'signup' else t('Verify code') if flow in ['verify','reset-code'] else t('Continue') if flow == 'username' else t('Create account') if flow == 'password' else t('Update password') if flow == 'reset' else t('Send reset code') }}</span>{{ icon('arrow',18) }}</button>
+        </form>
+        {% if flow in ['verify','reset-code'] %}
+            <div class="auth-code-actions"><form action="{{ url_for('accounts.resend') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="auth-resend" type="submit" data-resend data-seconds="{{ resend_after }}" data-countdown="{{ t('Resend in {seconds}s') }}" data-ready="{{ t('Resend code') }}" {{ 'disabled' if resend_after }}>{{ t('Resend in {seconds}s',seconds=resend_after) if resend_after else t('Resend code') }}</button></form><a href="{{ url_for('accounts.account',flow='signup' if signup_flow else 'recover') }}">{{ t('Change email') }}</a></div>
+        {% endif %}
+        {% if flow in ['signup','password','signin'] %}<p class="auth-fineprint">{{ t('Signing in syncs your account library, including notes and ratings, across your devices. Your original local library is copied only if you choose to.') }}</p>{% endif %}
+        <div class="auth-local-link"><a href="/">{{ t('Continue without an account') }}</a></div>
+    </section>
+</div>

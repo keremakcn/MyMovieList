@@ -18,12 +18,12 @@ from recommendations import MODES, Recommender, build_profile
 from storage import utcnow
 
 
-def register_recommendations(app, db, tmdb, download_poster):
+def register_recommendations(app, db, tmdb, download_poster, service=None):
     bp = Blueprint("recommendations", __name__)
     t = app.extensions["i18n"]["translate"]
     language = app.extensions["i18n"]["language"]
     catalog = app.extensions["catalog"]
-    service = Recommender(db, tmdb, catalog)
+    service = service if service is not None else Recommender(db, tmdb, catalog)
     app.extensions["recommender"] = service
 
     def setting(key, default=""):
@@ -52,13 +52,15 @@ def register_recommendations(app, db, tmdb, download_poster):
     @bp.get("/api/recommendations")
     def results():
         data = dict(service.recommend(mode_value(), refresh=request.method == "POST"))
-        data["movies"] = catalog.present(data["movies"], language(), fetch=language() == "tr")
+        data["movies"] = catalog.present(
+            data["movies"], language(), fetch=language() == "tr"
+        )
         data["waiting"] = catalog.present(data["waiting"], language())
         return jsonify(
             profile_changed=data.get("profile_changed", False),
             html=render_template(
                 "_recommendations.html", current_url="/recommendations", **data
-            )
+            ),
         )
 
     @bp.get("/taste")
@@ -66,7 +68,10 @@ def register_recommendations(app, db, tmdb, download_poster):
         selected = db.query("""SELECT m.tmdb_id,m.title,m.poster_path FROM recommendation_likes l
             JOIN movies m ON m.id=l.movie_id WHERE m.deleted_at IS NULL AND m.tmdb_id IS NOT NULL ORDER BY l.created_at""")
         return render_template(
-            "taste.html", selected=catalog.present(selected, language()), mode=mode_value(), modes=MODES
+            "taste.html",
+            selected=catalog.present(selected, language()),
+            mode=mode_value(),
+            modes=MODES,
         )
 
     @bp.get("/api/taste/choices")
@@ -76,9 +81,13 @@ def register_recommendations(app, db, tmdb, download_poster):
             page = max(1, min(500 if query else 20, int(request.args.get("page", "1"))))
         except ValueError:
             abort(400, "Choose a valid page.")
-        movies, pages, errors = service.survey_choices(query, page, language="tr-TR" if language() == "tr" else "en-US")
+        movies, pages, errors = service.survey_choices(
+            query, page, language="tr-TR" if language() == "tr" else "en-US"
+        )
         movies = catalog.present(movies, language())
-        return jsonify(movies=movies, pages=pages, errors=[t(error) for error in errors])
+        return jsonify(
+            movies=movies, pages=pages, errors=[t(error) for error in errors]
+        )
 
     @bp.post("/taste/save")
     def save():
@@ -97,10 +106,12 @@ def register_recommendations(app, db, tmdb, download_poster):
             for row in db.query("SELECT tmdb_id FROM movies WHERE tmdb_id IS NOT NULL")
         }
 
+        bound_details = catalog.details
+
         def prepare(mid):
             if mid in existing:
                 return mid, {}
-            details = catalog.details(mid)
+            details = bound_details(mid)
             values = {
                 k: details.get(k)
                 for k in (
@@ -126,7 +137,10 @@ def register_recommendations(app, db, tmdb, download_poster):
         created = db.save_survey(entries, mode)
         service.invalidate()
         flash(
-            t("Your taste profile is saved. {count} new movies added as watched; existing entries kept.", count=created)
+            t(
+                "Your taste profile is saved. {count} new movies added as watched; existing entries kept.",
+                count=created,
+            )
         )
         return jsonify(url=url_for("recommendations.index"), created=created)
 

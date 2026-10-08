@@ -1,0 +1,7 @@
+<section class="stats-grid profile-stats" aria-label="{{ t('Library statistics') }}">
+    {% for symbol,label,value,filter in [('library','All films',profile_stats.total,'all'),('check','Watched',profile_stats.watched,'Watched'),('heart','Favorites',profile_stats.favorites,'favorite'),('clock','Want to watch',profile_stats.watchlist,'Watchlist')] %}
+        <a class="stat-card" href="{{ url_for('index',status=filter) }}" data-profile-stat="{{ filter }}">
+            <span class="stat-symbol">{{ icon(symbol,18) }}</span><div><strong>{{ value }}</strong><span>{{ t(label) }}</span></div>
+        </a>
+    {% endfor %}
+</section>

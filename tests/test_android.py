@@ -16,7 +16,8 @@ def android_app(tmp_path):
     token = secrets.token_urlsafe(32)
     app = bridge.create_android_app(tmp_path, token)
     app.config["TESTING"] = True
-    return app, token
+    yield app, token
+    app.extensions["cloud"].close()
 
 
 def test_android_blocks_other_local_clients(android_app):

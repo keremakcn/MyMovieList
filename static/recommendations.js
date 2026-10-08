@@ -20,7 +20,7 @@
             refreshButton.textContent = fresh ? t('Refreshing…') : t('New suggestions');
             refreshStatus.textContent = '';
             try {
-                const data = await read(await fetch(fresh ? '/api/recommendations/refresh' : '/api/recommendations', fresh ? {method: 'POST', headers: {'X-CSRF-Token': csrf}} : {}));
+                const data = await read(await window.MovieListHTTP.fetch(fresh ? '/api/recommendations/refresh' : '/api/recommendations', fresh ? {method: 'POST', headers: {'X-CSRF-Token': csrf}} : {}));
                 region.innerHTML = data.html; // Escaped same-origin Jinja fragment.
                 if (restorePickFocus) {
                     const target = region.querySelector('.catalog-card h2 a') || refreshButton;
@@ -53,7 +53,7 @@
             const button = form.querySelector('button'); if (button.disabled) return;
             button.disabled = true;
             try {
-                await read(await fetch(form.action, {method: 'POST', body: new FormData(form), headers: {'X-CSRF-Token': csrf, Accept: 'application/json'}}));
+                await read(await window.MovieListHTTP.fetch(form.action, {method: 'POST', body: new FormData(form), headers: {'X-CSRF-Token': csrf, Accept: 'application/json'}}));
                 const card = form.closest('.recommendation-item');
                 const notice = document.createElement('div'); notice.className = 'taste-invitation';
                 const text = document.createElement('p'); text.textContent = t('Suggestion hidden. Other films in this genre are unaffected.');
@@ -125,7 +125,7 @@
         more.disabled = true; grid.setAttribute('aria-busy', 'true'); status.textContent = t('Loading films…');
         try {
             const params = new URLSearchParams({q: nextQuery, page: nextPage});
-            const data = await read(await fetch(`/api/taste/choices?${params}`, {signal: controller.signal}));
+            const data = await read(await window.MovieListHTTP.fetch(`/api/taste/choices?${params}`, {signal: controller.signal}));
             if (current !== revision) return;
             failedRequest = null; delete more.dataset.retry;
             query = nextQuery; page = nextPage; draw(data.movies);
@@ -157,7 +157,7 @@
         saving = true; sync(); saveStatus.textContent = t('Saving your picks. Please keep this page open…');
         const data = new FormData(saveForm); for (const id of selected.keys()) data.append('movie_id', id);
         try {
-            const result = await read(await fetch(saveForm.action, {method: 'POST', body: data, headers: {'X-CSRF-Token': csrf, Accept: 'application/json'}}));
+            const result = await read(await window.MovieListHTTP.fetch(saveForm.action, {method: 'POST', body: data, headers: {'X-CSRF-Token': csrf, Accept: 'application/json'}}));
             location.assign(result.url);
         } catch (error) { saveStatus.textContent = t('{error} Your selections are still here. Please try again.', {error: error.message}); saving = false; sync(); }
     });

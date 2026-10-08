@@ -1,0 +1,21 @@
+{% include '_profile_stats.html' %}
+{% set show_rating = true %}
+{% for shelf,title,description,filter,sort in [('favorites','Your favorites','The films that earned a place in your favorites.','favorite',''),('recent','Recently watched' if profile_shelves.dated else 'Recently added','Your latest watches, ordered by the watch date you saved.' if profile_shelves.dated else 'The latest additions to your library.','Watched' if profile_shelves.dated else 'all','watched_desc' if profile_shelves.dated else 'added_desc')] %}
+    <section class="profile-shelf" aria-labelledby="profile-{{ shelf }}-heading" data-profile-shelf="{{ shelf }}">
+        <div class="profile-section-heading">
+            <div><h2 id="profile-{{ shelf }}-heading">{{ t(title) }}</h2><p>{{ t(description) }}</p></div>
+            {% if profile_shelves[shelf] %}<a href="{{ url_for('index',status=filter,sort=sort) }}">{{ t('View all') }} {{ icon('arrow',14) }}</a>{% endif %}
+        </div>
+        {% if profile_shelves[shelf] %}
+            <div class="profile-film-row" tabindex="0" role="group" aria-label="{{ t(title) }}">
+                {% for movie in profile_shelves[shelf] %}{% include '_profile_film.html' %}{% endfor %}
+            </div>
+        {% else %}
+            <div class="profile-shelf-empty">
+                <span class="profile-empty-icon">{{ icon('heart' if shelf == 'favorites' else 'film',24) }}</span>
+                <div><h3>{{ t('Make room for your favorites') if shelf == 'favorites' else t('Your film story starts here') }}</h3><p>{{ t('Tap the heart on a film in your library to see it here.') if shelf == 'favorites' else t('Add a film to start building a library of your own.') }}</p></div>
+                <a class="secondary-button" href="{{ url_for('index') if shelf == 'favorites' and profile_stats.total else url_for('search') }}">{{ t('Open library') if shelf == 'favorites' and profile_stats.total else t('Find a film') }} {{ icon('arrow',14) }}</a>
+            </div>
+        {% endif %}
+    </section>
+{% endfor %}

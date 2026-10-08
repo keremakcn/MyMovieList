@@ -1,0 +1,49 @@
+<header class="profile-hero">
+    <div class="profile-identity">
+        <img class="profile-avatar" data-profile-avatar src="{{ url_for('static',filename='avatars/' + cloud_status.profile.avatar_id + '.svg') }}" width="96" height="96" alt="{{ t('Your avatar') }}">
+        <div class="profile-identity-text">
+            <p class="eyebrow">{{ t('YOUR CINEMA') }}</p>
+            <h1 data-profile-name data-profile-empty="{{ t('Your space') }}">{{ cloud_status.profile.display_name or t('Your space') }}</h1>
+            <p class="profile-handle" data-profile-username {% if not cloud_status.username.username %}hidden{% endif %}>@{{ cloud_status.username.username or '' }}</p>
+            <p class="profile-tagline">{{ t('The films you keep close.') }}</p>
+            <span class="profile-private" data-sharing-badge>{{ icon('profile',12) }} <span data-sharing-badge-text>{{ t(sharing_badge) }}</span></span>
+        </div>
+    </div>
+    <a class="secondary-button profile-edit-link" href="{{ url_for('accounts.account',flow='edit-profile') }}">{{ icon('edit',16) }} {{ t('Edit profile') }}</a>
+</header>
+<nav class="profile-tabs" aria-label="{{ t('Profile sections') }}">
+    <a href="{{ url_for('accounts.account') }}" {{ 'aria-current=page' if profile_view == 'showcase' }}>{{ icon('film',16) }} {{ t('My showcase') }}</a>
+    <a href="{{ url_for('accounts.account',view='personal') }}" {{ 'aria-current=page' if profile_view == 'personal' }}>{{ icon('lock',14) }} {{ t('Personal overview') }}</a>
+</nav>
+<div class="profile-utility">
+    <p>{{ icon('lock',14) }} {{ t('Only you can see this overview.' if profile_view == 'personal' else 'Your notes stay private.') }}</p>
+    <a href="{{ url_for('accounts.settings') }}"><span class="sync-badge" data-cloud-label data-state="{{ cloud_status.state }}">{{ t(cloud_status.label) }}</span>{{ icon('chevron',12) }}<span class="sr-only">{{ t('Account & sync') }}</span></a>
+</div>
+<aside class="profile-sync-notice" data-profile-sync-notice {% if cloud_status.state not in ['offline','waiting','attention'] %}hidden{% endif %} aria-live="polite">
+    <p>{{ t('Your library stays available on this device.') }}</p><a href="{{ url_for('accounts.settings') }}">{{ t('Review account & sync') }} {{ icon('arrow',14) }}</a>
+</aside>
+{% if profile_view == 'personal' %}
+    {% include '_profile_personal.html' %}
+{% else %}
+    {% if showcase.show_stats %}{% include '_profile_stats.html' %}{% endif %}
+    <section class="profile-shelf showcase-shelf" aria-labelledby="profile-showcase-heading" data-profile-shelf="showcase">
+        <div class="profile-section-heading">
+            <div><h2 id="profile-showcase-heading">{{ t('My showcase') }}</h2><p>{{ t('Only the films you choose. Nothing is added automatically.') }}</p></div>
+            <a href="{{ url_for('accounts.account',flow='edit-showcase') }}">{{ t('Choose films') }} {{ icon('edit',14) }}</a>
+        </div>
+        {% if profile_shelves.showcase %}
+            <div class="profile-film-row" tabindex="0" role="group" aria-label="{{ t('My showcase') }}">
+                {% set shelf = 'showcase' %}{% set show_rating = showcase.show_ratings %}
+                {% for movie in profile_shelves.showcase %}{% include '_profile_film.html' %}{% endfor %}
+            </div>
+        {% else %}
+            <div class="profile-shelf-empty showcase-empty">
+                <span class="profile-empty-icon">{{ icon('film',24) }}</span>
+                <div><h3>{{ t('A few films. A little of you.') }}</h3><p>{{ t('Pick up to 6 films from your library and arrange them your way. Favorites stay separate.') }}</p></div>
+                <a class="secondary-button" href="{{ url_for('accounts.account',flow='edit-showcase') }}">{{ t('Build my showcase') }} {{ icon('plus',14) }}</a>
+            </div>
+        {% endif %}
+        <p class="showcase-privacy-note">{{ icon('lock',13) }} {{ t('Only your chosen showcase can be shared. Your notes and the rest of your library stay private.') }}</p>
+    </section>
+    {% include '_profile_sharing.html' %}
+{% endif %}

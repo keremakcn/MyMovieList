@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('Public showcase') }} · MyMovieList{% endblock %}
+{% block content %}
+<section class="public-profile-page">
+{% if public %}
+    <header class="profile-hero"><div class="profile-identity"><img class="profile-avatar" src="{{ url_for('static',filename='avatars/' + public.avatar_id + '.svg') }}" width="96" height="96" alt="{{ t('Your avatar') }}"><div class="profile-identity-text"><p class="eyebrow">MYMOVIELIST</p><h1>{{ public.display_name or t('A film lover') }}</h1>{% if public.username %}<p class="profile-handle">@{{ public.username }}</p>{% endif %}<p class="profile-tagline">{{ t('A few films. A little of me.') }}</p><span class="profile-private">{{ t('Public showcase') }}</span></div></div></header>
+    {% if public.counts is defined %}<section class="stats-grid profile-stats">{% for key,label in [('total','All films'),('watched','Watched'),('favorites','Favorites'),('watchlist','Want to watch')] %}<div class="stat-card"><div><strong>{{ public.counts[key] }}</strong><span>{{ t(label) }}</span></div></div>{% endfor %}</section>{% endif %}
+    <div class="profile-section-heading"><div><h2>{{ t('Chosen films') }}</h2><p>{{ t('A personal selection. The rest of this library is private.') }}</p></div></div>
+    {% if movies %}<div class="public-showcase-results">{% for movie in movies %}<div>{% include '_result_card.html' %}{% if movie.showcase_rating %}<p class="showcase-public-rating">{{ t('Personal rating') }}: {{ movie.showcase_rating }}/10</p>{% endif %}</div>{% endfor %}</div>{% else %}<div class="empty-state"><p>{{ t('No showcase films yet.') }}</p></div>{% endif %}
+{% else %}
+    <div class="empty-state"><p class="eyebrow">MYMOVIELIST</p><h1>{{ t('Could not load this profile.' if unavailable else 'This profile is not available.') }}</h1><p>{{ t('Please check your connection and try again.' if unavailable else 'It may be private, or the link may be incorrect.') }}</p>{% if unavailable %}<a class="secondary-button" href="{{ request.path }}">{{ t('Try again') }}</a>{% endif %}</div>
+{% endif %}
+<a class="profile-back" href="{{ url_for('index') }}">{{ t('Your library') }} {{ icon('arrow',14) }}</a>
+</section>
+{% endblock %}

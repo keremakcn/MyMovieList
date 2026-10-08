@@ -19,6 +19,14 @@ TRANSLATIONS = json.loads(
 CLIENT_MESSAGES = frozenset(
     (
         "Add to favorites",
+        "Add {title} to showcase",
+        "Remove {title} from showcase",
+        "Move {title} earlier",
+        "Move {title} later",
+        "Film not available on this device",
+        "Removed or not yet synced. You can remove this pick.",
+        "Page {page} of {pages}",
+        "Six films selected. Remove one to choose another.",
         "Added as watched.",
         "Added to Want to Watch.",
         "Adding…",

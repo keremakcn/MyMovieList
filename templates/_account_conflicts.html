@@ -1,0 +1,22 @@
+{% if conflicts %}
+    <section id="conflicts" aria-labelledby="conflicts-heading">
+        <h2 id="conflicts-heading">{{ t("Review conflicting changes") }}</h2>
+        <p class="settings-note">{{ t("Both versions have been kept. Choose the version you want to continue with; earlier versions remain in your export.") }}</p>
+        {% for conflict in conflicts %}
+            <article class="form-card">
+                <h3>{{ conflict.title }}</h3>
+                <a class="text-link"
+                   href="{{ url_for('edit',movie_id=conflict.id) }}">{{ t("Edit the local version") }}</a>
+                <div class="conflict-versions">
+                    {% for label,version,choice in [('On this device',conflict.local,'local'),('In the cloud',conflict.remote,'remote')] %}
+                        <div><h4>{{ t(label) }}</h4>{% if version.custom %}<p>{{ version.custom.title }} · {{ version.custom.year or '—' }} · {{ version.custom.genre or '—' }}</p>{% endif %}<p>{{ t(version.status) }} · {{ t("Your rating") }}: {{ version.rating if version.rating else '—' }} · {{ t("Favorite") }}: {{ t("Yes") if version.favorite else t('No') }}</p>{% if version.deleted_at %}<p>{{ t("Removed") }}</p>{% endif %}<p>{{ t("Watched date") }}: {{ version.watched_date or '—' }}</p><pre class="conflict-note">{{ version.note or t('No note') }}</pre>
+                            <form action="{{ url_for("accounts.resolve") }}" method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="record_key" value="{{ conflict.record_key }}"><input type="hidden" name="revision" value="{{ conflict.remote_revision }}"><input type="hidden" name="choice" value="{{ choice }}"><button class="secondary" type="submit">{{ t("Keep device version") if choice=='local' else t('Use cloud version') }}</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% endif %}

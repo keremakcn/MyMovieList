@@ -1,0 +1,45 @@
+<a class="profile-back" href="{{ url_for('accounts.account') }}">{{ icon('arrow',14) }} {{ t('Back to profile') }}</a>
+<header class="account-page-heading">
+    <p class="eyebrow">{{ t('YOUR SPACE') }}</p>
+    <h1>{{ t('Make yourself at home') if flow == 'personalize' else t('Edit profile') }}</h1>
+    <p class="account-intro">{{ t('Your username is your address. Your display name is how you introduce yourself.') }}</p>
+</header>
+<section class="profile-card form-card profile-editor">
+    <div class="profile-heading">
+        <img class="profile-avatar" data-profile-preview src="{{ url_for('static',filename='avatars/' + profile_form.avatar_id + '.svg') }}" width="88" height="88" alt="{{ t('Your avatar') }}">
+        <div><h2>{{ t('A little more you') }}</h2><p>{{ t('A nickname is enough. Your real name is optional.') }}</p></div>
+    </div>
+    {% set handle = cloud_status.username %}
+    <div class="username-section">
+        {% if handle.username %}
+            <label for="chosen-username">{{ t('Username') }}</label>
+            <input id="chosen-username" type="text" readonly value="{{ handle.username }}" aria-describedby="username-fixed-note">
+            <p class="settings-note" id="username-fixed-note">{{ t('Your username keeps your profile link stable. You can change your display name and avatar anytime.') }}</p>
+            <p class="username-address">{{ handle.url }}</p>
+        {% else %}
+            <form class="account-form username-form" action="{{ url_for('accounts.choose_username') }}" method="post" data-loading="{{ t('Checking username…') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label for="username">{{ t('Username') }}</label>
+                <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z][A-Za-z0-9_]{2,23}" value="{{ username_draft }}" required aria-describedby="username-note username-address" data-username-input>
+                <p class="settings-note" id="username-note">{{ t('Use 3–24 letters, numbers or underscores, starting with a letter.') }} {{ t('Choose carefully: your username is unique and stays the same.') }}</p>
+                <p class="username-address" id="username-address" data-username-address data-prefix="https://myshelf.cloud/u/">https://myshelf.cloud/u/<span data-username-preview>{{ username_draft|lower or t('your_username') }}</span></p>
+                <p class="settings-note">{{ t('Choosing a username does not make your profile public. An internet connection is needed to reserve it.') }}</p>
+                <button class="secondary" type="submit" {% if not handle.ready %}disabled{% endif %}><span data-submit-label>{{ t('Choose username') }}</span></button>
+                {% if handle.error == 'setup' or not handle.ready %}<p class="settings-note">{{ t('Usernames are being prepared. You can still edit your name and avatar.') }}</p>{% endif %}
+            </form>
+        {% endif %}
+    </div>
+    <form class="movie-form account-form profile-form" action="{{ url_for('accounts.profile') }}" method="post" data-loading="{{ t('Saving…') }}" data-profile-editor data-discard="{{ t('Leave without saving your profile changes?') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="display-name">{{ t('Display name') }}</label>
+        <input id="display-name" name="display_name" type="text" autocomplete="nickname" maxlength="40" value="{{ profile_form.display_name }}" aria-describedby="display-name-note">
+        <p class="settings-note" id="display-name-note">{{ t('Your real name is optional. Display names do not have to be unique.') }}</p>
+        <fieldset class="avatar-picker"><legend>{{ t('Choose your avatar') }}</legend>
+            <div class="avatar-grid">
+                {% for id,name in avatars %}<label class="avatar-option"><input type="radio" name="avatar_id" value="{{ id }}" {{ 'checked' if id == profile_form.avatar_id }} required><img src="{{ url_for('static',filename='avatars/' + id + '.svg') }}" width="64" height="64" alt="{{ name }}"></label>{% endfor %}
+            </div>
+        </fieldset>
+        <p class="settings-note">{{ t('Changes are saved on this device first and sync automatically when connected.') }}</p>
+        <div class="profile-form-actions"><button type="submit"><span data-submit-label>{{ t('Save profile') }}</span></button><a class="text-link" href="{{ url_for('accounts.account') }}">{{ t('Skip for now') if flow == 'personalize' else t('Cancel') }}</a></div>
+    </form>
+</section>

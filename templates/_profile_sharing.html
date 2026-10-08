@@ -1,0 +1,22 @@
+{% set sharing = cloud_status.sharing %}
+<section class="profile-sharing form-card" id="profile-sharing" aria-labelledby="sharing-heading" data-profile-sharing>
+    <div class="profile-section-heading"><div><h2 id="sharing-heading">{{ t('Share your showcase') }}</h2><p>{{ t('A small selection, shared on your terms.') }}</p></div></div>
+    <p class="sharing-status" role="status" data-sharing-label>{{ t(sharing_label) }}</p>
+    <p class="settings-note">{{ t('Anyone with your link can see your name, avatar and chosen catalog films. Ratings and counts follow your showcase options. Your notes, email and other films stay private.') }}</p>
+    <p class="settings-note">{{ t('Custom films stay private and do not appear on the public link.') }}</p>
+    <p class="settings-note" data-sharing-paused {% if cloud_status.enabled %}hidden{% endif %}>{{ t('Resume cloud sync before publishing your showcase.') }} <a href="{{ url_for('accounts.settings') }}">{{ t('Account & sync') }} {{ icon('arrow',12) }}</a></p>
+    <div data-sharing-link {% if not sharing.is_public or sharing.pending == 'unpublish' %}hidden{% endif %}>
+        <label for="profile-share-link">{{ t('Your profile link') }}</label>
+        <div class="sharing-link-row"><input id="profile-share-link" type="url" readonly value="{{ sharing.url or '' }}" data-sharing-url><button class="secondary" type="button" data-copy-share data-copied="{{ t('Copied') }}" data-copy="{{ t('Copy link') }}">{{ t('Copy link') }}</button></div>
+        <a class="text-link" data-sharing-preview href="{{ sharing.visitor_path or '#' }}">{{ t('View as a visitor') }} {{ icon('arrow',14) }}</a>
+    </div>
+    <form class="account-form sharing-publish-form" action="{{ url_for('accounts.sharing') }}" method="post" data-loading="{{ t('Saving…') }}" data-sharing-publish {% if sharing.is_public or sharing.pending %}hidden{% endif %}>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="publish">
+        <label class="sharing-consent"><input type="checkbox" name="consent" value="1" required> {{ t('I agree to make my showcase visible to anyone with the link.') }}</label>
+        <button type="submit" data-sharing-publish-button {% if not sharing.ready or not sharing.checked or sharing.error or not cloud_status.enabled %}disabled{% endif %}><span data-submit-label>{{ t('Make my profile public') }}</span></button>
+    </form>
+    <form class="account-form sharing-revoke-form" action="{{ url_for('accounts.sharing') }}" method="post" data-loading="{{ t('Saving…') }}" data-sharing-revoke {% if not sharing.is_public and sharing.pending != 'publish' %}hidden{% endif %}>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="unpublish">
+        <button class="secondary" type="submit" {% if not sharing.ready %}disabled{% endif %}><span data-submit-label>{{ t('Make my profile private') }}</span></button>
+    </form>
+</section>

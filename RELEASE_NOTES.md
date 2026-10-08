@@ -1,31 +1,24 @@
-# MyMovieList v3.4.0 — Bilingual Discovery & Smarter Recommendations
+# MyMovieList v3.5.0 — Your Library, Across Devices
 
-Discover your next film in English or Turkish, with richer recommendations and automatically saved movie details. This release brings the current shared application to Windows and the signed Android beta.
+Optional accounts and automatic cloud sync bring your personal movie library to Windows and Android while keeping offline use and private notes at the center.
 
 ## What's new
 
-- **English and Turkish:** the first launch follows your device's UI language, then saves your choice locally. Switch languages in Settings. Available Turkish synopses and Turkish-original film names are supported, with English fallback where necessary.
-- **Automatic movie details:** cast, directors, writers, producers, studios and bilingual content are saved when adding a film. Older library entries fill missing details as you browse online. Saved details remain readable offline.
-- **Smarter personal recommendations:** ratings, favorites and selected films inform a local model using genres, available themes, directors and lead cast. Private notes are not analyzed.
-- **More varied discovery:** a broader candidate pool includes classics and rotating international selections. Smaller interests are preserved, with limits on repeated themes, franchises and directors.
-- **Distinct discovery modes:** familiar, balanced and adventurous choices use different mixes when enough information is available. New suggestions avoid recent repeats when alternatives exist.
-- **Stable suggestions:** browsing and switching interface languages keep the current picks. Added and hidden films stay excluded; changed preferences take effect when you request new suggestions.
-- **Explore shelves:** browse Trending by day or week, Highest rated, New releases and Genres. Hide library films and add directly from poster cards.
-- **Android update:** the signed `3.4.0-android-beta.1` APK and Play bundle include the current language, discovery and recommendation features. No TMDB account or API key is required.
-
-## Reliability and privacy
-
-- Catalog responses are checked against the requested movie ID before saving or displaying details. Language changes preserve movie identity, notes, ratings, favorites and library order.
-- Personal library data and recommendation ranking remain on your device. Catalog requests use the shared discovery service; no developer API credential is embedded in the app.
-- The locally cached public recommendation pool can supply suggestions offline after an online fetch. Available results still depend on the cached pool and metadata.
-- Existing removal/Undo behavior preserves personal fields and the original library order.
+- **Optional accounts:** keep using the app without signing in, or create an account to sync your library across devices.
+- **Automatic sync:** ratings, notes, favorites, watch status and personal dates save locally first. Pending edits retry when connected; sync can be paused. Conflicting edits preserve both versions for review.
+- **Safer library separation:** account libraries stay separate from your original guest library. Copying a local library into an account is an explicit choice.
+- **Step-by-step registration:** email → verification code → unique username → password. Regular sign-in uses email/password. Password recovery verifies its code before displaying the new-password screen.
+- **Profiles and avatars:** a dedicated Profile page, editable display name and 16 bundled cat avatars. Only the avatar ID is synced, keeping profile data compact.
+- **Unique profile addresses:** `myshelf.cloud/u/<username>`. Usernames are chosen once and cannot currently be changed; display names can repeat and remain editable.
+- **Curated showcases:** choose and order up to six films. Public sharing starts off; ratings and library counts require their own choices. Only selected films are exposed. Notes, email, custom films and unselected library entries stay private.
+- **Identity-name rules:** common abusive TR/EN names and numeric/separator variants are rejected. Personal movie notes are never filtered.
+- **Updated Android packages:** the signed APK and Play bundle include the same accounts, profile and sync features as Windows, plus the existing bilingual discovery and recommendations.
 
 ## Upgrading
 
-- **Windows:** close the previous app, extract `MyMovieList-v3.4.0-windows.zip` and open `MyMovieList-v3.4.0.exe`. Your existing library remains in `%APPDATA%\MovieWatchlist`; an explicit `MOVIE_WATCHLIST_DATA_DIR` override is still respected.
-- **Android:** install `MyMovieList-3.4.0-android-beta.1.apk` over the previous signed release. The application ID and signing certificate are retained, and `versionCode` increases to 3. Do not uninstall or clear app storage if you want to keep the phone's library.
-- Windows and Android keep separate libraries; cloud sync is not included.
-- The recommendation update requires no additional schema migration. The bilingual metadata-cache migration preserves existing movie IDs and personal fields.
-- Android remains a beta pending physical-device testing. The `.apk` is the installable download; the `.aab` is for a future Google Play submission and is not installed directly.
+- **Windows:** close the old app and open `MyMovieList-v3.5.0.exe` from `MyMovieList-v3.5.0-windows.zip`. Your existing `%APPDATA%\MovieWatchlist` library is preserved.
+- **Android:** install `MyMovieList-3.5.0-android-beta.1.apk` over the previous signed release. The package remains `com.moviewatchlist`, uses the existing signing certificate and increases `versionCode` to 5. Do not uninstall or clear storage to update.
+- **Google Play:** use the `.aab` for a store submission; it is not the installable GitHub download. Android remains a beta pending physical-device lifecycle and upgrade testing.
+- **Cloud service:** migrations 001–004 are required for the complete account service. Migration 004 must be applied in Supabase before announcing registration availability. See [cloud setup](supabase/README.md).
 
-See [QA results](QA_RESULTS.md) for verification and [Android build instructions](ANDROID.md) for package details.
+Movie discovery still requires no personal TMDB key. Saved library data remains available offline, and recommendation ranking stays on your device. See [QA results](QA_RESULTS.md) and [Android details](ANDROID.md).

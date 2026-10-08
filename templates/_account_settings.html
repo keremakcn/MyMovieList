@@ -1,0 +1,26 @@
+<a class="profile-back" href="{{ url_for('accounts.account') }}">{{ icon('arrow',14) }} {{ t('Back to profile') }}</a>
+<header class="account-page-heading"><p class="eyebrow">{{ t('YOUR WORKSPACE') }}</p><h1>{{ t('Account & sync') }}</h1><p class="account-intro">{{ t('Manage your account and your private cloud copy.') }}</p></header>
+<section class="form-card account-settings-identity">
+    <div><h2>{{ t('Your account') }}</h2><p class="account-email">{{ cloud_status.email }}</p></div>
+    <a class="secondary-button" href="{{ url_for('accounts.account',flow='edit-profile') }}">{{ t('Edit profile') }}</a>
+</section>
+<section class="form-card sync-card" aria-labelledby="sync-heading">
+    <div class="account-heading"><div><h2 id="sync-heading">{{ t('Automatic sync') }}</h2><p>{{ t('Notes, ratings and favorites follow you across devices.') }}</p></div><span class="sync-badge" data-cloud-label data-state="{{ cloud_status.state }}">{{ t(cloud_status.label) }}</span></div>
+    <p class="settings-note">{{ t('Changes are saved on this device first. If you go offline, sync continues when you reconnect and the app is open.') }}</p>
+    <p class="settings-note" data-cloud-message>{{ t(cloud_status.message) }}</p>
+    <p class="settings-note"><span data-cloud-pending>{{ cloud_status.pending }}</span> {{ t('changes waiting to sync') }} <a href="{{ url_for('accounts.settings',review='conflicts') }}#conflicts" data-conflicts-link {% if not cloud_status.conflicts %}hidden{% endif %}>· <span data-cloud-conflicts>{{ cloud_status.conflicts }}</span> {{ t('conflicts to review') }}</a></p>
+    <form action="{{ url_for('accounts.sync_settings') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="enabled" value="{{ '0' if cloud_status.enabled else '1' }}"><input type="hidden" name="consent" value="yes"><button class="secondary" type="submit">{{ t('Pause cloud sync') if cloud_status.enabled else t('Resume automatic sync') }}</button></form>
+</section>
+{% if guest_count %}
+    <section class="form-card" aria-labelledby="adopt-heading">
+        <h2 id="adopt-heading">{{ t('Bring your existing local library') }}</h2>
+        <p>{{ t('Your original local library has {count} films. Copy them into this account library; existing account records will be kept.',count=guest_count) }}</p>
+        <p class="settings-note">{{ t('Copied films, including their private notes, will sync to this account. Your original local library stays intact.') }}</p>
+        <form action="{{ url_for('accounts.adopt_local') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="confirm" value="yes"><button class="secondary" type="submit">{{ t('Copy local library into this account') }}</button></form>
+    </section>
+{% endif %}
+{% include '_account_conflicts.html' %}
+<section class="form-card account-security-card" aria-labelledby="security-heading">
+    <h2 id="security-heading">{{ t('Account security') }}</h2>
+    <div class="profile-security"><a class="text-link" href="{{ url_for('accounts.account',flow='recover') }}">{{ t('Reset password') }}</a><form action="{{ url_for('accounts.signout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="secondary" type="submit">{{ t('Sign out') }}</button></form></div>
+</section>

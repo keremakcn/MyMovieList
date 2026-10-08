@@ -1,0 +1,11 @@
+{
+  "name": "mymovielist-cloud-contract-tests",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node tests/verify.mjs && node tests/showcases.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}

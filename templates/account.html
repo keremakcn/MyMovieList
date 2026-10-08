@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Account & sync') if flow == 'settings' else t('Edit showcase') if flow == 'edit-showcase' else t('Edit profile') if flow in ['edit-profile','personalize'] else t('Your profile') if flow == 'profile' else t('Account & sync') }} · MyMovieList{% endblock %}
+{% block content %}
+    <div class="form-page account-page {{ 'profile-page' if flow == 'profile' }} {{ 'profile-edit-page' if flow in ['edit-profile','personalize'] }}">
+        {% if error and flow in ['profile','personalize','edit-profile','edit-showcase','settings'] %}<p class="form-error" role="alert" tabindex="-1" data-auth-error>{{ t(error) }}</p>{% endif %}
+        {% if flow == 'profile' %}
+            {% include '_profile_overview.html' %}
+        {% elif flow in ['personalize','edit-profile'] %}
+            {% include '_profile_edit.html' %}
+        {% elif flow == 'edit-showcase' %}
+            {% include '_showcase_editor.html' %}
+        {% elif flow == 'settings' %}
+            {% include '_account_settings.html' %}
+        {% else %}
+            {% include '_account_auth.html' %}
+        {% endif %}
+    </div>
+{% endblock %}

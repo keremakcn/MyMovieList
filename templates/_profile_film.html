@@ -1,0 +1,8 @@
+<a class="profile-film" href="{{ url_for('movie',movie_id=movie.id) }}" data-profile-film="{{ movie.id }}">
+    <div class="profile-film-poster">
+        {% if movie.poster_path %}<img src="{{ movie.poster_path }}" alt="" width="180" height="270" loading="lazy" decoding="async">{% else %}<span class="poster-placeholder" aria-hidden="true">{{ icon('film',32) }}</span>{% endif %}
+        {% if show_rating and movie.rating is not none %}<span class="profile-film-rating" aria-label="{{ t('Your rating') }}: {{ movie.rating }}/10">{{ icon('star',12) }} {{ movie.rating }}<small>/10</small></span>{% endif %}
+    </div>
+    <h3>{{ movie.title }}</h3>
+    <p>{% if shelf == 'recent' and profile_shelves.dated %}<time datetime="{{ movie.watched_date }}">{{ movie.watched_date|profile_date }}</time>{% else %}{{ movie.year or t('Release date unknown') }}{% endif %}</p>
+</a>

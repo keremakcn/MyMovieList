@@ -1,0 +1,20 @@
+        <details class="account-backup" id="backup">
+            <summary>{{ t('Library backup') }}<span>{{ t('Export or import your personal library') }}</span></summary>
+            <section class="account-backup-content" aria-labelledby="backup-heading">
+            <h2 id="backup-heading">{{ t("Take your library with you") }}</h2>
+            <p>{{ t("Export your film IDs, personal notes, ratings and favorites. The file contains private information; keep it somewhere safe.") }}</p>
+            <a class="button-link" href="{{ url_for("accounts.export") }}">{{ t("Export library") }}</a>
+            <form class="movie-form"
+                  action="{{ url_for("accounts.import_library") }}"
+                  method="post"
+                  enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label for="library-file">{{ t("Import library") }}</label><input id="library-file"
+       type="file"
+       name="library_file"
+       accept=".json,application/json"
+       required>
+                <p class="settings-note">{{ t("Imports up to 50 MB. Existing films and their notes are kept.") }}</p>
+                <button class="secondary" type="submit">{{ t("Import library") }}</button>
+            </form>
+            </section>
+        </details>

@@ -1,84 +1,80 @@
-# Android — standalone beta
+# Android — MyMovieList 3.5.0 beta.1
 
-The Android app runs the film library on the phone itself. It does not connect to a desktop computer or require a hosted MyMovieList server. Android `3.4.0-android-beta.1` shares the current language, discovery and recommendation features with Windows v3.4.0; each device keeps a separate library.
+The app runs its library on the phone itself and works without a desktop computer. Android `3.5.0-android-beta.1` includes the same bilingual discovery, recommendations, optional accounts, profiles and automatic library sync as Windows v3.5.0.
+
+## Library and accounts
+
+- Guest data stays in the app's private `files/library/` directory. Each signed-in account has a separate SQLite library under `files/library/accounts/`.
+- Accounts are optional. Signing in opens that account's library; the original guest library is copied only when the user chooses to. The same account can sync personal film data between Windows and Android.
+- Successful local edits wake the sync worker while the app process is running. Offline edits remain queued for a later connection. Android may stop the background process; this app does not promise continuous background sync when closed.
+- Authentication sessions are encrypted with an app-scoped Android Keystore key. Private notes sync only within the owner's account; public showcases expose only the selected films and opted-in fields.
+- Normal signed updates preserve storage. Uninstalling or clearing storage deletes local data. Android OS backup/device-transfer backup is disabled. Movie databases are not encrypted by the application.
+
+The release ID remains `com.moviewatchlist`; its usual data path is `/data/user/0/com.moviewatchlist/files/library/`. Keep the existing signing key for updates.
 
 ## Architecture
 
-- `android/` contains a native Android activity and the build configuration.
-- Chaquopy packages Python 3.12 with the existing Flask, SQLite, TMDB and recommendation modules.
-- Android WebView renders the shared interface. A local server binds only to `127.0.0.1` on an available port; a random per-process token authenticates the native window before any library content is served.
-- External HTTPS links open in the phone's browser. File/content access and JavaScript-to-native interfaces are disabled.
-- Shared source files and assets are staged from an explicit allowlist during the build. Personal databases, API tokens, desktop packages and private keys are never part of that list.
+Chaquopy packages Python 3.12, Flask, SQLite and the shared application. WebView renders the interface through a loopback-only server protected by a random per-process native token and CSRF. External HTTPS links open in the phone's browser. File/content access and JavaScript-to-native interfaces remain disabled.
 
-## Library and privacy
+Shared source uses an explicit packaging allowlist, including the account/sync/name-policy modules, bundled avatars and public Supabase configuration. Personal libraries, exports, session files, SQL admin setup, credentials and signing material are excluded. The Supabase publishable key is public client configuration; no service-role key or TMDB developer token is bundled.
 
-Films and notes are stored in the app's private `files/library/` directory. They are independent of the Windows AppData library; there is no automatic synchronization or desktop import in this beta. A normal signed application update preserves this directory. Uninstalling the app or clearing its storage deletes it.
+Saved information works offline. Discovery uses `https://api.myshelf.cloud`; remote posters and uncached content need internet. Native file-picker/download support for desktop-style backup import/export is not provided by this WebView wrapper; use account sync to transfer supported personal library data between platforms.
 
-The release application ID is `com.moviewatchlist`. Its usual private data path is `/data/user/0/com.moviewatchlist/files/library/`. Builds with a different application ID have separate storage and do not automatically transfer their library.
+## Build requirements
 
-Cloud backup and device-transfer backup are disabled for the private library. Local storage is not an application-level encrypted vault. Discovery and remote images require internet access; saved film information and downloaded posters remain available offline. Discovery uses the shared https://api.myshelf.cloud service. No personal TMDB account or token is required, and no developer credential is embedded in the APK.
+- Android 7.0 / API 24+, a current Android System WebView and `arm64-v8a` or `x86_64`. 32-bit-only devices are not supported.
+- Java 17, Python 3.12, Android SDK platform 36 and Build Tools 35.0.0.
+- Pinned Gradle 8.13, AGP 8.13.2 and Chaquopy 17.0.0.
 
-## Requirements
+Set `JAVA_HOME` and `ANDROID_HOME`, or open `android/` in Android Studio. `CHAQUOPY_BUILD_PYTHON` can select the build interpreter.
 
-- Android 7.0 / API 24 or newer, with a current Android System WebView.
-- A 64-bit ARM phone (`arm64-v8a`) or an `x86_64` emulator. Older 32-bit-only devices are not supported by this Python 3.12 build.
-- For building: Java 17, Python 3.12, Android SDK platform 36 and Build Tools 35.0.0. The Gradle wrapper pins Gradle 8.13; the project pins AGP 8.13.2 and Chaquopy 17.0.0.
+## Build and downloads
 
-Set `JAVA_HOME` and `ANDROID_HOME`, or configure the SDK location through Android Studio's local settings. Open the `android/` directory in Android Studio. `CHAQUOPY_BUILD_PYTHON` can select the build Python interpreter.
-
-## Build a test APK
-
-From the repository root on Windows:
+From the repository root:
 
 ```powershell
-.\scripts\build_android.ps1
+.\scripts\build_android.ps1                   # Separate debug application
+.\scripts\build_android.ps1 -Release -Clean   # Signed APK + AAB + lint
 ```
 
-The debug APK has a separate application ID and is intended for development. It does not share its library with the release APK.
+Release signing must already be configured in `android/keystore.properties`. Use `scripts/create_android_signing.ps1` only for the initial setup; never replace the signing key for an update. Back up `.android-signing/release.jks` and `android/keystore.properties` privately.
 
-## Build a signed APK and Play bundle
+Artifacts are written to `dist/android/3.5.0-android-beta.1/`:
 
-Create the signing key once:
+- `MyMovieList-3.5.0-android-beta.1.apk`: installable GitHub download.
+- `MyMovieList-3.5.0-android-beta.1.aab`: future Google Play submission.
+- `SHA256SUMS.txt`: package hashes.
 
-```powershell
-.\scripts\create_android_signing.ps1
-```
+`version.py` supplies the shared 3.5.0 version. Android uses `versionCode=5` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
 
-Keep secure backups of **both** `.android-signing/release.jks` and `android/keystore.properties`. They are ignored by Git and must never be uploaded to a release. Future direct APK updates must use the same key; generating a different key breaks the upgrade path.
+The **Android packages** GitHub Actions workflow also supports debug and release builds. Release mode needs the four Android signing secrets from the same existing key. It builds artifacts without publishing a GitHub Release.
 
-Then build:
+## Verification and deployment
 
-```powershell
-.\scripts\build_android.ps1 -Release
-```
+Source tests cover native authentication, CSRF, library preservation and account/sync flows with synthetic data. Release checks verify APK signatures, alignment, AAB structure and packaged source/assets; results are recorded in [QA_RESULTS.md](QA_RESULTS.md).
 
-Outputs are placed in `dist/android/3.4.0-android-beta.1/`:
+Apply Supabase migrations 001–004 before announcing the complete account service. The public profile Worker is already separate from the phone app; see [cloud setup](supabase/README.md). No real user account or library is needed for package verification.
 
-- `.apk`: installable download for a GitHub prerelease.
-- `.aab`: Android App Bundle for a future Google Play submission; it is not installed directly by users.
-- `SHA256SUMS.txt`: checksums for the generated packages.
+Android remains a beta until the actual APK is tested for installation/update, keyboard/insets, navigation, rotation, process restart, Keystore session restoration and cross-device sync. An AAB build does not publish or approve the application on Google Play; store setup, privacy disclosures and review are separate steps.
 
-The version name is based on `version.py`; Android's independent, increasing `versionCode` is in `android/app/build.gradle`. Increment it for every published Android update.
+## Current build — October 8, 2026
 
-## Build with GitHub Actions
+The clean signed APK/AAB build completed successfully. APK signature and 16 KB alignment, matching upgrade certificate, AAB signature and bundletool validation passed. Both packages include all 24 shared/bridge Python modules, 66 UI assets, bundled avatars, public account configuration and the native session helper; their source/build hashes were verified. Release lint has no errors and four existing warnings.
 
-After committing the Android sources, open **Actions → Android packages → Run workflow**. The default `debug` mode builds a test APK without a local Android SDK. Download the package from the workflow's artifacts; the workflow does not create or publish a GitHub Release.
+Copies are available beside the Windows ZIP in `dist/releases/v3.5.0/`, with combined checksums. Physical-device testing remains pending; no connected phone was available for this build. The user applied hosted Supabase migration 004 after packaging; the live setup probe returned username protocol 2 on October 8. These packages already include its registration flow and do not need rebuilding for that server change.
 
-For `release` mode, configure repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` from the same private signing key used locally. Do not generate a new key for each workflow run. The workflow builds signed APK/AAB files and uploads only those packages.
+## Previous build — October 7, 2026
 
-## Verification and release scope
+Clean signed rebuild: `MyMovieList-3.4.0-android-beta.2.apk` and `.aab` in `dist/android/3.4.0-android-beta.2/`, with copies in `dist/releases/v3.4.0/`.
 
-Build verification on October 3, 2026: signed release APK and AAB generated; APK v2 signature and 16 KB ZIP/ELF alignment verified; shared assets present and private data excluded. All 50 Python tests passed. Android release lint passed with two non-blocking warnings (the API 33 back-navigation attribute is ignored on older devices, and a newer Gradle version is available). The pinned toolchain remains compatible with this build.
+- The standalone APK keeps `com.moviewatchlist`, retains the previous release signing certificate, and raises `versionCode` from 3 to 4. Windows remains v3.4.0.
+- Release lint passed with no errors and four existing warnings. APK v2 signature, 16 KB ZIP alignment, AAB structure and AAB signature verification passed.
+- Both archives passed CRC checks, including the nested Python payloads. All 12 shared/bridge modules and 35 UI assets match the main source and clean-build intermediates; private data and signing files are excluded.
+- ELF checks covered 138 native libraries per package, including the nested Python archives, with 16 KB or larger load-segment alignment.
+- The build script supports `-Clean` and derives artifact filenames from the compiled APK metadata, preventing beta-revision naming mismatches.
+- An installation failure was reported on a Xiaomi 14T Pro. The previous APK passed independent signature, metadata and alignment checks; no device was connected for installation testing. This rebuild is verified as a package, but resolving that phone's installation error still needs a device retry.
 
-Python tests cover native-session protection, blocked unauthenticated requests, CSRF, and data preservation. `tests/mobile.e2e.cjs` checks four phone widths, touch target sizes, equal card heights, suggestions, note saving and Undo with mocked TMDB responses. A reduced browser viewport approximates keyboard space; it is not an Android IME test.
-
-Before promoting this beta to a stable phone release, test the actual APK on devices: first launch, TMDB search, adding films, notes and ratings, offline reading, back navigation, keyboard, rotation, background/process restart and installing an update without losing the library. Browser checks alone cannot establish that the native application works correctly.
-
-Google Play publication is a separate step requiring your developer account, signing setup, privacy disclosures and store review. A successful APK/AAB build alone does not mean the app is ready or approved for the Play Store.
-
-Technical references: [Chaquopy](https://chaquo.com/chaquopy/doc/current/android.html), [Android WebView](https://developer.android.com/develop/ui/views/layout/webapps/webview), [Android App Bundles](https://developer.android.com/guide/app-bundle).
-
-## Latest build — October 6, 2026
+## Previous build — October 6, 2026
 
 Signed `MyMovieList-3.4.0-android-beta.1.apk` and `.aab` were generated in `dist/android/3.4.0-android-beta.1/` from the main project. Both include the current bilingual interface, automatic metadata storage, Explore shelves and richer local recommendations.
 

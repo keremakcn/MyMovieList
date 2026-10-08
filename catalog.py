@@ -90,7 +90,14 @@ class CatalogService:
             raise TMDBError("The movie could not be verified. Please try again.", 502)
         with self.locks[tmdb_id % len(self.locks)]:
             cached = self.cached([tmdb_id]).get(tmdb_id)
-            if cached and not force and (not features or cached["details"].get("recommendation_features_version") == 1):
+            if (
+                cached
+                and not force
+                and (
+                    not features
+                    or cached["details"].get("recommendation_features_version") == 1
+                )
+            ):
                 return cached["details"]
             if not force and self.retry_at.get(tmdb_id, 0) > time.monotonic():
                 message, status = self.failures[tmdb_id]
@@ -141,17 +148,35 @@ class CatalogService:
                 keywords = raw.get("keywords")
                 collection = raw.get("belongs_to_collection")
                 if (
-                    keywords is not None and (
+                    keywords is not None
+                    and (
                         not isinstance(keywords, dict)
-                        or ("id" in keywords and (type(keywords["id"]) is not int or keywords["id"] != tmdb_id))
+                        or (
+                            "id" in keywords
+                            and (
+                                type(keywords["id"]) is not int
+                                or keywords["id"] != tmdb_id
+                            )
+                        )
                         or not isinstance(keywords.get("keywords"), list)
-                        or any(not isinstance(k, dict) or type(k.get("id")) is not int or k["id"] < 1 for k in keywords.get("keywords", []))
+                        or any(
+                            not isinstance(k, dict)
+                            or type(k.get("id")) is not int
+                            or k["id"] < 1
+                            for k in keywords.get("keywords", [])
+                        )
                     )
-                    or collection is not None and (
-                        not isinstance(collection, dict) or type(collection.get("id")) is not int or collection["id"] < 1
+                    or collection is not None
+                    and (
+                        not isinstance(collection, dict)
+                        or type(collection.get("id")) is not int
+                        or collection["id"] < 1
                     )
                 ):
-                    raise TMDBError("Movie discovery returned an unexpected response. Please try again.", 502)
+                    raise TMDBError(
+                        "Movie discovery returned an unexpected response. Please try again.",
+                        502,
+                    )
                 if (
                     any(not isinstance(group, list) for group in groups)
                     or any(
@@ -225,6 +250,8 @@ class CatalogService:
             aliases = [movie.get("title", ""), movie.get("original_title", "")]
             if payload:
                 canonical = payload["details"]
+                if movie.get("catalog_pending"):
+                    result["title"] = canonical["title"]
                 aliases.extend(
                     [
                         canonical["title"],
@@ -289,16 +316,18 @@ class CatalogService:
             if row is None:
                 return
             updates = {}
-            for key, value in dict(
-                cast_list=", ".join(details["cast"]),
-                director=details["director"],
-                overview=details["overview"],
-                genre=details["genre"],
-                year=details["year"],
-                poster_path=details["poster_url"],
-                runtime=details["runtime"],
-                score_percent=details["score_percent"],
-            ).items():
+            if row["catalog_pending"]:
+                updates.update(title=details["title"], catalog_pending=0)
+            for key, value in {
+                "cast_list": ", ".join(details["cast"]),
+                "director": details["director"],
+                "overview": details["overview"],
+                "genre": details["genre"],
+                "year": details["year"],
+                "poster_path": details["poster_url"],
+                "runtime": details["runtime"],
+                "score_percent": details["score_percent"],
+            }.items():
                 if row[key] in (None, "") and value not in (None, ""):
                     updates[key] = value
             try:
@@ -333,6 +362,9 @@ class CatalogService:
             m["tmdb_id"] for m in movies if m.get("tmdb_id") and not m.get("deleted_at")
         ]
         cached = self.cached(ids)
+        for movie in movies:
+            if movie.get("catalog_pending") and movie.get("tmdb_id") in cached:
+                self.fill_missing(movie["tmdb_id"], cached[movie["tmdb_id"]]["details"])
         with self.state_lock:
             for mid in dict.fromkeys(ids):
                 if (

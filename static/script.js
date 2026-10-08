@@ -2,6 +2,14 @@
 (() => {
     'use strict';
     const {t} = window.MovieListI18n;
+    const libraryScope = document.querySelector('meta[name="library-scope"]').content;
+    window.MovieListHTTP = Object.freeze({
+        fetch(url, options = {}) {
+            const headers = new Headers(options.headers || {});
+            headers.set('X-Library-Scope', libraryScope);
+            return window.fetch(url, {...options, headers});
+        }
+    });
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const pendingMovies = new Set();
     const pendingForms = new WeakSet();
@@ -16,7 +24,7 @@
     }
 
     async function post(url, data) {
-        const response = await fetch(url, {
+        const response = await window.MovieListHTTP.fetch(url, {
             method: 'POST',
             body: data,
             headers: {
@@ -84,7 +92,7 @@
         const version = ++libraryVersion;
         libraryController?.abort();
         libraryController = new AbortController();
-        const response = await fetch(url, {
+        const response = await window.MovieListHTTP.fetch(url, {
             signal: libraryController.signal
         });
         if (!response.ok) throw new Error(t('Could not refresh your library. Please try again.'));
@@ -117,7 +125,7 @@
             const ids = new URLSearchParams();
             cards.slice(0, 36).forEach(card => ids.append('id', card.dataset.movieId));
             try {
-                const response = await fetch('/api/library/metadata?' + ids, {signal: metadataController.signal});
+                const response = await window.MovieListHTTP.fetch('/api/library/metadata?' + ids, {signal: metadataController.signal});
                 if (!response.ok) return;
                 const data = await response.json();
                 if (epoch !== metadataEpoch || data.language !== document.documentElement.lang) return;
@@ -408,7 +416,7 @@
                 input.setAttribute('aria-busy', 'true');
                 status.textContent = t('Loading suggestions…');
                 try {
-                    const response = await fetch(`/api/suggestions?${params}`, {
+                    const response = await window.MovieListHTTP.fetch(`/api/suggestions?${params}`, {
                         signal: controller.signal
                     });
                     const data = await response.json();

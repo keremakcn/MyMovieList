@@ -1,8 +1,10 @@
 """Native desktop entry point. Waitress binds before the window is opened."""
 
 import threading
+
 import webview
 from waitress import create_server
+
 from app import create_app
 from version import APP_VERSION
 
@@ -22,5 +24,8 @@ if __name__ == "__main__":
         )
         webview.start()
     finally:
-        application.extensions["catalog"].close()
+        if "cloud" in application.extensions:
+            application.extensions["cloud"].close()
+        else:
+            application.extensions["catalog"].close()
         server.close()

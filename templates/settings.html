@@ -6,6 +6,11 @@
     <div class="form-page">
         <p class="eyebrow">{{ t("YOUR WORKSPACE") }}</p>
         <h1>{{ t("Settings") }}</h1>
+        <section class="form-card">
+            <h2>{{ t('Account & sync') }}</h2>
+            <p>{{ t('A library on your device. An optional private copy in the cloud.') }}</p>
+            <a class="button-link" href="{{ url_for('accounts.settings') }}">{{ t('Account & sync') }}</a>
+        </section>
         <section class="form-card language-settings" aria-labelledby="language-heading">
             <h2 id="language-heading">{{ t('Language') }}</h2>
             <form class="movie-form" action="{{ url_for('change_language') }}" method="post">
@@ -25,6 +30,7 @@
             <p>{{ t("Search films, actors, directors and production studios without setting up an API key or account.") }}</p>
             <p class="settings-note">{{ t("Discovery needs an internet connection. If the service is unavailable, your saved library and downloaded posters remain accessible.") }}</p>
         </section>
+        {% include '_account_backup.html' %}
         <section class="settings-help">
             <h2>{{ t("Your library stays yours") }}</h2>
             <p>{{ t("Your notes, ratings, favorites and viewing history are stored on this device. They are not uploaded to the discovery service.") }}</p>

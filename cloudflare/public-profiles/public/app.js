@@ -1,0 +1,26 @@
+(() => {
+  const $=id=>document.getElementById(id);
+  let locale=navigator.language?.toLowerCase().startsWith('tr')?'tr':'en', epoch=0, controller;
+  const texts={en:{loading:'Loading showcase…',public:'PUBLIC SHOWCASE',tagline:'A few films. A little of me.',selection:'HANDPICKED',heading:'Films I keep close',empty:'No showcase films yet.',privacy:'Only this selection is shared. Notes and the rest of this library stay private.',footer:'A personal movie library. Your own space.',missing:'This profile is not available.',missingText:'It may be private, or the link may be incorrect.',error:'Could not load this profile.',errorText:'Please check your connection and try again.',retry:'Try again',home:'A little of your cinema.',homeText:'Open a shared profile link to explore someone’s chosen films.',defaultName:'A film lover',films:'films',counts:['Films','Watched','Favorites','Want to watch'],rating:'Personal rating'},tr:{loading:'Vitrin yükleniyor…',public:'HERKESE AÇIK VİTRİN',tagline:'Birkaç film. Benden bir parça.',selection:'ÖZENLE SEÇİLDİ',heading:'Yanımda tuttuğum filmler',empty:'Vitrinde henüz film yok.',privacy:'Yalnızca bu seçki paylaşılıyor. Notlar ve kütüphanenin geri kalanı özel.',footer:'Kişisel film kütüphanen. Sana ait bir alan.',missing:'Bu profil görüntülenemiyor.',missingText:'Profil özel olabilir veya bağlantı yanlış olabilir.',error:'Profil yüklenemedi.',errorText:'İnternet bağlantını kontrol edip yeniden dene.',retry:'Yeniden dene',home:'Sinemandan bir parça.',homeText:'Birinin seçtiği filmleri keşfetmek için paylaşılan profil bağlantısını aç.',defaultName:'Bir sinemasever',films:'film',counts:['Film','İzlenen','Favori','İzlenecek'],rating:'Kişisel puan'}};
+  const el=(tag,className,text)=>{const node=document.createElement(tag); if(className)node.className=className; if(text!=null)node.textContent=text; return node;};
+  function state(kind){const t=texts[locale]; $('profile').hidden=true; $('state').hidden=false; $('state-heading').textContent=t[kind]; $('state-text').textContent=t[kind+'Text']||''; $('retry').hidden=kind!=='error';}
+  function render(v){const t=texts[locale]; $('state').hidden=true; $('profile').hidden=false;
+    $('name').textContent=v.display_name||t.defaultName; $('avatar').src='/u/_assets/avatars/'+v.avatar_id+'.svg';
+    $('username').hidden=!v.username; $('username').textContent=v.username?'@'+v.username:'';
+    $('badge').textContent=t.public; $('tagline').textContent=t.tagline; $('selection-label').textContent=t.selection; $('selection-heading').textContent=t.heading;
+    $('selection-count').textContent=v.films.length+' '+t.films; $('privacy').textContent=t.privacy; $('empty').textContent=t.empty; $('empty').hidden=Boolean(v.films.length);
+    $('films').replaceChildren(...v.films.map((film,i)=>{const item=el('article','film'); const link=el('a','poster'); link.href='https://www.themoviedb.org/movie/'+film.tmdb_id; link.target='_blank'; link.rel='noopener noreferrer'; link.setAttribute('aria-label',film.title);
+      if(film.poster_path){const img=el('img'); img.src='https://image.tmdb.org/t/p/w342'+film.poster_path; img.alt=''; img.width=342; img.height=513; img.loading='lazy'; img.decoding='async'; img.addEventListener('error',()=>img.replaceWith(el('span','placeholder','M')),{once:true}); link.append(img);}else link.append(el('span','placeholder','M'));
+      link.append(el('span','rank',i+1)); const title=el('h3'),titleLink=el('a',null,film.title); titleLink.href=link.href; titleLink.target='_blank'; titleLink.rel=link.rel; title.append(titleLink);
+      const info=el('div','film-info'); if(film.year)info.append(el('span',null,film.year)); if(film.rating){const rating=el('span','rating',film.rating+'/10'); rating.setAttribute('aria-label',t.rating+': '+film.rating+'/10'); info.append(rating);} item.append(link,title,info); return item;}));
+    $('counts').hidden=!v.counts; $('counts').replaceChildren(); if(v.counts) ['total','watched','favorites','watchlist'].forEach((key,i)=>{const stat=el('div','stat'); stat.append(el('strong',null,v.counts[key]),el('span',null,t.counts[i])); $('counts').append(stat);});
+  }
+  async function load(){controller?.abort(); controller=new AbortController(); const run=++epoch; const t=texts[locale]; document.documentElement.lang=locale; $('language').textContent=locale==='tr'?'English':'Türkçe'; $('footer-label').textContent=t.footer; $('retry').textContent=t.retry;
+    const match=location.pathname.match(/^\/u\/([a-z][a-z0-9_]{2,23}|[0-9a-f-]{36})$/i); if(!match){state('home');return;}state('loading');
+    try{const response=await fetch('/u/_api/'+match[1].toLowerCase()+'?language='+locale,{cache:'no-store',signal:controller.signal}); if(run!==epoch)return; if(response.status===404){state('missing');return;}if(!response.ok)throw Error('Unavailable'); const value=await response.json(); if(run===epoch)render(value);}
+    catch(error){if(error.name!=='AbortError' && run===epoch)state('error');}
+  }
+  $('language').addEventListener('click',()=>{locale=locale==='tr'?'en':'tr';load();}); $('retry').addEventListener('click',load);
+  window.addEventListener('pageshow',load); window.addEventListener('pagehide',()=>controller?.abort());
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
+})();

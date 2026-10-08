@@ -7,7 +7,7 @@ try {
     $version = & $Python -c 'from version import APP_VERSION; print(APP_VERSION)'
     if ($LASTEXITCODE -ne 0 -or $version -notmatch '^\d+\.\d+\.\d+$') { throw 'Cannot read release version.' }
     $name = "MyMovieList-v$version"
-    & $Python -m PyInstaller --noconfirm --onefile --windowed --name $name --icon=app_icon.ico --add-data 'templates;templates' --add-data 'static;static' run_desktop.py
+    & $Python -m PyInstaller --noconfirm --onefile --windowed --name $name --icon=app_icon.ico --add-data 'templates;templates' --add-data 'static;static' --add-data 'supabase/project.json;supabase' run_desktop.py
     if ($LASTEXITCODE -ne 0) { throw 'Desktop build failed.' }
     $release = Join-Path $root "dist\releases\v$version"
     New-Item -ItemType Directory -Path $release -Force | Out-Null

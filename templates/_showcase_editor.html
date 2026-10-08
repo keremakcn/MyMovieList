@@ -1,0 +1,28 @@
+<a class="profile-back" href="{{ url_for('accounts.account') }}">{{ icon('arrow',14) }} {{ t('Back to profile') }}</a>
+<header class="account-page-heading"><p class="eyebrow">{{ t('YOUR CINEMA') }}</p><h1>{{ t('Edit showcase') }}</h1><p class="account-intro">{{ t('Pick up to 6 films from your library and arrange them your way. Favorites stay separate.') }}</p></header>
+<form class="account-form showcase-editor" action="{{ url_for('accounts.showcase') }}" method="post" data-loading="{{ t('Saving…') }}" data-showcase-editor data-discard="{{ t('Leave without saving your showcase changes?') }}" data-search-url="{{ url_for('accounts.showcase_choices') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="record_keys" value="{{ showcase.record_keys|tojson|forceescape }}">
+    <section class="form-card showcase-selection" aria-labelledby="showcase-selection-heading">
+        <div class="profile-section-heading"><div><h2 id="showcase-selection-heading">{{ t('Your selection') }}</h2><p>{{ t('The order here is the order on your profile.') }}</p></div><span class="showcase-count" data-showcase-count aria-live="polite">{{ showcase.record_keys|length }}/6</span></div>
+        <ol class="showcase-selected-list" data-showcase-selected></ol>
+        <p class="settings-note" data-showcase-empty>{{ t('Your showcase starts empty. Choose a film below.') }}</p>
+        <div class="showcase-display-options">
+            <label><input type="checkbox" name="show_ratings" value="1" {{ 'checked' if showcase.show_ratings }}> {{ t('Show my ratings in the showcase') }}</label>
+            <label><input type="checkbox" name="show_stats" value="1" {{ 'checked' if showcase.show_stats }}> {{ t('Show my library counts in the showcase') }}</label>
+        </div>
+        <p class="showcase-privacy-note">{{ icon('lock',13) }} {{ t('Changes sync to your public showcase when sharing is enabled. Notes and custom films stay private.') if cloud_status.sharing.is_public or cloud_status.sharing.pending == 'publish' else t('Your profile is still private. Choosing films does not publish your library.') }}</p>
+    </section>
+    <section class="form-card showcase-library" aria-labelledby="showcase-library-heading">
+        <div class="profile-section-heading"><div><h2 id="showcase-library-heading">{{ t('Choose from your library') }}</h2><p>{{ t('Search your saved films. Adding a showcase film does not change its favorite status.') }}</p></div></div>
+        <label class="sr-only" for="showcase-search">{{ t('Search your library') }}</label>
+        <div class="search-input-wrap"><input id="showcase-search" type="search" maxlength="200" autocomplete="off" placeholder="{{ t('Search your library') }}">{{ icon('search',18) }}</div>
+        <p class="showcase-search-status" data-showcase-status role="status" aria-live="polite"></p>
+        <button class="secondary" type="button" data-showcase-retry hidden>{{ t('Try again') }}</button>
+        <div class="showcase-choice-grid" data-showcase-choices></div>
+        <div class="showcase-pagination"><button class="secondary" type="button" data-showcase-page="previous">{{ t('Previous') }}</button><span data-showcase-page-label></span><button class="secondary" type="button" data-showcase-page="next">{{ t('Next') }}</button></div>
+    </section>
+    <div class="showcase-save-actions"><button type="submit"><span data-submit-label>{{ t('Save showcase') }}</span></button><a class="text-link" href="{{ url_for('accounts.account') }}">{{ t('Cancel') }}</a></div>
+</form>
+<script id="showcase-data" type="application/json">{{ {'selection':showcase_selected,'choices':showcase_choices}|tojson }}</script>
+<script defer src="{{ url_for('static',filename='showcase.js',v=asset_version) }}"></script>

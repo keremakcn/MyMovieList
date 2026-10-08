@@ -71,7 +71,7 @@
         const viewAll = shelf.querySelector('.discovery-view-all');
         if (shelf.dataset.discoveryShelf === 'trending') viewAll.href = `/discover/trending?window=${state.window}`;
         try {
-            const response = await fetch(`/api/discovery/${shelf.dataset.discoveryShelf}?${parameters}`, {
+            const response = await window.MovieListHTTP.fetch(`/api/discovery/${shelf.dataset.discoveryShelf}?${parameters}`, {
                 signal: state.controller.signal, headers: {'Accept': 'application/json'}
             });
             const result = await response.json().catch(() => ({error: t('Could not load these films. Please try again.')}));

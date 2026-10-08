@@ -591,8 +591,8 @@ def test_schema_v2_upgrade_backs_up_every_user_field_without_changing_rows(tmp_p
     assert db.query("SELECT value FROM settings WHERE key='ui_language'") == [
         {"value": "tr"}
     ]
-    assert db.query("PRAGMA user_version")[0]["user_version"] == 3
-    backup = list(tmp_path.glob("*.before-v3-*.bak"))
+    assert db.query("PRAGMA user_version")[0]["user_version"] == 4
+    backup = list(tmp_path.glob("*.before-v4-*.bak"))
     assert len(backup) == 1
     assert Database(backup[0]).query("SELECT * FROM movies") == before
     db.migrate()
