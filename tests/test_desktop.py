@@ -1,9 +1,9 @@
 """Protect installed library selection when promoting a desktop release."""
 
 import importlib.util
-from pathlib import Path
 import runpy
 import sys
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -14,24 +14,45 @@ from version import APP_VERSION
 
 @pytest.mark.parametrize("override", [False, True])
 def test_packaged_launcher_retains_existing_library(tmp_path, monkeypatch, override):
-    monkeypatch.setattr(sys, "platform", "win32")
+    # Keep the interpreter's real platform: ssl also reads sys.platform.
+    # Each runner verifies its native installed location with an isolated home.
+    native_platform = sys.platform
     root = Path(__file__).resolve().parents[1]
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", lambda: home)
     roaming = tmp_path / "AppData" / "Roaming"
-    data = tmp_path / "custom-library" if override else roaming / "MovieWatchlist"
+    installed = (
+        home / "Library" / "Application Support" / "MyMovieList"
+        if native_platform == "darwin"
+        else roaming / "MovieWatchlist"
+    )
+    data = tmp_path / "custom-library" if override else installed
     monkeypatch.setenv("APPDATA", str(roaming))
     monkeypatch.delenv("MOVIE_WATCHLIST_DATA_DIR", raising=False)
     if override:
         monkeypatch.setenv("MOVIE_WATCHLIST_DATA_DIR", str(data))
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "_MEIPASS", str(root), raising=False)
-    monkeypatch.setattr(sys, "executable", str(tmp_path / "Downloads" / "MovieWatchlist.exe"))
+    monkeypatch.setattr(
+        sys, "executable", str(tmp_path / "Downloads" / "MovieWatchlist.exe")
+    )
 
     original = Database(data / "movies.db")
     original.migrate()
-    original.add_tmdb(dict(tmdb_id=603, title="The Matrix", status="Watched",
-                           note="Keep this personal note.", rating=9, favorite=1))
+    original.add_tmdb(
+        {
+            "tmdb_id": 603,
+            "title": "The Matrix",
+            "status": "Watched",
+            "note": "Keep this personal note.",
+            "rating": 9,
+            "favorite": 1,
+        }
+    )
     before = original.query("SELECT * FROM movies")
-    spec = importlib.util.spec_from_file_location("desktop_release_app", root / "app.py")
+    spec = importlib.util.spec_from_file_location(
+        "desktop_release_app", root / "app.py"
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     real_factory = module.create_app
@@ -52,6 +73,7 @@ def test_packaged_launcher_retains_existing_library(tmp_path, monkeypatch, overr
     monkeypatch.setitem(sys.modules, "waitress", waitress)
     runpy.run_path(str(root / "run_desktop.py"), run_name="__main__")
 
+    assert sys.platform == native_platform
     assert Path(created[0].config["DATABASE"]) == data / "movies.db"
     assert created[0].config["SESSION_COOKIE_NAME"] == "session"
     assert created[0].extensions["db"].query("SELECT * FROM movies") == before

@@ -5,11 +5,18 @@ Keychain sessions and a manual GitHub Actions workflow for separate Apple Silico
 and Intel DMGs. The shared version remains **3.5.0**. Social discovery is included in the
 shared modules, templates and bundled translations used by the Mac build.
 Supabase migration 005 is installed on the hosted service. Windows and Android
-packages are rebuilt separately; the Mac workflow is intentionally not run yet.
+packages are rebuilt separately. The first native Mac workflow ran on October 8
+and stopped during source tests; it did not reach the DMG build step.
 
-**Status:** the source adaptation is tested on Windows with simulated Mac platform
-services. The macOS workflow has not yet run; no DMG or physical-Mac compatibility
-is claimed until its native checks and manual tests pass.
+**Status:** the first native run passed dependency setup but failed two launcher
+tests that changed the interpreter's global platform to Windows. This made
+Mac Python try to enumerate Windows TLS certificates. The tests now preserve
+the real platform and verify that runner's native library folder and custom
+data override. Production TLS and application code are unchanged. The exact
+failure was reproduced locally; all 32 launcher/Mac checks pass with the Mac
+flag and no Windows certificate enumerator. A new native workflow run is still
+required; no DMG or physical-Mac compatibility is claimed until native checks
+and manual tests pass.
 
 ## Requirements
 
@@ -26,8 +33,9 @@ is claimed until its native checks and manual tests pass.
 2. Open the repository on GitHub and select **Actions → macOS packages**.
 3. Select **Run workflow → main → Run workflow** (or the actual default branch).
 4. The `macos-15` job builds Apple Silicon; `macos-15-intel` builds Intel.
-5. Both jobs run source tests, generate the current logo's `.icns`, build the
-   `.app`, verify the native package and assemble a DMG.
+5. Both jobs run all source tests, upload a per-architecture test report even
+   if tests fail, generate the current logo's `.icns`, build the `.app`,
+   verify the native package and assemble a DMG.
 6. Download the two job artifacts after successful completion. Each artifact ZIP
    contains a DMG, its SHA-256 checksum and verification report.
 7. Test on actual Macs, then attach the **DMG files themselves** and their

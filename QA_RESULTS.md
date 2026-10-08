@@ -1,3 +1,28 @@
+# macOS CI launcher-test correction — 2026-10-08
+
+- The first hosted ARM/Intel workflow stopped in source validation before
+  PyInstaller or DMG creation. The supplied ARM log reports **2 failed,
+  475 passed, 1 skipped**. Both failures were launcher-library tests; installation
+  steps succeeded.
+- Those tests globally changed sys.platform to win32. Mac Python's ssl module
+  then tried to call its unavailable Windows enum_certificates function. The
+  exact NameError was reproduced in an isolated Windows diagnostic process
+  with a Mac flag and no Windows certificate enumerator.
+- Launcher tests now preserve the real interpreter platform and use an isolated
+  home to cover the runner's native installed folder and explicit data override.
+  Existing-library fields and native startup/shutdown assertions are retained.
+  No test is skipped to bypass the problem; production TLS checks are unchanged.
+- **32 launcher/Mac checks passed** under that reproducer after the fix.
+  The complete Windows suite passed **478 tests** with isolated libraries.
+- The workflow uses current checkout/setup-python v7 actions, retains all tests
+  and read-only repository permissions, disables persistent checkout credentials,
+  and uploads JUnit reports after successful or failed source validation.
+  Workflow YAML and targeted test lint pass.
+- Only tests, CI and these documents changed. Shared version remains **3.5.0**.
+  Windows and Android downloads require no rebuild for this correction.
+  The corrected workflow must still be uploaded and run on both native Macs;
+  successful DMGs and physical-device tests remain pending.
+
 # Current Windows and Android packages — 2026-10-08
 
 - Rebuilt from the authoritative **Desktop/movie-watchlist** source, including
