@@ -1,5 +1,105 @@
 # Current Windows and Android packages — 2026-10-08
 
+- Rebuilt from the authoritative **Desktop/movie-watchlist** source, including
+  Social, public showcases, accounts and automatic sync. Shared version is
+  **3.5.0**; Android is **3.5.0-android-beta.3**, versionCode **7**, application ID
+  **com.moviewatchlist**. The existing Desktop EXE was updated as well.
+- **478 isolated Python tests passed**, including 44 Social and 30 Mac-source
+  cases. Targeted lint passed. Temporary test libraries and synthetic credentials
+  were used; personal AppData and signing materials were not changed.
+- Windows package verification matched the compiled code for **27 shared
+  modules**, all **69 UI assets**, and the public cloud configuration to main
+  source. The ZIP contains the matching EXE and current release notes.
+- The real rebuilt Windows EXE passed isolated startup, EN/TR switching and
+  restart persistence, offline saved cast/synopses, preservation of personal
+  movie fields, registration disclosure and Social routes in both languages.
+- Clean signed Android APK and AAB builds passed archive CRC, all **27**
+  shared/bridge bytecode provenance checks through the build intermediates and
+  all **69** UI asset hashes. The signing certificate matches beta.2, allowing
+  upgrades without replacing the application identity.
+- APK v2 signature and 16 KB ZIP alignment, AAB signature, bundle structure,
+  manifest/version and requested 16 KB page alignment checks passed. Native ELF
+  inspection passed for **138 libraries / 408 load segments** per package.
+  Release lint reported **0 errors and 4 existing warnings**.
+- Final release copies and SHA-256 checksums match the verified build outputs.
+  Previous download copies were preserved in the ignored QA backup directory.
+  Current release assets are the Windows ZIP, Android beta.3 APK and beta.3 AAB.
+- EN/TR README screenshots include Social with fictional showcase members.
+  Earlier browser QA below covers 24 checks at 320, 390, 768 and 1365 pixels.
+- No phone was connected, so physical Android installation/runtime tests remain
+  pending. macOS sources, module verification and bilingual offline Social smoke
+  checks are current; **no Mac workflow or DMG build was run**. Native Mac,
+  graphical-window and hosted two-owner release rehearsals remain pending.
+
+# Earlier Social source preparation — 2026-10-08
+
+- Shared version remains **3.5.0**. Added in-app People and This week views,
+  member search, cursor pagination, profile/film navigation, loading and clear
+  setup/offline/empty states. No posting features or full-history sharing.
+- **477 isolated Python tests passed**, including 44 Social cases. A final
+  focused check of Social and Mac preparation passed **73 tests** after the
+  final UI copy updates. Guest libraries, private notes, ratings, favorites,
+  order, account ownership and the existing public-profile contract are covered.
+- All three PostgreSQL/PGlite contract scripts passed. Migrations 001–005 are
+  exercised with synthetic owners, including privacy/direct-access denial,
+  moderated legacy names, only chosen and dated watches, optional ratings,
+  literal search, bounded multi-page results, safe week rollover, revocation,
+  RLS/grant preservation and migration replay. No live admin SQL was executed.
+- Edge browser QA passed **24 checks with 19 screenshots** and no script errors.
+  English/Turkish People and weekly views fit 320, 390, 768 and 1365 pixels.
+  Verified five mobile nav targets, long names, keyboard search/focus, single
+  submit/loading announcement, pagination, back navigation, profile visits,
+  owned/unowned movie details and setup/offline/empty states. Fixtures contain
+  fictional members and disposable SQLite files; real AppData was not used.
+- New/changed feature modules, Mac verifier and tests pass targeted Ruff;
+  JavaScript syntax checks pass. Existing local-calendar date validation in
+  app.py is intentionally retained (its pre-existing DTZ warnings are excluded
+  from that file's targeted lint).
+- Android's source allowlist and the Mac verifier include all new shared modules.
+  **No Windows, Android or Mac native packages were rebuilt in this update.**
+  Existing download archives contain the earlier 3.5.0 implementation.
+- The user applied migration 005 successfully on October 8. Both hosted Social
+  views passed anonymous protocol-1 probes with empty results.
+  No admin SQL was executed by this source update. A hosted opted-in/private
+  owner rehearsal and native-device testing remain pending; local tests do not
+  replace them. Main-install verification: **112 focused tests passed**; all
+  **217 prepared public source/asset files** match the installed main project.
+
+# macOS source preparation — 2026-10-08
+
+- Shared version remains **3.5.0**. The manual `macOS packages` workflow targets
+  macOS 15+ with separate native Apple Silicon (`arm64`) and Intel (`x86_64`) jobs.
+  It creates ad-hoc signed beta DMGs, checksums and verification reports; it does
+  not publish releases or require Apple Developer credentials.
+- **433 isolated Python tests passed** on Windows, including 29 new Mac cases.
+  These cover installed/source data paths, explicit data overrides, retained
+  movie fields, secure-session reopen/logout, separate data-folder namespaces,
+  locked/missing/unavailable Keychain services, rejected malformed/oversized
+  sessions, redacted SDK errors, Android precedence, native language preference
+  and fallback, platform shortcut labels and safe native-test preconditions.
+- Changed modules, Mac packaging scripts and tests pass targeted Ruff. The
+  workflow YAML, manual trigger, runner matrix and read-only permissions parse
+  correctly. The complete suite also retains native Windows DPAPI checks and
+  existing account, onboarding, sync, recommendation and discovery coverage.
+- Installed Mac libraries use `~/Library/Application Support/MyMovieList`; cloud
+  sessions use the explicit Apple Keychain backend without a plaintext fallback.
+  Existing Windows and Android storage and session protection remain intact.
+- Native build verification checks compiled modules, UI/configuration hashes,
+  binary architecture, nested signatures, private-file exclusion and the actual
+  executable's isolated loopback/Keychain/language/data behavior. It mounts and
+  rechecks the delivered DMG before uploading artifacts. The current logo is
+  converted to ICNS during the native build.
+- **No native Mac build or graphical/physical-Mac test has run yet. No DMG is
+  available from this Windows preparation.** These are pending Actions and
+  actual-device checks documented in `MACOS.md`. Automated synthetic Keychain
+  checks do not replace real sign-in, window, download or cross-device testing.
+- QA uses temporary libraries and synthetic credentials. No personal AppData
+  library, account or signing key was used. No new Supabase migration is needed.
+  Existing Windows/Android download packages are unchanged by this preparation;
+  their earlier validation is recorded below.
+
+# Earlier Windows and Android packages — 2026-10-08
+
 - Rebuilt from the authoritative `Desktop/movie-watchlist` source after the
   automatic guest-library-copy update. Shared version remains **3.5.0**; Android
   is **3.5.0-android-beta.2**, `versionCode=6`, package `com.moviewatchlist`.

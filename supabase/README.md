@@ -7,9 +7,12 @@ October 8, followed by username migration 003. Registration/name-policy migratio
 (`mymovielist-usernames`, protocol 2). Resend SMTP, email verification, password recovery and
 library restoration on a second isolated device instance were tested by the user.
 The updated registration/profile UI and sync behavior are covered by local tests.
-Windows 3.5.0 and signed Android 3.5.0 beta.2 downloads were rebuilt with the
-registration, profile and sync modules. No further rebuild is needed after applying 004. Hosted two-owner
-access separation and native Android lifecycle still require final release QA.
+Social migration 005 was applied by the user on October 8; both anonymous
+directory and weekly-view setup probes passed. Windows 3.5.0 and signed
+Android 3.5.0 beta.3 downloads were rebuilt with the registration, profile,
+automatic sync and Social modules. Existing hosted setup needs no further
+SQL for these downloads. Hosted two-owner access separation and native
+Android lifecycle still require final release QA.
 
 ## Apply the database setup
 
@@ -54,9 +57,10 @@ Notes, email, custom films and unselected film IDs must never appear.
 If offline, privacy removal remains pending until the account is signed in and
 connected. Do not assume that signing out revokes a public link.
 
-The public schema exposes only the narrow `mml_public_profile(uuid)` and,
-after migration 003, `mml_public_profile_by_username(text)` public projections
-to anonymous clients.
+Public showcase reads use the narrow `mml_public_profile(uuid)` and,
+after migration 003, `mml_public_profile_by_username(text)` projections.
+Migration 005 adds the bounded, read-only `mml_social_page` projection for
+anonymous Social reads. These never grant direct private-library access.
 Owner status/write RPCs require authentication. The sharing table is in
 `mml_private` with no direct client privileges.
 
@@ -110,7 +114,7 @@ source. Rebuilding is necessary before this appears in distributed applications.
   A single local transaction copies personal fields and available public details
   before completing the new account's password. A lost completion response or
   failed session save cannot lose that staged library; later sign-in opens it.
-  The Windows v3.5.0 rebuild and Android beta.2 packages include this behavior;
+  The Windows v3.5.0 rebuild and Android beta.3 packages include this behavior;
   it requires no additional Supabase migration.
 - A private display name and one avatar ID are stored in `user_metadata.mml_profile`
   through the authenticated Auth user endpoint. The SVG avatar pack ships in
@@ -119,8 +123,9 @@ source. Rebuilding is necessary before this appears in distributed applications.
   acknowledgement cannot erase a newer edit. Profiles use last successful upload
   semantics across devices; movie notes retain the stronger revision/conflict protocol.
   User metadata is used only for display/onboarding, never authorization.
-- Windows sessions use DPAPI. Android Keystore support is prepared but needs
-  native testing. Unsupported OSes use memory-only sessions.
+- Windows sessions use DPAPI; Android uses its native Keystore. macOS support
+  uses the explicit Keychain backend and awaits native Mac package testing.
+  Unsupported OSes use memory-only sessions. See [Mac setup](../MACOS.md).
 - Pause retains the local account library. Sign-out returns to the guest library;
   account files and pending edits remain on the device.
 
@@ -285,3 +290,40 @@ definitions; if they must be reapplied, finish by running 004 again.
 Verify `select public.mml_username_protocol();`: service must be
 `mymovielist-usernames`, protocol `2`. Test real SMTP registration with an account
 you control after setup. Automated tests use synthetic accounts only.
+
+## Current native packages
+
+Windows v3.5.0 and Android 3.5.0 beta.3 are rebuilt with the current account,
+sync and Social modules. Mac source/build support is current; native Mac builds
+remain deferred. Package checks are recorded in [QA results](../QA_RESULTS.md).
+
+## Enable in-app Social discovery
+
+Source prepared on October 8, 2026. The user applied migration 005 with
+**Success. No rows returned.** Both views were then verified through anonymous
+protocol-1 probes with empty results. This source update itself does not execute
+admin SQL; run 005 when setting up another project where the RPC is missing.
+A hosted public/private-owner rehearsal is still required.
+Accounts and private library sync continue to use the already-installed 001–004.
+In **SQL Editor → New query**, paste the entire
+[`migrations/005_social_discovery.sql`](migrations/005_social_discovery.sql) and
+click **Run**. Expect **Success. No rows returned.** Keep migrations 001–004;
+005 depends on them and can be rerun without deleting data.
+
+The change adds a bounded read-only public directory and a weekly window into
+chosen showcases. It creates no posts or tracking table, publishes no account,
+and changes no private library permissions. Only public profiles with valid
+usernames are discoverable. Weekly entries require a chosen, active, Watched
+film with an explicit watched date in the current UTC week. Personal ratings
+appear only when the owner's existing showcase rating option is enabled.
+Notes, email, custom films and unselected history are excluded.
+
+Reopen the updated source app and visit **Social → People / This week**. Check
+name search, profile navigation, optional ratings and a fresh request after
+turning a profile private. If no one has opted into sharing, the directory is
+empty. If 005 is missing, Social shows a setup state while the library remains
+available. See [design and tests](../SOCIAL_DESIGN.md).
+
+The current Windows v3.5.0 rebuild and Android beta.3 include Social. Earlier
+3.5.0 Windows downloads and Android beta.1/beta.2 do not; replace them with the
+current verified packages. No Mac DMG has been built yet.

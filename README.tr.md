@@ -16,12 +16,17 @@
 2. Arşivi çıkar ve `MyMovieList-v3.5.0.exe` dosyasını aç. Python kurman gerekmez.
 3. Bir film arayıp kütüphanene ekle. Keşif için ek ayar gerekmez.
 
-**Android — 3.5.0-android-beta.2**
+**Android — 3.5.0-android-beta.3**
 
-**Assets** bölümünden `MyMovieList-3.5.0-android-beta.2.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
+**Assets** bölümünden `MyMovieList-3.5.0-android-beta.3.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
 
 ## Neler yapabilirsin?
 
+**macOS beta hazırlığı:** Apple Silicon ve Intel için derleme desteği eklendi.
+DMG'ler yayınlanmadan önce Mac derlemesi ve gerçek cihaz testleri tamamlanmalıdır.
+Bkz. [Mac derleme ve kurulum yönergeleri](MACOS.md).
+
+- **Sosyal.** İsim veya kullanıcı adıyla açık profilleri bul, seçilmiş vitrinlere uygulama içinden ulaş. Bu hafta bölümünde yalnızca vitrindeki izleme tarihi girilmiş filmler görünür. Özel notlar ve kütüphanenin geri kalanı gizli kalır. Vitrinini paylaşmak isteğe bağlıdır; profil paylaşımını açana kadar hesabın gizli kalır.
 - **Türkçe veya İngilizce kullan.** İlk açılışta cihazının arayüz dili esas alınır; Türkçe dışındaki diller için İngilizce kullanılır. Tercihini **Ayarlar → Dil** bölümünden değiştirebilirsin. Türkçe filmler özgün Türkçe adlarıyla gösterilir; özetlerde mevcut Türkçe çeviri, bulunamazsa İngilizce metin kullanılır.
 - **Kendi film kütüphaneni oluştur.** İzlediklerini ve izlemek istediklerini takip et; puan, favori ve kişisel not ekle. Kütüphaneni filtrele, sırala ve yanlışlıkla sildiğin bir filmi bilgilerini kaybetmeden geri al.
 - **Film ayrıntılarını sakla.** Oyuncular, yönetmenler, senaristler, yapımcılar ve stüdyolar film eklenirken kaydedilir. Eski kayıtların eksik bilgileri çevrimiçi gezinirken tamamlanır; kaydedilen ayrıntılar ve iki dildeki mevcut özetler çevrimdışı da okunabilir.
@@ -42,6 +47,14 @@ Güncel v3.5.0 arayüzünden, örnek bir hesap ve kütüphaneyle alınmıştır.
 Seni anlatan filmleri kendin seç. Kişisel özetin ve kütüphanenin geri kalanı herkese açık vitrinden ayrı tutulur.
 
 ![Kedi avatarı, benzersiz kullanıcı adı ve altı seçilmiş filmle MyMovieList profili](screenshots/tr/profile.png)
+
+### Filmseverlerle tanış
+
+Açık vitrinlere uygulama içinden ulaş. Bu hafta bölümünde yalnızca seçilmiş,
+izleme tarihi girilmiş filmler görünür; kişisel notlar gizli kalır.
+Görüntüdeki kullanıcılar örnek hesaplardan oluşur.
+
+![Seçilmiş vitrin filmleriyle MyMovieList Sosyal ve Bu hafta görünümü](screenshots/tr/social.png)
 
 ### Yeni favorini keşfet
 
@@ -121,7 +134,7 @@ python -m venv .venv
 
 Geliştirme ayrıntıları için [sürüm notları](RELEASE_NOTES.md), [test sonuçları](QA_RESULTS.md), [Android derleme yönergeleri](ANDROID.md) ve [keşif servisi kurulumu](cloudflare/watchlist-api/README.md) belgelerine bakabilirsin.
 
-Geliştiriciler için: [bulut kurulumu](supabase/README.md) ve [veri taşıma tasarımı](CLOUD_SYNC_DESIGN.md). Hesap hizmetinin tamamı için 001–004 veritabanı dosyaları kurulmalıdır.
+Geliştiriciler için: [bulut kurulumu](supabase/README.md) ve [veri taşıma tasarımı](CLOUD_SYNC_DESIGN.md). Hesaplar için 001–004, Sosyal için ayrıca 005 veritabanı kurulumu gerekir. [Sosyal tasarım ve doğrulama](SOCIAL_DESIGN.md).
 
 
 ## Teşekkürler

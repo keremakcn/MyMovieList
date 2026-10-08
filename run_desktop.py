@@ -1,5 +1,6 @@
 """Native desktop entry point. Waitress binds before the window is opened."""
 
+import sys
 import threading
 
 import webview
@@ -9,7 +10,12 @@ from app import create_app
 from version import APP_VERSION
 
 if __name__ == "__main__":
-    # The application factory retains the installed app's AppData library.
+    if "--smoke-test" in sys.argv:
+        from desktop_smoke import run_smoke_test
+
+        run_smoke_test()
+        raise SystemExit(0)
+    # The application factory selects the installed platform's persistent library.
     application = create_app()
     server = create_server(application, host="127.0.0.1", port=0)
     server_thread = threading.Thread(target=server.run, daemon=True)

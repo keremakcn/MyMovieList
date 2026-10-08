@@ -1,0 +1,9 @@
+-r requirements-desktop.txt
+# The explicit macOS backend stores sessions in Apple Keychain, never plaintext.
+keyring>=25.7,<26; sys_platform == "darwin"
+# Cocoa/WebKit integration and the native UI-language preference.
+pyobjc-core>=11,<13; sys_platform == "darwin"
+pyobjc-framework-Cocoa>=11,<13; sys_platform == "darwin"
+pyobjc-framework-Quartz>=11,<13; sys_platform == "darwin"
+pyobjc-framework-WebKit>=11,<13; sys_platform == "darwin"
+pyobjc-framework-Security>=11,<13; sys_platform == "darwin"

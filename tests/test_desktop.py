@@ -14,6 +14,7 @@ from version import APP_VERSION
 
 @pytest.mark.parametrize("override", [False, True])
 def test_packaged_launcher_retains_existing_library(tmp_path, monkeypatch, override):
+    monkeypatch.setattr(sys, "platform", "win32")
     root = Path(__file__).resolve().parents[1]
     roaming = tmp_path / "AppData" / "Roaming"
     data = tmp_path / "custom-library" if override else roaming / "MovieWatchlist"

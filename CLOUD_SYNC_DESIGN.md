@@ -1,5 +1,14 @@
 # Optional cloud sync and provider exit plan
 
+## In-app Social — source preview, October 8, 2026
+
+Migration 005 adds read-only discovery of already-public showcases with valid
+usernames. Weekly entries expose explicit watched dates only for the owner's
+chosen showcase films; optional ratings follow the existing sharing option.
+The ordinary public profile DTO remains unchanged. No full history, notes,
+tracking events, private-library grants or automatic publication are added.
+See [Social design](SOCIAL_DESIGN.md) for its consent boundary and setup status.
+
 ## Optional public showcases — enabled October 8, 2026
 
 Public sharing is separate from Auth user metadata and remains off by default.
@@ -85,7 +94,7 @@ Storage schema 4 adds stable record/order keys and durable queue, baseline and c
    available on later sign-in. Repeated submissions never duplicate stable IDs.
    A conflicting existing server record uses the usual two-version review and
    preserves the server's immutable first-add date/order.
-5. `cloud_client.py` handles HTTPS Auth/RPC with redacted errors and refused redirects. `account_routes.py` and its bilingual UI provide optional sign-in/up, code verification/recovery, automatic sync/pause, conflict resolution and export/import. Windows sessions use DPAPI, Android Keystore support is prepared, and unsupported OSes keep sessions only in memory. Native loopback authentication and CSRF protection remain intact.
+5. `cloud_client.py` handles HTTPS Auth/RPC with redacted errors and refused redirects. `account_routes.py` and its bilingual UI provide optional sign-in/up, code verification/recovery, automatic sync/pause, conflict resolution and export/import. Windows sessions use DPAPI; Android uses its native Keystore. macOS preparation adds an explicit Apple Keychain backend, awaiting native package testing; no plaintext fallback is allowed. Unsupported OSes keep sessions only in memory. Native loopback authentication and CSRF protection remain intact. See [Mac build preparation](MACOS.md).
 
 Keep provider HTTP calls out of cards, templates and movie-rating logic. A compact provider boundary handles authentication, pulling changes and pushing changes. There is no need to replace the application with a new frontend or move catalog discovery into Supabase.
 
@@ -131,7 +140,7 @@ This retains more of the existing authentication/API model, but requires operati
 - Two-user isolation, account switching, RLS denial and session refresh/logout behavior.
 - Restore on a second device with missing posters and an unavailable catalog service.
 - Provider-neutral export/import migration rehearsal and local-only exit without data loss.
-- Native Windows and Android login/session lifecycle checks with protected session storage.
+- Native Windows, Android and macOS login/session lifecycle checks with protected session storage.
 
 Use synthetic data for verification. Do not upload the existing personal library as a development test.
 

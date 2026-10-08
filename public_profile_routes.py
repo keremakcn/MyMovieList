@@ -1,13 +1,12 @@
 """Anonymous visits to the consented public projection, with local add actions."""
 
-from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID
 
 from flask import Blueprint, abort, render_template, request
 
 from account_username import normalize_username
 from cloud_client import CloudError
-from tmdb_client import TMDBError
+from public_catalog import present_public_movies
 
 
 def register_public_profiles(app, cloud):
@@ -42,32 +41,11 @@ def register_public_profiles(app, cloud):
         library = cloud.current()
         locale = app.extensions["i18n"]["language"]()
 
-        def movie(pick):
-            # Catalog fetches never import another user's personal record.
-            try:
-                details = library.catalog.details(pick["tmdb_id"])
-            except (TMDBError, ValueError, TypeError):
-                details = {
-                    "tmdb_id": pick["tmdb_id"],
-                    "title": "#" + str(pick["tmdb_id"]),
-                    "overview": "",
-                    "year": None,
-                    "poster_url": None,
-                    "score_percent": None,
-                }
-            rows = library.db.query(
-                "SELECT * FROM movies WHERE tmdb_id=? AND deleted_at IS NULL",
-                pick["tmdb_id"],
-            )
-            return dict(
-                details,
-                library=dict(rows[0]) if rows else None,
-                showcase_rating=pick.get("rating"),
-            )
-
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            movies = list(executor.map(movie, public["films"]))
-        movies = library.catalog.present(movies, locale)
+        resolved = present_public_movies(library, public["films"], locale)
+        movies = [
+            dict(resolved[pick["tmdb_id"]], showcase_rating=pick.get("rating"))
+            for pick in public["films"]
+        ]
         return render_template(
             "public_profile.html",
             public=public,

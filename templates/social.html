@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('Social') }} · MyMovieList{% endblock %}
+{% block content %}
+<section class="social-page">
+    <header class="social-heading">
+        <div><p class="eyebrow">{{ t('A SHARED LOVE OF FILM') }}</p><h1>{{ t('Social') }}<span class="brand-dot">.</span></h1><p class="social-intro">{{ t('Find film lovers. Discover a little of their taste.') }}</p></div>
+        <a class="secondary-button" href="{{ url_for('accounts.account') }}">{{ t('Your profile') }} {{ icon('arrow',16) }}</a>
+    </header>
+    <nav class="profile-tabs social-tabs" aria-label="{{ t('Social sections') }}">
+        <a href="{{ url_for('social.page',q=query) }}" {% if view=='people' %}aria-current="page"{% endif %}>{{ icon('social',17) }} {{ t('People') }}</a>
+        <a href="{{ url_for('social.page',view='week',q=query) }}" {% if view=='week' %}aria-current="page"{% endif %}>{{ icon('clock',17) }} {{ t('This week') }}</a>
+    </nav>
+    <div class="social-toolbar">
+        <form class="social-search" action="{{ url_for('social.page') }}" method="get" role="search" data-loading="{{ t('Searching…') }}">
+            <input type="hidden" name="view" value="{{ view }}"><label class="sr-only" for="social-query">{{ t('Search public profiles') }}</label>
+            <div class="social-search-field">{{ icon('search',18) }}<input id="social-query" name="q" type="search" value="{{ query }}" maxlength="60" placeholder="{{ t('Name or @username') }}" autocomplete="off" aria-describedby="social-search-status"></div><button class="secondary-button" type="submit">{{ t('Search') }}</button><span id="social-search-status" class="sr-only" role="status"></span>
+        </form>
+        <a class="social-refresh" href="{{ url_for('social.page',view=view,q=query) }}">{{ icon('refresh',16) }} {{ t('Refresh') }}</a>
+    </div>
+    <div class="social-section-heading"><h2>{{ t('Public showcases' if view=='people' else 'Watched this week') }}</h2>{% if result and view=='week' %}<span>{{ result.week_start }} — {{ result.week_end }}</span>{% endif %}</div>
+    <p class="social-context">{{ t('Visit a profile to see the films they chose to showcase.' if view=='people' else 'Dated watches from public showcases. Only chosen films appear here.') }}</p>
+    {% if state %}
+        <div class="social-empty" role="status">{{ icon('social',36) }}<h2>{{ t('Social is being prepared.' if state=='setup' else 'Check your search and try again.' if state=='invalid' else 'Could not load Social.') }}</h2><p>{{ t('Your saved library is still available.') }}</p><a class="secondary-button" href="{{ url_for('social.page',view=view) }}">{{ t('Try again') }}</a></div>
+    {% elif rows %}
+        {% if view=='people' %}
+        <div class="social-people-grid">
+            {% for person in rows %}<a class="social-person-card" href="{{ url_for('public_profiles.visit',username=person.username) }}">
+                <img src="{{ url_for('static',filename='avatars/' + person.avatar_id + '.svg') }}" width="64" height="64" alt="" loading="lazy">
+                <div><h3>{{ person.display_name or t('A film lover') }}</h3><p>@{{ person.username }}</p><span>{{ t('View showcase') }} {{ icon('arrow',13) }}</span></div>
+            </a>{% endfor %}
+        </div>
+        {% else %}
+        <div class="social-activity-list">
+            {% for entry in rows %}{% set movie=entry.movie %}<article class="social-activity-card">
+                <a class="social-activity-poster" href="{{ url_for('movie',movie_id=movie.library.id) if movie.library else url_for('catalog_movie',tmdb_id=movie.tmdb_id) }}" aria-label="{{ movie.title }}">
+                    {% if movie.poster_url %}<img src="{{ movie.poster_url }}" width="80" height="120" alt="" loading="lazy" decoding="async">{% else %}{{ icon('film',28) }}{% endif %}
+                </a>
+                <div class="social-activity-body"><a class="social-activity-person" href="{{ url_for('public_profiles.visit',username=entry.username) }}"><img src="{{ url_for('static',filename='avatars/' + entry.avatar_id + '.svg') }}" width="30" height="30" alt=""><strong>{{ entry.display_name or t('A film lover') }}</strong><span>@{{ entry.username }}</span></a>
+                    <p class="social-watch-label">{{ t('watched') }}</p><h3><a href="{{ url_for('movie',movie_id=movie.library.id) if movie.library else url_for('catalog_movie',tmdb_id=movie.tmdb_id) }}">{{ movie.title }}</a></h3>
+                    <div class="social-activity-meta"><time datetime="{{ entry.watched_date }}">{{ entry.watched_date }}</time>{% if movie.year %}<span>{{ movie.year }}</span>{% endif %}{% if entry.rating is defined %}<span class="social-rating">{{ icon('star',13) }} {{ entry.rating }}/10</span>{% endif %}</div>
+                </div>
+            </article>{% endfor %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="social-empty">{{ icon('social' if view=='people' else 'film',36) }}<h2>{{ t(('No matching public profiles.' if view=='people' else 'No matching watches this week.') if query else 'No public showcases yet.' if view=='people' else 'A quiet week so far.') }}</h2><p>{{ t('Try another name or username.' if query else 'Public showcases will appear here as members choose to share them.' if view=='people' else 'Chosen films with a watched date this week will appear here.') }}</p>{% if query %}<a class="secondary-button" href="{{ url_for('social.page',view=view) }}">{{ t('Clear search') }}</a>{% else %}<a class="secondary-button" href="{{ url_for('accounts.account') }}">{{ t('Your profile') }} {{ icon('arrow',14) }}</a>{% endif %}</div>
+    {% endif %}
+    {% if next_url and not state %}<nav class="social-pagination" aria-label="{{ t('Pagination') }}"><a href="{{ url_for('social.page',view=view,q=query) }}">{{ t('Back to first page') }}</a><a class="secondary-button" href="{{ next_url }}">{{ t('Next page') }} {{ icon('arrow',15) }}</a></nav>{% endif %}
+    <footer class="social-footnote">{{ icon('lock',14) }} {{ t('Private profiles and personal notes never appear here.') }}</footer>
+</section>
+{% endblock %}

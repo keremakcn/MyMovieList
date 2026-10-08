@@ -34,11 +34,19 @@ from tmdb_client import TMDBClient, TMDBError, image_url, movie_summary
 from version import APP_VERSION
 
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-DEFAULT_DATA_DIR = (
-    Path(os.environ.get("APPDATA", str(Path.home()))) / "MovieWatchlist"
-    if getattr(sys, "frozen", False)
-    else BASE_DIR
-)
+
+
+def default_data_dir():
+    """Installed data belongs outside the application bundle on every platform."""
+    if not getattr(sys, "frozen", False):
+        return BASE_DIR
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "MyMovieList"
+    # Keep the established Windows directory so updates retain existing libraries.
+    return Path(os.environ.get("APPDATA", str(Path.home()))) / "MovieWatchlist"
+
+
+DEFAULT_DATA_DIR = default_data_dir()
 SORTS = {
     "": "Library order",
     "added_desc": "Recently added",
@@ -165,6 +173,7 @@ def create_app(config=None):
         )
         return {
             "app_version": APP_VERSION,
+            "primary_modifier": "⌘" if sys.platform == "darwin" else "Ctrl",
             "library_scope": cloud.scope(),
             "account_status": cloud.status(),
             "csrf_token": csrf_token,
@@ -175,6 +184,8 @@ def create_app(config=None):
             "asset_version": str(
                 max(
                     (BASE_DIR / "static/style.css").stat().st_mtime_ns,
+                    (BASE_DIR / "static/social.css").stat().st_mtime_ns,
+                    (BASE_DIR / "static/social.js").stat().st_mtime_ns,
                     (BASE_DIR / "static/script.js").stat().st_mtime_ns,
                     (BASE_DIR / "static/recommendations.js").stat().st_mtime_ns,
                     (BASE_DIR / "static/discovery.js").stat().st_mtime_ns
@@ -917,6 +928,9 @@ def create_app(config=None):
     register_accounts(app, cloud)
     from public_profile_routes import register_public_profiles
     register_public_profiles(app, cloud)
+    from social_routes import register_social
+
+    register_social(app, cloud)
     return app
 
 

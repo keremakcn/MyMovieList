@@ -4,6 +4,9 @@ Optional accounts and automatic cloud sync bring your personal movie library to 
 
 ## What's new
 
+- **Social discovery:** find public members by name or username, open chosen showcases directly in the app, and browse this week's dated watches from selected showcase films. Private notes and unselected films stay private. Personal ratings follow the owner's showcase option.
+- **Shared platform source:** Windows and Android include Social; macOS source and Apple Silicon/Intel build workflows are prepared. Mac DMGs will be built and tested separately before publication.
+
 - **Optional accounts:** keep using the app without signing in, or create an account to sync your library across devices.
 - **Automatic sync:** ratings, notes, favorites, watch status and personal dates save locally first. Pending edits retry when connected; sync can be paused. Conflicting edits preserve both versions for review.
 - **Keep your films when registering:** new registration automatically copies the device's guest library into the account after explaining this on screen. Notes, ratings, favorites and original added order are preserved; the original guest library stays intact. Signing in to an existing account keeps libraries separate and offers manual copying.
@@ -17,8 +20,8 @@ Optional accounts and automatic cloud sync bring your personal movie library to 
 ## Upgrading
 
 - **Windows:** close the old app and open `MyMovieList-v3.5.0.exe` from `MyMovieList-v3.5.0-windows.zip`. Your existing `%APPDATA%\MovieWatchlist` library is preserved.
-- **Android:** install `MyMovieList-3.5.0-android-beta.2.apk` over the previous signed release. The package remains `com.moviewatchlist`, uses the existing signing certificate and increases `versionCode` to 6. Do not uninstall or clear storage to update.
+- **Android:** install `MyMovieList-3.5.0-android-beta.3.apk` over the previous signed release. The package remains `com.moviewatchlist`, uses the existing signing certificate and increases `versionCode` to 7. Do not uninstall or clear storage to update.
 - **Google Play:** use the `.aab` for a store submission; it is not the installable GitHub download. Android remains a beta pending physical-device lifecycle and upgrade testing.
-- **Cloud service:** migrations 001–004 are required for the complete account service. Migration 004 must be applied in Supabase before announcing registration availability. See [cloud setup](supabase/README.md).
+- **Cloud service:** migrations 001–004 enable accounts and 005 enables Social. These are installed on the hosted service; new deployments must apply them in order. See [cloud setup](supabase/README.md).
 
 Movie discovery still requires no personal TMDB key. Saved library data remains available offline, and recommendation ranking stays on your device. See [QA results](QA_RESULTS.md) and [Android details](ANDROID.md).

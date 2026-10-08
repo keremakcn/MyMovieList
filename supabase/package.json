@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "test": "node tests/verify.mjs && node tests/showcases.mjs"
+    "test": "node tests/verify.mjs && node tests/showcases.mjs && node tests/social.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8"

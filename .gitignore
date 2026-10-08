@@ -51,6 +51,8 @@ playwright-report/
 dist/
 build/
 *.spec
+*.exe
+*.zip
 
 # Cloudflare / Node tooling and local Worker credentials
 node_modules/
@@ -86,3 +88,10 @@ keystore.properties
 *.apk
 *.aab
 *.hprof
+
+# macOS packages and private signing/provisioning material
+*.dmg
+*.p12
+*.pfx
+*.mobileprovision
+*.provisionprofile

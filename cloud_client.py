@@ -10,6 +10,7 @@ from uuid import UUID
 from account_profile import remote_profile, validate_profile
 from account_username import normalize_username, validate_username_status
 from profile_sharing import validate_public_profile, validate_settings
+from social import normalize_query, validate_page, validate_position
 
 
 class CloudError(Exception):
@@ -301,6 +302,23 @@ class SupabaseClient:
         if value["found"] and value.get("username") != username:
             raise ValueError("Invalid public profile.")
         return value
+
+    def social_page(self, view="people", query="", cursor=None):
+        if view not in ("people", "week"):
+            raise ValueError("Choose a valid social view.")
+        query = normalize_query(query)
+        cursor = validate_position(view, cursor)
+        return validate_page(
+            self.request(
+                "/rest/v1/rpc/mml_social_page",
+                {
+                    "p_view": view,
+                    "p_query": query,
+                    "p_cursor": cursor,
+                },
+            ),
+            view,
+        )
 
     def verify(self, email, code, kind="email"):
         if kind not in ("email", "recovery") or not re.fullmatch(r"[0-9]{6,10}", code):

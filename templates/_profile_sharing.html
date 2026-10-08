@@ -4,6 +4,7 @@
     <p class="sharing-status" role="status" data-sharing-label>{{ t(sharing_label) }}</p>
     <p class="settings-note">{{ t('Anyone with your link can see your name, avatar and chosen catalog films. Ratings and counts follow your showcase options. Your notes, email and other films stay private.') }}</p>
     <p class="settings-note">{{ t('Custom films stay private and do not appear on the public link.') }}</p>
+    <p class="settings-note">{{ t('Public profiles can be found in Social. Only chosen showcase films with a watched date appear in the weekly view; the rest of your library stays private.') }} <a href="{{ url_for('social.page') }}">{{ t('Explore Social') }} {{ icon('arrow',12) }}</a></p>
     <p class="settings-note" data-sharing-paused {% if cloud_status.enabled %}hidden{% endif %}>{{ t('Resume cloud sync before publishing your showcase.') }} <a href="{{ url_for('accounts.settings') }}">{{ t('Account & sync') }} {{ icon('arrow',12) }}</a></p>
     <div data-sharing-link {% if not sharing.is_public or sharing.pending == 'unpublish' %}hidden{% endif %}>
         <label for="profile-share-link">{{ t('Your profile link') }}</label>
@@ -12,7 +13,7 @@
     </div>
     <form class="account-form sharing-publish-form" action="{{ url_for('accounts.sharing') }}" method="post" data-loading="{{ t('Saving…') }}" data-sharing-publish {% if sharing.is_public or sharing.pending %}hidden{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="publish">
-        <label class="sharing-consent"><input type="checkbox" name="consent" value="1" required> {{ t('I agree to make my showcase visible to anyone with the link.') }}</label>
+        <label class="sharing-consent"><input type="checkbox" name="consent" value="1" required> {{ t('I agree to make my chosen showcase public, including in Social.') }}</label>
         <button type="submit" data-sharing-publish-button {% if not sharing.ready or not sharing.checked or sharing.error or not cloud_status.enabled %}disabled{% endif %}><span data-submit-label>{{ t('Make my profile public') }}</span></button>
     </form>
     <form class="account-form sharing-revoke-form" action="{{ url_for('accounts.sharing') }}" method="post" data-loading="{{ t('Saving…') }}" data-sharing-revoke {% if not sharing.is_public and sharing.pending != 'publish' %}hidden{% endif %}>

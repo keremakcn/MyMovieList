@@ -10,6 +10,6 @@
 {% else %}
     <div class="empty-state"><p class="eyebrow">MYMOVIELIST</p><h1>{{ t('Could not load this profile.' if unavailable else 'This profile is not available.') }}</h1><p>{{ t('Please check your connection and try again.' if unavailable else 'It may be private, or the link may be incorrect.') }}</p>{% if unavailable %}<a class="secondary-button" href="{{ request.path }}">{{ t('Try again') }}</a>{% endif %}</div>
 {% endif %}
-<a class="profile-back" href="{{ url_for('index') }}">{{ t('Your library') }} {{ icon('arrow',14) }}</a>
+<div class="social-profile-back"><a class="profile-back" href="{{ url_for('social.page') }}">{{ t('Back to Social') }} {{ icon('arrow',14) }}</a><a class="profile-back" href="{{ url_for('index') }}">{{ t('Your library') }} {{ icon('arrow',14) }}</a></div>
 </section>
 {% endblock %}

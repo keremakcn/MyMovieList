@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
+import {createRequire} from 'node:module';
+const require = createRequire(process.env.PGLITE_TEST_RUNTIME || import.meta.url);
+const {PGlite} = require('@electric-sql/pglite');
 
 // Isolated, synthetic PostgreSQL database. No remote credentials or user data.
 const db = new PGlite();

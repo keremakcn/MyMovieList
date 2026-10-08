@@ -15,6 +15,8 @@
         <link rel="icon" href="{{ url_for('static', filename='branding/mymovielist.ico') }}" sizes="any">
         <link rel="stylesheet"
               href="{{ url_for('static', filename='style.css', v=asset_version) }}">
+        {% if request.blueprint in ['social','public_profiles'] %}<link rel="stylesheet" href="{{ url_for('static',filename='social.css',v=asset_version) }}">{% endif %}
+        {% if request.blueprint == 'social' %}<script defer src="{{ url_for('static',filename='social.js',v=asset_version) }}"></script>{% endif %}
         <script id="ui-translations" type="application/json">{{ ui_messages|tojson }}</script>
         <script defer src="{{ url_for('static', filename='i18n.js', v=asset_version) }}"></script>
         <script defer src="{{ url_for('static', filename='script.js', v=asset_version) }}"></script>
@@ -32,6 +34,8 @@
                    {% if request.endpoint in ['search', 'entity', 'catalog_movie'] or request.blueprint == 'discovery' %} aria-current="page" {% endif %}>{{ icon('explore') }}<span>{{ t("Explore") }}</span></a>
                 <a href="/recommendations"
                    {% if request.blueprint == 'recommendations' %} aria-current="page" {% endif %}>{{ icon('spark') }}<span>{{ t("For you") }}</span></a>
+                <a href="{{ url_for('social.page') }}"
+                   {% if request.blueprint in ['social','public_profiles'] %} aria-current="page" {% endif %}>{{ icon('social') }}<span>{{ t("Social") }}</span></a>
                 <a href="{{ url_for('accounts.account') }}" class="profile-nav"
                    {% if request.blueprint == 'accounts' and request.endpoint != 'accounts.settings' and flow != 'settings' %} aria-current="page" {% endif %}>{{ icon('profile') }}<span>{{ t("Profile") }}</span></a>
                 <a href="/settings"
@@ -44,7 +48,7 @@
         <header class="workspace-topbar">
             <span class="topbar-motto">{{ t("Good films.") }} <span class="muted">{{ t("Kept close.") }}</span></span>
             <div class="topbar-actions">
-                <a href="/search" class="topbar-search" aria-label="{{ t('Find a film') }}">{{ icon('search', 18) }}<span>{{ t('Find a film') }}</span><kbd>Ctrl K</kbd></a>
+                <a href="/search" class="topbar-search" aria-label="{{ t('Find a film') }}">{{ icon('search', 18) }}<span>{{ t('Find a film') }}</span><kbd>{{ primary_modifier }} K</kbd></a>
                 {% if account_status.owner %}
                     <details class="account-menu"><summary aria-label="{{ t('Open account menu') }}"><img data-account-avatar src="{{ url_for('static',filename='avatars/' + account_status.profile.avatar_id + '.svg') }}" width="34" height="34" alt=""><span data-account-name data-account-empty="{{ t('Your profile') }}">{{ account_status.profile.display_name or t('Your profile') }}</span>{{ icon('chevron',14) }}</summary>
                         <div class="account-menu-panel"><p class="account-menu-email">{{ account_status.email }}</p><span class="sync-badge" data-cloud-label data-state="{{ account_status.state }}">{{ t(account_status.label) }}</span><a href="{{ url_for('accounts.account') }}">{{ t('Your profile') }}</a><a href="/settings">{{ t('Settings') }}</a><form action="{{ url_for('accounts.signout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">{{ t('Sign out') }}</button></form></div>

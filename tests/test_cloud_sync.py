@@ -782,6 +782,9 @@ def test_malformed_sealed_session_keeps_account_library_but_requires_login(accou
 
 
 def test_failed_session_save_does_not_replace_memory_or_disk(tmp_path, monkeypatch):
+    import sys
+
+    monkeypatch.setattr(sys, "platform", "win32")
     store = SessionStore(tmp_path)
     monkeypatch.setattr(SessionStore, "persistent", property(lambda self: True))
     monkeypatch.setattr(store, "seal", lambda raw, decrypt=False: raw)

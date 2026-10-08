@@ -110,6 +110,15 @@ def detect_system_language(android=False):
             return "tr" if getter() & 0x3FF == 0x1F else "en"
         except (AttributeError, OSError):
             pass
+    elif sys.platform == "darwin":
+        try:
+            from Foundation import NSLocale
+
+            languages = NSLocale.preferredLanguages()
+            if languages:
+                return normalize_language(str(languages[0]))
+        except (ImportError, AttributeError, RuntimeError):
+            pass
     # Do not call setlocale: changing the process locale can affect other threads.
     for key in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
         value = os.environ.get(key)

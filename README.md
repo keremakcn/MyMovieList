@@ -16,12 +16,17 @@
 2. Extract it and open `MyMovieList-v3.5.0.exe`. No Python installation is needed.
 3. Search for a film and add it to your library. Discovery is ready without setup.
 
-**Android — 3.5.0 beta.2**
+**Android — 3.5.0 beta.3**
 
-Download `MyMovieList-3.5.0-android-beta.2.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
+Download `MyMovieList-3.5.0-android-beta.3.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
 
 ## Features
 
+**macOS beta preparation:** Apple Silicon and Intel build support is now included.
+DMGs still need a successful Mac build and device testing before publication.
+See [Mac build and installation](MACOS.md).
+
+- **Social:** find public profiles by name or username, open chosen showcases inside the app, and browse this week’s dated watches from selected showcase films. Private notes and the rest of each library stay private. Public sharing is optional; accounts remain private until their owners choose to share.
 - **English and Turkish interface:** first launch follows your device's UI language (Turkish or English fallback), then remembers your choice locally. Change it in **Settings → Language**. Turkish-original films show their Turkish names, and synopses use available Turkish translations with English fallback. Movie identity and personal notes stay unchanged.
 - **Automatic movie details:** cast, directors, writers, producers and studios are saved with each addition. Older entries fill missing details automatically as you browse online; saved details and bilingual synopses remain available offline.
 - Track **Want to watch** and **Watched**, with ratings, favorites and private notes.
@@ -48,6 +53,14 @@ The current v3.5.0 interface, captured with a demo account and library. Film dat
 Choose the films that represent you. Your personal overview and the rest of your library stay separate from your public showcase.
 
 ![MyMovieList profile with a cat avatar, unique username and six chosen showcase films](screenshots/en/profile.png)
+
+### Discover film lovers
+
+Find public showcases inside the app. This week shows only selected films
+with a watch date; private notes stay private. The members shown here are
+fictional demo accounts.
+
+![MyMovieList Social with this week's selected showcase films](screenshots/en/social.png)
 
 ### Find your next favorite
 
@@ -129,7 +142,7 @@ python -m venv .venv
 
 Build Windows with `.\scripts\build_release.ps1`. See [release notes](RELEASE_NOTES.md), [QA results](QA_RESULTS.md), [recommendation design](RECOMMENDATIONS_DESIGN.md), [discovery design](DISCOVERY_DESIGN.md), [Android build instructions](ANDROID.md) and [discovery service setup](cloudflare/watchlist-api/README.md) for development details.
 
-Developers: see [cloud setup](supabase/README.md) and [data portability](CLOUD_SYNC_DESIGN.md). Database migrations 001–004 must be installed for the complete account service.
+Developers: see [cloud setup](supabase/README.md) and [data portability](CLOUD_SYNC_DESIGN.md). Database migrations 001–004 enable accounts; migration 005 adds Social. See [Social design and validation](SOCIAL_DESIGN.md).
 
 
 ## Credits
