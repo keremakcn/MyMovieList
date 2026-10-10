@@ -1,6 +1,6 @@
 # MyMovieList cloud setup
 
-Status: optional accounts enabled in source, October 8, 2026. The hosted SQL
+Status: optional accounts and time-aware sync enabled in MyMovieList 3.6.0, October 10, 2026. The hosted SQL
 001 was applied on October 7; optional sharing migration 002 was applied on
 October 8, followed by username migration 003. Registration/name-policy migration
 004 was applied by the user and its anonymous setup probe verified on October 8
@@ -8,10 +8,10 @@ October 8, followed by username migration 003. Registration/name-policy migratio
 library restoration on a second isolated device instance were tested by the user.
 The updated registration/profile UI and sync behavior are covered by local tests.
 Social migration 005 was applied by the user on October 8; both anonymous
-directory and weekly-view setup probes passed. Windows 3.5.1 and signed
-Android 3.5.1 beta.1 downloads include the current registration, profile,
+directory and weekly-view setup probes passed. Windows 3.6.0 and signed
+Android 3.6.0 beta.1 downloads include the current registration, profile,
 automatic sync and Social modules. Existing hosted setup needs no further
-SQL for these downloads. Hosted two-owner access separation and native
+SQL: migration 006 was applied on October 10. Local two-owner checks passed; native
 Android lifecycle still require final release QA.
 
 ## Apply the database setup
@@ -114,7 +114,7 @@ source. Rebuilding is necessary before this appears in distributed applications.
   A single local transaction copies personal fields and available public details
   before completing the new account's password. A lost completion response or
   failed session save cannot lose that staged library; later sign-in opens it.
-  Windows v3.5.1 and Android 3.5.1 beta.1 include this behavior;
+  Windows v3.6.0 and Android 3.6.0 beta.1 include this behavior;
   it requires no additional Supabase migration.
 - A private display name and one avatar ID are stored in `user_metadata.mml_profile`
   through the authenticated Auth user endpoint. The SVG avatar pack ships in
@@ -293,9 +293,9 @@ you control after setup. Automated tests use synthetic accounts only.
 
 ## Current native packages
 
-Windows v3.5.1 and Android 3.5.1 beta.1 include the current account,
+Windows v3.6.0 and Android 3.6.0 beta.1 include the current account,
 sync, Social and fixed username/profile controls. Mac source/build support is
-current; native 3.5.1 DMGs require a fresh macOS workflow. Package checks are recorded in [QA results](../QA_RESULTS.md).
+current; native 3.6.0 DMGs require a fresh macOS workflow. Package checks are recorded in [QA results](../QA_RESULTS.md).
 
 ## Enable in-app Social discovery
 
@@ -324,9 +324,9 @@ turning a profile private. If no one has opted into sharing, the directory is
 empty. If 005 is missing, Social shows a setup state while the library remains
 available. See [design and tests](../SOCIAL_DESIGN.md).
 
-Windows v3.5.1 and Android 3.5.1 beta.1 include Social. Earlier 3.5.0 Windows
+Windows v3.6.0 and Android 3.6.0 beta.1 include Social. Earlier 3.5.0 Windows
 downloads and Android beta.1/beta.2 predate Social. The older Android beta.3
-contains Social but predates the latest profile editor fix. Mac 3.5.1 DMGs
+contains Social but predates the latest profile editor fix. Mac 3.6.0 DMGs
 require a new workflow run on the updated source.
 
 ## Web and per-field edit times (006)

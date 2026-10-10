@@ -1,3 +1,3 @@
 """Application release version, shared by the UI and desktop launcher."""
 
-APP_VERSION = "3.5.1"
+APP_VERSION = "3.6.0"

@@ -1,3 +1,68 @@
+# Release 3.6.0 — 2026-10-10
+
+- Authoritative Desktop/movie-watchlist source and current bilingual READMEs,
+  release notes, Android/Mac/web/cloud documentation now use **3.6.0**.
+  Existing historical records and release packages retain their original versions.
+- **546 full isolated Python tests passed**, 0 skipped.
+  Unit writes used synthetic libraries; personal AppData and accounts were not used.
+- **Windows:** clean MyMovieList-v3.6.0.exe/ZIP. Launcher, all 28 application
+  modules and 69 UI assets match current main source. Actual EXE startup,
+  TR-to-EN switching, restart, actor/director portrait markup, signup/recovery
+  and Social checks passed while retaining all saved personal film fields.
+- **Android:** clean signed 3.6.0-android-beta.1 APK/AAB, versionCode 10,
+  unchanged com.moviewatchlist and previous release signing certificate.
+  All 28 shared/bridge modules and 69 UI assets match current source/intermediates.
+  Both passed nine archive CRC checks and 16 KB ELF checks for 138 libraries /
+  408 load segments. APK v2 signing, ZIP alignment, AAB signing/structure/config
+  and metadata passed. Lint has zero errors and four existing warnings.
+- **macOS:** version.py drives the 3.6.0 bundle/DMG names; verifier now explicitly
+  checks field_sync among the 28 shared application modules. macOS build/source
+  tests passed locally. Native DMGs still require a fresh Actions build after
+  this source is pushed; no 3.6.0 DMG or real-Mac result is claimed on Windows.
+- EXE, APK/AAB are on the Desktop; Windows ZIP, APK/AAB, release notes and
+  verified combined checksums are collected in dist/releases/v3.6.0.
+  Earlier downloads remain intact. No Git commit, push, GitHub release upload
+  or Google Play submission occurred. Physical Android installation/lifecycle
+  and native Mac acceptance remain device checks.
+
+# Android beta.2 refresh — 2026-10-10
+
+- Clean signed APK/AAB built from the authoritative main Desktop/movie-watchlist
+  source, using **3.5.1-android-beta.2 / versionCode 9**, retaining com.moviewatchlist
+  and the same previous release signing certificate.
+- Both packages contain **28 shared/bridge Python modules**, including field_sync,
+  and **69 UI assets** matching current source and clean-build intermediates.
+  They include the 10 October recommendation/portrait and time-aware sync changes.
+- Each passed nine outer/nested archive CRC checks and 16 KB ELF checks across
+  138 native libraries / 408 load segments. APK v2 signing and 16 KB ZIP alignment,
+  AAB signing/structure/configuration and metadata checks passed.
+- Six focused Android wrapper/account tests passed. Release lint has zero errors
+  and four existing warnings. No physical-device installation or lifecycle test
+  is claimed; private account data was not used.
+- New packages are on the Desktop, in dist/android/3.5.1-android-beta.2 and in
+  dist/releases/v3.5.1. Combined checksums and the Windows ZIP's release notes are
+  refreshed; Windows EXE bytes are unchanged. Previous packages are retained.
+  No GitHub upload or Google Play submission occurred. Native Mac packages still
+  require a fresh build from the shared source.
+
+# Windows EXE refresh — 2026-10-10
+
+- Cleanly rebuilt **MyMovieList-v3.5.1.exe** from the authoritative main
+  **Desktop/movie-watchlist** source. Version remains 3.5.1.
+- The packaged launcher, all **28 application modules** (including field_sync)
+  and **69 UI assets** match current source. Public Supabase configuration also
+  matches; private libraries, sessions and signing files are excluded.
+- **67 targeted desktop/cloud/field-time tests passed.** The earlier 546-case
+  source validation below remains applicable; no application code changed here.
+- The real EXE passed isolated startup, saved actor/director portrait markup,
+  TR-to-EN language switching, restart, signup/recovery entry and Social checks.
+  Personal film IDs, notes, ratings, favorites, watched dates, saved cast and
+  bilingual synopses were retained. User AppData was not used.
+- Updated Windows EXE is on the Desktop and in dist; the Windows ZIP and combined
+  release checksums are refreshed. Previous files are backed up in local QA.
+  No GitHub release was uploaded. Android APK/AAB and native Mac artifacts are
+  unchanged and do not yet include the 10 October shared-code additions.
+
 # MyShelf web and shared edit times — 2026-10-10
 
 - Shared native changes passed **546 Python cases**: the full run passed 537,

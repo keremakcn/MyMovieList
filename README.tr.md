@@ -8,23 +8,23 @@
 
 [English](README.md) | **Türkçe**
 
-**Geliştirme notu (10 Ekim):** tür etiketleri, iyileştirilen klasik film önerileri ve oyuncu/yönetmen fotoğrafları kaynak kodda hazır. Güncel indirme paketleri testlerin ardından hazırlanacak; mevcut paketler henüz bu eklemeleri içermiyor.
+**3.6.0 sürümü:** web ve uygulama arasında kütüphane eşitlemesi, tür etiketleri, iyileştirilen klasik film önerileri ve oyuncu/yönetmen fotoğrafları. Windows ve imzalı Android paketleri bu sürüm için hazırlanmıştır; macOS için güncel kodla yeni derleme gerekir. GitHub indirmeleri yeni sürüm yayımlandığında değişir.
 
 ## Başlarken
 
-**Windows — v3.5.1**
+**Windows — v3.6.0**
 
-1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v3.5.1-windows.zip` dosyasını indir.
-2. Arşivi çıkar ve `MyMovieList-v3.5.1.exe` dosyasını aç. Python kurman gerekmez.
+1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v3.6.0-windows.zip` dosyasını indir.
+2. Arşivi çıkar ve `MyMovieList-v3.6.0.exe` dosyasını aç. Python kurman gerekmez.
 3. Bir film arayıp kütüphanene ekle. Keşif için ek ayar gerekmez.
 
-**Android — 3.5.1-android-beta.1**
+**Android — 3.6.0-android-beta.1**
 
-**Assets** bölümünden `MyMovieList-3.5.1-android-beta.1.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
+**Assets** bölümünden `MyMovieList-3.6.0-android-beta.1.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
 
-**macOS — v3.5.1 beta**
+**macOS — v3.6.0 beta**
 
-macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. 3.5.1 kaynakları kullanıcı adı düzeltmesini ve paketlenmiş HTTPS sertifikalarını içerir. Kodlar yüklendikten sonra macOS iş akışıyla yeni DMG'ler derlenmelidir; önceki sürümün dosyaları yeni profil düzeltmesini içermez. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
+macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. 3.6.0 kaynakları değişiklik zamanlarına göre eşitlemeyi, öneri etiketlerini, fotoğraflı kişi kartlarını, sabit kullanıcı adı kontrollerini ve paketlenmiş HTTPS sertifikalarını içerir. Kodlar yüklendikten sonra macOS iş akışıyla yeni DMG'ler derlenmelidir; eski DMG dosyaları güncel değişikliklerin tamamını içermez. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
 
 ## Web
 
@@ -38,8 +38,9 @@ GitHub'da yayımlanmış son sürüme gider. Kurulum ayrıntıları [WEB.md](WEB
 Yeni kaynak kod web, Windows, Android ve macOS için alan bazında değişiklik
 zamanlarını taşır. Zamanı güvenilir olan çakışmalarda yeni değişiklik seçilir;
 farklı alanlar birleştirilir. Eski, zamanı bilinmeyen kayıtların iki sürümü de
-korunur. Mevcut indirme paketleri uyumludur; yeni eşitleme davranışı için
-yeniden derlenmeleri gerekir.
+korunur. Yeniden derlenen Windows ve Android 3.6.0 beta.1 paketleri bu davranışı
+içerir. Eski paketler uyumludur; macOS paketlerinin alan bazında güvenilir
+değişiklik zamanlarını kullanması için yeniden derlenmesi gerekir.
 
 ## Neler yapabilirsin?
 
@@ -53,7 +54,7 @@ yeniden derlenmeleri gerekir.
 
 ## Ekran görüntüleri
 
-v3.5.0 arayüzünden örnek bir hesap ve kütüphaneyle alınmıştır. 3.5.1 sürümü profildeki kullanıcı adı gösterimini ve düzenleme alanlarını iyileştirir. Film bilgileri ve afişler herkese açık katalog verileridir. [İngilizce arayüze göz at](README.md#screenshots).
+Kütüphane ve hesap akışları örnek bir hesap ve herkese açık katalog verileriyle gösterilmiştir. Görüntüler bu sürümden önce alınmıştır; güncel profil kontrolleri sabit kullanıcı adını da gösterir. [İngilizce arayüze göz at](README.md#screenshots).
 
 ### Filmlerin, sana ait bir alan
 

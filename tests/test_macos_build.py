@@ -20,7 +20,7 @@ def test_macos_assets_resolve_from_separate_spec_directory(tmp_path, monkeypatch
 
     project = (tmp_path / "project with spaces").resolve()
     files = {
-        "version.py": 'APP_VERSION = "3.5.0"\n',
+        "version.py": 'APP_VERSION = "3.6.0"\n',
         "run_desktop.py": "print('isolated packaging fixture')\n",
         "templates/index.html": "<p>Isolated template</p>",
         "static/script.js": "console.log('isolated asset');",

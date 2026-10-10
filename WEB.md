@@ -46,9 +46,9 @@ addition/order keys and numeric film identities are preserved.
 
 Legacy native releases still use protocol 1. Migration 006 retains their RPCs
 and existing receipt hashes; their changed fields have unknown edit times.
-The new time-aware native source is shared across platforms, including the
-Android packaging allowlist. New native binaries must be built before those
-clients gain time-aware conflict handling.
+The 3.6.0 native source is shared across platforms, including the Android
+packaging allowlist. The Windows 3.6.0 and Android 3.6.0 beta.1 builds include
+time-aware conflict handling. Mac 3.6.0 DMGs require a fresh native workflow.
 
 ## Cloudflare deployment
 

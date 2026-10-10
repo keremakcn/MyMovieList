@@ -36,6 +36,7 @@ MODULES = (
     "cloud_sync",
     "account_routes",
     "personal_data",
+    "field_sync",
     "sync_store",
     "session_store",
     "desktop_smoke",

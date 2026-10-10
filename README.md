@@ -8,23 +8,23 @@
 
 **English** | [Türkçe](README.tr.md)
 
-**Development update (10 October):** genre tags, improved classic-film recommendations and cast/director photo cards are in the source. Updated release downloads will follow after testing; existing packages do not yet include these additions.
+**Version 3.6.0:** web and app library sync, genre tags, improved classic-film recommendations and actor/director photo cards. Windows and signed Android packages are prepared for this release; macOS packages require a fresh native workflow. GitHub downloads change when the new release is published.
 
 ## Get started
 
-**Windows — v3.5.1**
+**Windows — v3.6.0**
 
-1. Download `MyMovieList-v3.5.1-windows.zip` from the release’s **Assets**.
-2. Extract it and open `MyMovieList-v3.5.1.exe`. No Python installation is needed.
+1. Download `MyMovieList-v3.6.0-windows.zip` from the release’s **Assets**.
+2. Extract it and open `MyMovieList-v3.6.0.exe`. No Python installation is needed.
 3. Search for a film and add it to your library. Discovery is ready without setup.
 
-**Android — 3.5.1 beta.1**
+**Android — 3.6.0 beta.1**
 
-Download `MyMovieList-3.5.1-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
+Download `MyMovieList-3.6.0-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
 
-**macOS — v3.5.1 beta**
+**macOS — v3.6.0 beta**
 
-Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.5.1 includes the fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; earlier-version downloads do not contain the new profile fix. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
+Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.6.0 includes time-aware sync, recommendation tags, portrait cards, fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; older DMGs do not include all current changes. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
 
 ## Web
 
@@ -37,8 +37,9 @@ Source and deployment details are in [WEB.md](WEB.md).
 
 The new source carries per-field edit times across web, Windows, Android and
 macOS. Newer trustworthy competing edits win; independent changes merge and
-unknown legacy times keep recoverable review. Existing release downloads remain
-compatible, but need rebuilding to gain this new time-aware behavior.
+unknown legacy times keep recoverable review. The refreshed Windows build
+and Android 3.6.0 beta.1 include this behavior. Older downloads remain compatible;
+macOS packages still need rebuilding to gain reliable per-field edit times.
 
 ## Features
 
@@ -58,7 +59,7 @@ compatible, but need rebuilding to gain this new time-aware behavior.
 
 ## Screenshots
 
-Screenshots captured in v3.5.0 with a demo account and library. Version 3.5.1 refines the profile's username display and editing controls. Film data and posters come from public catalog snapshots. [View the Turkish interface](README.tr.md#ekran-görüntüleri).
+Screenshots show the library and account flows using a demo account and public catalog snapshots. They were captured before this release; current profile controls include the fixed username. [View the Turkish interface](README.tr.md#ekran-görüntüleri).
 
 ### Your films, kept close
 

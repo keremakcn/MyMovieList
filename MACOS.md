@@ -2,15 +2,16 @@
 
 The main repository now includes macOS data paths, native UI-language detection,
 Keychain sessions and a manual GitHub Actions workflow for separate Apple Silicon
-and Intel DMGs. The shared version is **3.5.1**. Social discovery is included in the
+and Intel DMGs. The shared version is **3.6.0**. Social discovery is included in the
 shared modules, templates and bundled translations used by the Mac build.
-Supabase migration 005 is installed on the hosted service. Windows and Android
+Supabase migrations 001–006 are installed on the hosted service. Windows and Android
 packages are rebuilt separately.
 
-**Status — 3.5.1, October 9, 2026:** the shared source and native workflow
-include the fixed profile username controls and the Mac HTTPS certificate fix.
-Push the updated source and start a **fresh** macOS workflow to obtain 3.5.1
-DMGs. Rerunning an older workflow retains its old commit. No 3.5.1 DMG has been
+**Status — 3.6.0, October 10, 2026:** the shared source and native workflow
+include time-aware cloud sync, recommendation genre tags, actor/director portraits,
+fixed profile username controls and the Mac HTTPS certificate fix.
+Push the updated source and start a **fresh** macOS workflow to obtain 3.6.0
+DMGs. Rerunning an older workflow retains its old commit. No 3.6.0 DMG has been
 built on this Windows machine; native package and real-Mac validation are required.
 
 The first beta from
@@ -46,8 +47,8 @@ ad-hoc signed and not notarized by Apple.
 
 Expected names:
 
-- `MyMovieList-v3.5.1-macos-arm64-beta.dmg`
-- `MyMovieList-v3.5.1-macos-x86_64-beta.dmg`
+- `MyMovieList-v3.6.0-macos-arm64-beta.dmg`
+- `MyMovieList-v3.6.0-macos-x86_64-beta.dmg`
 
 The workflow only uploads build artifacts. It does not publish a release or need
 Apple credentials, repository write access, or a Supabase service-role key.
@@ -69,7 +70,7 @@ script rejects a mismatched interpreter architecture. It uses macOS's `sips`,
 `iconutil`, `codesign`, `hdiutil`, `ditto` and `lipo` tools. A one-folder `.app`
 bundle preserves native libraries and symlinks; no one-file unpacking is needed.
 
-Outputs go to `dist/macos/v3.5.1/`. Build intermediates stay under
+Outputs go to `dist/macos/v3.6.0/`. Build intermediates stay under
 `build/macos/<architecture>/`. Both directories are ignored by Git.
 
 ## Install and update
