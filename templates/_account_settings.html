@@ -4,6 +4,22 @@
     <div><h2>{{ t('Your account') }}</h2><p class="account-email">{{ cloud_status.email }}</p></div>
     <a class="secondary-button" href="{{ url_for('accounts.account',flow='edit-profile') }}">{{ t('Edit profile') }}</a>
 </section>
+{% set handle = cloud_status.username %}
+{% if not handle.username %}
+<section class="form-card" data-username-setup aria-labelledby="username-setup-heading">
+    <h2 id="username-setup-heading">{{ t('Choose your username once') }}</h2>
+    <p class="settings-note">{{ t('For accounts created before usernames were introduced. This is a one-time choice, not a name change.') }}</p>
+    <form class="account-form username-form" action="{{ url_for('accounts.choose_username') }}" method="post" data-loading="{{ t('Checking username…') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="username">{{ t('Username') }}</label>
+        <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z][A-Za-z0-9_]{2,23}" value="{{ username_draft }}" required aria-describedby="username-note username-address" data-username-input>
+        <p class="settings-note" id="username-note">{{ t('Use 3–24 letters, numbers or underscores, starting with a letter.') }} {{ t('Choose carefully: your username is unique and stays the same.') }}</p>
+        <p class="username-address" id="username-address" data-username-address>https://myshelf.cloud/u/<span data-username-preview>{{ username_draft|lower or t('your_username') }}</span></p>
+        <p class="settings-note">{{ t('Choosing a username does not make your profile public. An internet connection is needed to reserve it.') }}</p>
+        <button class="secondary" type="submit" {% if not handle.ready or not handle.checked or handle.error %}disabled{% endif %}><span data-submit-label>{{ t('Choose username') }}</span></button>
+    </form>
+</section>
+{% endif %}
 <section class="form-card sync-card" aria-labelledby="sync-heading">
     <div class="account-heading"><div><h2 id="sync-heading">{{ t('Automatic sync') }}</h2><p>{{ t('Notes, ratings and favorites follow you across devices.') }}</p></div><span class="sync-badge" data-cloud-label data-state="{{ cloud_status.state }}">{{ t(cloud_status.label) }}</span></div>
     <p class="settings-note">{{ t('Changes are saved on this device first. If you go offline, sync continues when you reconnect and the app is open.') }}</p>

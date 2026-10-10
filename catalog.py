@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
 from storage import utcnow
-from tmdb_client import TMDBError, movie_details
+from tmdb_client import RECOMMENDATION_FEATURES_VERSION, TMDBError, movie_details
 
 
 def text(value):
@@ -93,13 +93,13 @@ class CatalogService:
             if (
                 cached
                 and not force
-                and (
-                    not features
-                    or cached["details"].get("recommendation_features_version") == 1
-                )
+                and cached["details"].get("recommendation_features_version")
+                == RECOMMENDATION_FEATURES_VERSION
             ):
                 return cached["details"]
             if not force and self.retry_at.get(tmdb_id, 0) > time.monotonic():
+                if cached:
+                    return cached["details"]
                 message, status = self.failures[tmdb_id]
                 raise TMDBError(
                     message, status, self.retry_at[tmdb_id] - time.monotonic()
@@ -222,6 +222,10 @@ class CatalogService:
                 self.retry_at[tmdb_id] = time.monotonic() + min(
                     60, max(3, error.retry_after or 3)
                 )
+                # An optional upgrade must never hide previously verified credits
+                # or bilingual content when discovery is offline.
+                if cached and not force:
+                    return cached["details"]
                 raise
 
     def present(self, movies, locale, *, fetch=False):
@@ -344,6 +348,28 @@ class CatalogService:
                 merged["cast"] = details["entities"]["cast"]
                 if details["cast"]:
                     updates["cast_list"] = ", ".join(details["cast"])
+            # Upgrade portrait/recognition fields by numeric person ID. Never
+            # replace personal fields or match people through translated names.
+            for group in ("cast", "directors", "writers", "producers"):
+                current = details["entities"].get(group, [])
+                people = {person["id"]: person for person in current}
+                saved = merged.get(group)
+                if isinstance(saved, list):
+                    merged[group] = [
+                        dict(
+                            person,
+                            **{
+                                field: people[person["id"]][field]
+                                for field in ("portrait_url", "popularity")
+                                if people[person["id"]].get(field)
+                            },
+                        )
+                        if isinstance(person, dict)
+                        and type(person.get("id")) is int
+                        and person["id"] in people
+                        else person
+                        for person in saved
+                    ]
             if entities != merged:
                 updates["entities_json"] = json.dumps(merged, ensure_ascii=False)
             if updates:

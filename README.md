@@ -8,21 +8,37 @@
 
 **English** | [Türkçe](README.tr.md)
 
+**Development update (10 October):** genre tags, improved classic-film recommendations and cast/director photo cards are in the source. Updated release downloads will follow after testing; existing packages do not yet include these additions.
+
 ## Get started
 
-**Windows — v3.5.0**
+**Windows — v3.5.1**
 
-1. Download `MyMovieList-v3.5.0-windows.zip` from the release’s **Assets**.
-2. Extract it and open `MyMovieList-v3.5.0.exe`. No Python installation is needed.
+1. Download `MyMovieList-v3.5.1-windows.zip` from the release’s **Assets**.
+2. Extract it and open `MyMovieList-v3.5.1.exe`. No Python installation is needed.
 3. Search for a film and add it to your library. Discovery is ready without setup.
 
-**Android — 3.5.0 beta.3**
+**Android — 3.5.1 beta.1**
 
-Download `MyMovieList-3.5.0-android-beta.3.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
+Download `MyMovieList-3.5.1-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
 
-**macOS — v3.5.0 beta**
+**macOS — v3.5.1 beta**
 
-Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. The current source includes an HTTPS certificate fix; refreshed DMGs still need a new native build and Mac testing. Earlier beta artifacts open but have a reported discovery/account connection problem. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
+Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.5.1 includes the fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; earlier-version downloads do not contain the new profile fix. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
+
+## Web
+
+[Use on the web](https://myshelf.cloud) — web beta.
+
+The MyShelf web app supports the same account and private library as the native
+apps: browser storage, automatic sync, email-first signup, profile avatars and
+selected showcases. It also links to the latest published GitHub release.
+Source and deployment details are in [WEB.md](WEB.md).
+
+The new source carries per-field edit times across web, Windows, Android and
+macOS. Newer trustworthy competing edits win; independent changes merge and
+unknown legacy times keep recoverable review. Existing release downloads remain
+compatible, but need rebuilding to gain this new time-aware behavior.
 
 ## Features
 
@@ -32,9 +48,9 @@ Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) 
 - Track **Want to watch** and **Watched**, with ratings, favorites and private notes.
 - Add films directly from search without losing your results.
 - Browse **Trending films** by day or week, **Highest rated**, **New releases** and **Genres** in Explore. Open full lists, hide library films and add directly from a poster card.
-- Explore actors, directors and production companies, then discover their films.
+- Explore actors and directors through photo cards, then discover their films. Missing photos use a silhouette; names and links stay available. You can also explore production companies.
 - Get personal recommendations from your ratings and favorites, using genres, available themes, directors and lead cast. The three discovery modes balance familiar films with new interests; refresh for new picks with fewer recent repeats.
-- Recommendations preserve smaller interests and limit repeated themes, franchises and directors. The public movie pool includes popular films, classics and rotating international selections and is cached on your device.
+- Recommendation cards show genre tags. Well-received, recognizable classics that fit your taste get more weight; recent films can receive a small bonus for notable lead cast. Smaller interests and diversity remain part of the selection. The public movie pool includes popular films, classics and rotating international selections and is cached on your device.
 - Choose films you enjoyed to help personalize recommendations.
 - Filter and sort your library. Undo removal without losing notes, ratings or the original added order.
 - Compact cards with a one-line note preview; open the detail page to read or edit.
@@ -42,7 +58,7 @@ Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) 
 
 ## Screenshots
 
-The current v3.5.0 interface, captured with a demo account and library. Film data and posters come from public catalog snapshots. [View the Turkish interface](README.tr.md#ekran-görüntüleri).
+Screenshots captured in v3.5.0 with a demo account and library. Version 3.5.1 refines the profile's username display and editing controls. Film data and posters come from public catalog snapshots. [View the Turkish interface](README.tr.md#ekran-görüntüleri).
 
 ### Your films, kept close
 
@@ -114,7 +130,7 @@ Keep using MyMovieList without an account, or sign in to take your private libra
 - **Keep your films when registering:** creating a new account automatically copies the films already saved on this device, with their notes, ratings, favorites and added order. The registration screen explains this before you finish. Your original local copy stays on the device.
 - **Separate libraries:** signing in to an existing account opens that account's library. You can copy the original local library from account settings; existing account records keep their notes and ratings.
 - **Simple registration:** email → verification code → unique username → password. Normal sign-in uses email and password; password recovery verifies its code before asking for a new password.
-- **Your identity:** choose a display name and one of 16 bundled cat avatars. Display names may repeat. Your unique username is chosen once and cannot currently be changed.
+- **Your identity:** choose a display name and one of 16 bundled cat avatars. Display names may repeat. Your unique @username is visible on your profile, is chosen once and cannot currently be changed. Profile editing changes only the display name and avatar; older accounts without a username can choose one in Account & sync.
 - **Your showcase:** select and order up to six films yourself. Sharing is off by default. When you enable it, your address is `myshelf.cloud/u/<username>`. Only your chosen films are shared; displaying ratings and library counts is also optional.
 - **Private notes:** film notes, email, custom films and the rest of your library never appear on public profile pages. The identity-name filter does not censor your personal movie notes.
 

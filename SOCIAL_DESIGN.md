@@ -1,8 +1,8 @@
 # Social discovery
 
-Release rebuild, October 8, 2026. Shared version: **3.5.0**. Windows and
-Android beta.3 packages include this feature. macOS source is prepared; its
-native packages and tests are deferred.
+Release update, October 9, 2026. Shared version: **3.5.1**. Windows and
+Android 3.5.1 beta.1 include this feature and the fixed profile username controls.
+macOS source is current; its 3.5.1 packages require a fresh native workflow.
 The user applied migration 005 on October 8. Both hosted Social views passed
 anonymous protocol-1 probes with empty results.
 The rebuild does not deploy SQL or generate Mac downloads.

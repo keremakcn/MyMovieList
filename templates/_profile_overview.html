@@ -4,7 +4,7 @@
         <div class="profile-identity-text">
             <p class="eyebrow">{{ t('YOUR CINEMA') }}</p>
             <h1 data-profile-name data-profile-empty="{{ t('Your space') }}">{{ cloud_status.profile.display_name or t('Your space') }}</h1>
-            <p class="profile-handle" data-profile-username {% if not cloud_status.username.username %}hidden{% endif %}>@{{ cloud_status.username.username or '' }}</p>
+            <p class="profile-handle" data-profile-username aria-label="{{ t('Username') }}" {% if not cloud_status.username.username %}hidden{% endif %}>@{{ cloud_status.username.username or '' }}</p>
             <p class="profile-tagline">{{ t('The films you keep close.') }}</p>
             <span class="profile-private" data-sharing-badge>{{ icon('profile',12) }} <span data-sharing-badge-text>{{ t(sharing_badge) }}</span></span>
         </div>

@@ -2,6 +2,10 @@
 (() => {
     'use strict';
     const {t} = window.MovieListI18n;
+    // A missing/offline portrait leaves the local silhouette and name visible.
+    document.querySelectorAll('img[data-person-portrait]').forEach(img => {
+        if (img.complete && !img.naturalWidth) img.hidden = true;
+    });
     const libraryScope = document.querySelector('meta[name="library-scope"]').content;
     window.MovieListHTTP = Object.freeze({
         fetch(url, options = {}) {
@@ -493,6 +497,10 @@
     });
     document.addEventListener('error', event => {
         if (event.target instanceof HTMLImageElement) {
+            if (event.target.matches('[data-person-portrait]')) {
+                event.target.hidden = true;
+                return;
+            }
             const placeholder = document.createElement('span');
             placeholder.className = 'poster-placeholder';
             placeholder.textContent = '◈';

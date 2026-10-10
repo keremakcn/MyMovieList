@@ -983,6 +983,23 @@ def test_http_adapter_uses_https_and_authorization_only_for_authenticated_rpc():
     adapter = SupabaseClient(
         "https://example.supabase.co", "sb_publishable_test", opener
     )
+    original_open = opener.open
+
+    def legacy_open(request, timeout):
+        if request.full_url.endswith("mml_time_sync_status"):
+            from urllib.error import HTTPError
+
+            opener.requests.append((request, timeout))
+            raise HTTPError(
+                request.full_url,
+                404,
+                "missing optional RPC",
+                {},
+                io.BytesIO(b'{"code":"PGRST202"}'),
+            )
+        return original_open(request, timeout)
+
+    opener.open = legacy_open
     adapter.health()
     request, timeout = opener.requests[0]
     assert (

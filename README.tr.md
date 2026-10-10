@@ -8,21 +8,38 @@
 
 [English](README.md) | **Türkçe**
 
+**Geliştirme notu (10 Ekim):** tür etiketleri, iyileştirilen klasik film önerileri ve oyuncu/yönetmen fotoğrafları kaynak kodda hazır. Güncel indirme paketleri testlerin ardından hazırlanacak; mevcut paketler henüz bu eklemeleri içermiyor.
+
 ## Başlarken
 
-**Windows — v3.5.0**
+**Windows — v3.5.1**
 
-1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v3.5.0-windows.zip` dosyasını indir.
-2. Arşivi çıkar ve `MyMovieList-v3.5.0.exe` dosyasını aç. Python kurman gerekmez.
+1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v3.5.1-windows.zip` dosyasını indir.
+2. Arşivi çıkar ve `MyMovieList-v3.5.1.exe` dosyasını aç. Python kurman gerekmez.
 3. Bir film arayıp kütüphanene ekle. Keşif için ek ayar gerekmez.
 
-**Android — 3.5.0-android-beta.3**
+**Android — 3.5.1-android-beta.1**
 
-**Assets** bölümünden `MyMovieList-3.5.0-android-beta.3.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
+**Assets** bölümünden `MyMovieList-3.5.1-android-beta.1.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
 
-**macOS — v3.5.0 beta**
+**macOS — v3.5.1 beta**
 
-macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. Güncel kaynakta HTTPS sertifika düzeltmesi bulunuyor; yeni DMG'lerin Mac ortamında yeniden derlenmesi ve denenmesi gerekiyor. Önceki beta dosyaları açılıyor ancak keşif ve hesap bağlantılarında sorun bildirildi. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
+macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. 3.5.1 kaynakları kullanıcı adı düzeltmesini ve paketlenmiş HTTPS sertifikalarını içerir. Kodlar yüklendikten sonra macOS iş akışıyla yeni DMG'ler derlenmelidir; önceki sürümün dosyaları yeni profil düzeltmesini içermez. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
+
+## Web
+
+[Web’de kullan](https://myshelf.cloud) — web beta.
+
+MyShelf web sürümü uygulamayla aynı hesabı ve özel kütüphaneyi kullanır:
+tarayıcıda kalıcı kayıt, otomatik eşitleme, e-postayla başlayan kayıt akışı,
+profil avatarları ve seçilen filmlerden oluşan vitrin. İndirme bağlantısı
+GitHub'da yayımlanmış son sürüme gider. Kurulum ayrıntıları [WEB.md](WEB.md)'de.
+
+Yeni kaynak kod web, Windows, Android ve macOS için alan bazında değişiklik
+zamanlarını taşır. Zamanı güvenilir olan çakışmalarda yeni değişiklik seçilir;
+farklı alanlar birleştirilir. Eski, zamanı bilinmeyen kayıtların iki sürümü de
+korunur. Mevcut indirme paketleri uyumludur; yeni eşitleme davranışı için
+yeniden derlenmeleri gerekir.
 
 ## Neler yapabilirsin?
 
@@ -30,13 +47,13 @@ macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel içi
 - **Türkçe veya İngilizce kullan.** İlk açılışta cihazının arayüz dili esas alınır; Türkçe dışındaki diller için İngilizce kullanılır. Tercihini **Ayarlar → Dil** bölümünden değiştirebilirsin. Türkçe filmler özgün Türkçe adlarıyla gösterilir; özetlerde mevcut Türkçe çeviri, bulunamazsa İngilizce metin kullanılır.
 - **Kendi film kütüphaneni oluştur.** İzlediklerini ve izlemek istediklerini takip et; puan, favori ve kişisel not ekle. Kütüphaneni filtrele, sırala ve yanlışlıkla sildiğin bir filmi bilgilerini kaybetmeden geri al.
 - **Film ayrıntılarını sakla.** Oyuncular, yönetmenler, senaristler, yapımcılar ve stüdyolar film eklenirken kaydedilir. Eski kayıtların eksik bilgileri çevrimiçi gezinirken tamamlanır; kaydedilen ayrıntılar ve iki dildeki mevcut özetler çevrimdışı da okunabilir.
-- **Keşfet.** Günlük veya haftalık trendler, en yüksek puanlı filmler, yeni çıkanlar ve türler arasında gezin. Kütüphanendeki filmleri gizle, afiş kartından doğrudan film ekle; oyuncu, yönetmen ve yapım şirketlerinin diğer filmlerine göz at.
-- **Zevkine göre öneriler bul.** Puanların, favorilerin ve sevdiğin film seçimlerin; türler, mevcut temalar, yönetmenler ve başrol oyuncularıyla birlikte değerlendirilir. Üç keşif seçeneği tanıdık tercihlerle yeni ilgi alanlarını farklı oranlarda bir araya getirir. Yeni öneriler istediğinde, seçenekler elverdiği ölçüde yakın zamanda gösterilen filmler ve benzer temalar daha az tekrarlanır.
+- **Keşfet.** Günlük veya haftalık trendler, en yüksek puanlı filmler, yeni çıkanlar ve türler arasında gezin. Kütüphanendeki filmleri gizle, afiş kartından doğrudan film ekle. Oyuncular ve yönetmenler fotoğraflı kartlarla gösterilir; fotoğrafı olmayanlarda siluet kullanılır. Kartlardan kişilerin diğer filmlerine ulaşabilirsin.
+- **Zevkine göre öneriler bul.** Kartlarda tür etiketlerini gör. Puanların, favorilerin, türler, mevcut temalar, yönetmenler ve başrol oyuncuları değerlendirilir. Zevkine uygun, çok oyla beğenilmiş tanınan klasiklere daha fazla ağırlık verilir; yeni filmlerde tanınan başrol oyuncuları sınırlı bir avantaj sağlayabilir. Üç keşif seçeneği tanıdık tercihlerle yeni ilgi alanlarını farklı oranlarda bir araya getirir; yakın zamanda gösterilen filmler ve benzer temalar daha az tekrarlanır.
 - **Aradığını hızlıca bul.** Arama sonuçlarından ayrılmadan film ekle. **Ctrl+K** (Mac'te **⌘K**) ile aramayı aç; önerilerde ve arayüzde klavyeyle gezinebilirsin.
 
 ## Ekran görüntüleri
 
-Güncel v3.5.0 arayüzünden, örnek bir hesap ve kütüphaneyle alınmıştır. Film bilgileri ve afişler herkese açık katalog verileridir. [İngilizce arayüze göz at](README.md#screenshots).
+v3.5.0 arayüzünden örnek bir hesap ve kütüphaneyle alınmıştır. 3.5.1 sürümü profildeki kullanıcı adı gösterimini ve düzenleme alanlarını iyileştirir. Film bilgileri ve afişler herkese açık katalog verileridir. [İngilizce arayüze göz at](README.md#screenshots).
 
 ### Filmlerin, sana ait bir alan
 
@@ -108,7 +125,7 @@ Hesap açmadan kullanmaya devam edebilir veya özel kütüphaneni cihazlar aras�
 - **Kayıt olurken filmlerin korunur:** yeni hesap oluşturduğunda bu cihazda kayıtlı filmler; notları, puanları, favorileri ve eklenme sırasıyla otomatik olarak hesabına kopyalanır. Kayıt ekranında işlem önceden açıklanır. İlk yerel kopyan cihazında kalır.
 - **Ayrı kütüphaneler:** mevcut hesaba giriş yaptığında o hesabın kütüphanesi açılır. İlk yerel kütüphaneni hesap ayarlarından kopyalayabilirsin; hesapta zaten bulunan filmlerin notları ve puanları korunur.
 - **Adım adım kayıt:** e-posta → doğrulama kodu → benzersiz kullanıcı adı → şifre. Normal giriş e-posta ve şifreyle yapılır. Şifre yenilemede önce kod doğrulanır, sonra yeni şifre istenir.
-- **Sana ait profil:** görünen isim ve 16 hazır kedi avatarından birini seç. Görünen isimler aynı olabilir. Benzersiz kullanıcı adı bir kez seçilir ve şimdilik değiştirilemez.
+- **Sana ait profil:** görünen isim ve 16 hazır kedi avatarından birini seç. Görünen isimler aynı olabilir. Benzersiz @kullanıcı_adın profilinde görünür, bir kez seçilir ve şu an değiştirilemez. Profil düzenleme yalnızca görünen isim ve avatarı değiştirir; kullanıcı adı olmayan eski hesaplar ilk seçimini Hesap ve eşitleme bölümünde yapabilir.
 - **Vitrinin:** sergilemek istediğin en fazla altı filmi kendin seçip sırala. Paylaşım başlangıçta kapalıdır. Açarsan adresin `myshelf.cloud/u/<kullanıcı_adı>` olur. Yalnızca seçtiğin filmler paylaşılır; puanları ve kütüphane sayaçlarını göstermek de isteğe bağlıdır.
 - **Özel notların:** film notların, e-postan, elle eklediğin filmler ve kütüphanenin geri kalanı herkese açık profilde görünmez. İsim kontrolü kişisel film notlarını sansürlemez.
 

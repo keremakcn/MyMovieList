@@ -1,3 +1,135 @@
+# MyShelf web and shared edit times — 2026-10-10
+
+- Shared native changes passed **546 Python cases**: the full run passed 537,
+  with nine Mac certificate cases then passing separately once their optional
+  test dependency was available. Native account, library, catalog, portrait,
+  registration and desktop/macOS regressions were included.
+- **21 Node cases** passed for session encryption, verified signup/recovery,
+  same-origin mutations, stale-owner rejection, strict asset policy, safe
+  catalog routing, private-data redaction, profile names, timed merges and
+  calendar validation. The Cloudflare package dry run also passed.
+- Real local PostgreSQL applied migrations 001–006 and reran 006 without loss.
+  Tests passed for pre-migration receipt replay, timed retries/conflicts, legacy
+  replies, malformed clocks, anonymous denial and two-owner access separation.
+- Isolated browser E2E used **synthetic Auth and real local PostgreSQL RPCs**.
+  Email-first signup, code-first recovery, new-account guest adoption, existing
+  account separation, second-device restoration, offline restart, independent
+  field merging, older uploads losing to newer edits, retained conflict history
+  and explicit selected-showcase publication passed without JavaScript errors.
+  No real email or account was created by these tests.
+- Real public catalog QA passed responsive home/discovery at 390/1440 px,
+  guest note/rating persistence after reload, language switching and the
+  email-only first signup step. Live Cloudflare smoke passed the
+  home/discovery/library/profile/updates pages, timed health probe, guest session,
+  movie cast and cross-origin denial. The live browser check passed four widths
+  (320/390/800/1440), guest save/restart and the email-first signup entry. The
+  existing API remains configured and `/u/...` matches the profile subdomain.
+- The live runtime required outbound `redirect: manual`; the unsupported error
+  mode failed before connecting. Manual mode does not follow redirects and
+  rejects non-success upstream replies. Local unit checks and live smoke passed
+  after the correction. No SSL verification was disabled.
+- A web export imported into the real native SQLite implementation without
+  changing personal records, field times or archived competing versions.
+- The user applied 006; the hosted anonymous timing probe was verified.
+  A final real-email web signup/recovery and same-account installed-app round
+  trip remain user acceptance checks. Browser/private-data clearing and
+  physical-device behavior require normal device testing.
+- Main source and Android packaging include the time-aware shared module.
+  No native release binary was rebuilt for this web change. Older binaries
+  remain compatible, but do not carry reliable per-field edit times.
+
+# Genre tags, recognizable classics and portrait cards — 2026-10-10
+
+- All changes are in the main **Desktop/movie-watchlist** source. App version
+  remains 3.5.1; recommendation algorithm/cache version is 3 and metadata feature
+  version is 2. No SQL migration, server deployment or new dependency is needed.
+- **527 isolated Python tests passed** in 107.74 seconds, including 30 new cases
+  for suitable classics, taste/dislike protection, bounded recent lead-cast
+  bonuses, invalid popularity/portrait data, localized genre tags, legacy offline
+  caches, photo upgrades by ID and stopping optional batches during an outage.
+- Catalog UI regression passed **30 views** in EN/TR at 320, 390, 768, 1024 and
+  1365 px. Recommendation UI regression passed stable reload/refresh, the three
+  modes, keyboard add/refresh, failed refresh, language identity and four widths.
+- Live public-catalog UI checks passed **16 views** at 320/390/768/1365 px in both
+  languages, including genre tags, classic labels, photo loading, keyboard actor
+  navigation and a forced portrait failure retaining the silhouette/name/link.
+  No JavaScript errors or horizontal overflow were found. The separate synthetic
+  library produced ten unique picks from 123 public films (26 enriched), six with
+  a classic label. This example is not a measurement of recommendation accuracy.
+- Python lint/format checks and JavaScript syntax checks passed. Ratings, notes,
+  favorites, watched dates and numeric film identities remain protected by tests.
+- The Windows **preview** passed archive/source comparison for the seven changed
+  or directly related modules and all 69 UI assets. The real EXE passed isolated
+  startup, saved actor/director portrait markup, EN/TR switching, restart and
+  preservation of all saved movie fields. It is available as
+  **Desktop/MyMovieList-preview.exe** and in **dist/previews**. Release archives
+  remain unchanged. Android
+  APK/AAB and native macOS packages were **not rebuilt** for these additions.
+  Their next builds include the common source/assets. The earlier dated release
+  results below describe the previous builds, not this development update.
+
+# Release 3.5.1 — 2026-10-09
+
+- **497 full isolated source tests passed** in 101.75 seconds. Targeted Python
+  lint/format checks, JavaScript syntax and the four username-loading status
+  cases passed. Existing storage and privacy assertions remain intact.
+- The shared source version is **3.5.1**. All changes are in the main
+  **Desktop/movie-watchlist** project. No hosted SQL or service configuration
+  was changed. Existing .gitignore rules continue to exclude private libraries,
+  sessions, signing keys, local tooling, QA outputs and generated packages.
+- **Windows:** clean EXE/ZIP build; all 27 shared/desktop Python modules and
+  69 UI assets match the current source. ZIP content, release notes and SHA-256
+  checks passed. The real packaged EXE passed isolated startup, TR/EN switching,
+  restart, saved library/cast/synopsis preservation, registration disclosure and
+  Social checks. The new Desktop file is **MyMovieList-v3.5.1.exe**.
+- **Android:** clean signed APK/AAB build using **3.5.1-android-beta.1 /
+  versionCode 8**, keeping **com.moviewatchlist** and the previous release
+  signing certificate. Both packages contain all 27 shared/bridge Python
+  modules and 69 UI assets from the current main source, including the profile
+  username correction. Each passed nine nested-archive CRC checks and ELF
+  alignment checks for 138 native libraries / 408 load segments. APK v2 signing,
+  16 KB ZIP alignment, AAB signing/structure/configuration and version metadata
+  passed. Release lint has **zero errors and four existing warnings**.
+- The installable APK, Play submission AAB, Windows ZIP and combined checksums
+  are collected in **dist/releases/v3.5.1/**. Older release files are retained.
+  No phone is connected: physical installation/update and Android lifecycle
+  tests remain pending; package verification does not claim a device test.
+- **macOS:** the shared source and workflow use 3.5.1 and include the bundled
+  CA certificates, HTTPS checks and fixed username controls. Native ARM/Intel
+  DMGs cannot be produced on this Windows host; push the updated source and
+  start a fresh macOS workflow. No 3.5.1 native Mac artifact is claimed here.
+- Personal AppData, real account sessions and user libraries were not used
+  for tests or modified during release preparation.
+
+# Profile username controls — 2026-10-09
+
+- The existing database contract already prevented renaming chosen usernames.
+  However, the profile editor rendered an initial-choice form whenever its local
+  username cache was empty; that form could remain visible while the server's
+  existing username loaded. The fixed username also looked like a text input.
+- The profile editor now has no username input or reservation form in any loading
+  state. It shows a lock and fixed `@username`; the profile header shows the handle
+  separately from the editable display name. Polling updates both identity labels
+  and the address. Older accounts without a username make their first choice in
+  Account & sync; a confirmed handle hides that setup form. A cached confirmed
+  handle also rejects attempted renaming before any hosted request, even offline.
+- **497 full isolated source tests passed**, including EN/TR editor states for
+  confirmed, loading and legacy accounts; offline rename rejection; and display
+  name changes preserving the username and profile address. Four JavaScript
+  status cases passed for confirmed, loading, legacy and offline states. Targeted
+  Python lint/formatting and JavaScript syntax checks passed.
+- Two existing shelf tests intermittently assumed the Windows wall clock always
+  increased between rapid additions. Their fixtures now supply distinct synthetic
+  timestamps; all original ordering and privacy assertions are retained. Storage
+  and synchronization ordering code are unchanged.
+- Source changes are in **Desktop/movie-watchlist**, version **3.5.0**. No Supabase
+  migration is required. The rebuilt Windows EXE matches all 27 shared modules
+  and 69 UI assets; its release ZIP and combined checksums were refreshed. The
+  actual packaged EXE passed isolated startup, EN/TR switching, restart, saved
+  library/cast/synopsis preservation, registration disclosure and Social checks.
+  The Desktop EXE was replaced after verification. Android APK/AAB bytes are
+  unchanged; Android and macOS need new builds to include this editor correction.
+
 # macOS HTTPS correction — 2026-10-09
 
 - Actual-Mac testing of the first beta confirmed graphical startup but reported

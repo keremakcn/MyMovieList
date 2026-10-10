@@ -1,21 +1,48 @@
+{% macro person_card(person, director=false) %}
+    <a class="person-card{{ ' person-card-director' if director }}"
+       href="{{ url_for('entity', kind='person', entity_id=person.id, back=current_url) }}"
+       aria-label="{{ person.name }}" {% if person.role %}title="{{ person.role }}"{% endif %}>
+        <span class="person-portrait" aria-hidden="true">
+            <svg class="portrait-placeholder" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="17" r="8" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M9 42v-4a15 15 0 0 1 30 0v4" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            {% if person.portrait_url %}
+                <img src="{{ person.portrait_url }}" alt="" width="148" height="185"
+                     loading="lazy" decoding="async" data-person-portrait>
+            {% endif %}
+        </span>
+        <span class="person-card-info">
+            <strong>{{ person.name }}</strong>
+            {% if person.role %}<span>{{ t(person.role) if director else person.role }}</span>{% endif %}
+        </span>
+    </a>
+{% endmacro %}
 {% if tmdb.entities %}
     <section class="entity-links" aria-label="{{ t("Explore cast, crew and companies") }}">
         {% for key,label in [('directors','Directed by'),('cast','Cast'),('writers','Writing'),('producers','Producers'),('companies','Production companies')] %}
             {% if tmdb.entities.get(key) %}
                 <h2>{{ t(label) }}</h2>
+                {% if key in ('cast', 'directors') %}
+                    <div class="people-grid{{ ' directors-grid' if key == 'directors' }}">
+                        {% for person in (tmdb.entities[key][:12] if key == 'cast' else tmdb.entities[key]) %}
+                            {{ person_card(person, key == 'directors') }}
+                        {% endfor %}
+                    </div>
+                {% else %}
                 <div class="entity-chips">
                     {% for person in (tmdb.entities[key][:12] if key == "cast" else tmdb.entities[key]) %}
                         <a href="{{ url_for('entity', kind='company' if key == 'companies' else 'person', entity_id=person.id, back=current_url) }}"
                            {% if person.role %} title="{{ person.role }}" {% endif %}>{{ person.name }}</a>
                     {% endfor %}
                 </div>
+                {% endif %}
                 {% if key == "cast" and tmdb.entities[key]|length > 12 %}
                     <details class="full-cast">
                         <summary>{{ t('See full cast ({count})', count=tmdb.entities[key]|length) }}</summary>
-                        <div class="entity-chips">
+                        <div class="people-grid">
                             {% for person in tmdb.entities[key][12:] %}
-                                <a href="{{ url_for('entity', kind='person', entity_id=person.id, back=current_url) }}"
-                                   {% if person.role %}title="{{ person.role }}"{% endif %}>{{ person.name }}</a>
+                                {{ person_card(person) }}
                             {% endfor %}
                         </div>
                     </details>

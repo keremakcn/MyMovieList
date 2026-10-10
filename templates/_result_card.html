@@ -25,6 +25,14 @@
         <h2>
             <a href="{{ url_for('catalog_movie', tmdb_id=movie.tmdb_id, back=current_url) }}">{{ movie.title }}</a>
         </h2>
+        {% if movie.genre_tags %}
+            <ul class="movie-genre-tags" aria-label="{{ t('Genres') }}">
+                {% for genre in movie.genre_tags %}<li>{{ genre }}</li>{% endfor %}
+            </ul>
+        {% endif %}
+        {% if movie.recommendation_highlight %}
+            <p class="recommendation-highlight"><span aria-hidden="true">✦</span> {{ t(movie.recommendation_highlight) }}</p>
+        {% endif %}
         <p class="result-overview">{{ movie.overview or t("No overview available.") }}</p>
         {% include "_movie_action.html" %}
     </div>

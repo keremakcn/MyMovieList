@@ -95,3 +95,6 @@ keystore.properties
 *.pfx
 *.mobileprovision
 *.provisionprofile
+
+# Browser personal-library downloads
+MyMovieList-library.json

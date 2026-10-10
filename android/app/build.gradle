@@ -16,8 +16,8 @@ android {
         applicationId 'com.moviewatchlist'
         minSdk 24
         targetSdk 36
-        versionCode 7
-        versionName "${appVersion}-android-beta.3"
+        versionCode 8
+        versionName "${appVersion}-android-beta.1"
         ndk { abiFilters 'arm64-v8a', 'x86_64' }
     }
     signingConfigs {
@@ -51,7 +51,7 @@ def stageSharedPython = tasks.register('stageSharedPython', Sync) {
         include 'app.py', 'storage.py', 'tmdb_client.py', 'recommendations.py', 'recommendation_model.py'
         include 'recommendation_routes.py', 'discovery.py', 'discovery_routes.py', 'version.py', 'i18n.py', 'catalog.py', 'templates/**', 'static/**'
         include 'social.py', 'social_routes.py', 'public_catalog.py'
-        include 'auth_flows.py', 'account_profile.py', 'account_username.py', 'name_policy.py', 'profile_sharing.py', 'public_profile_routes.py', 'cloud_client.py', 'cloud_sync.py', 'account_routes.py', 'personal_data.py', 'sync_store.py', 'session_store.py', 'supabase/project.json'
+        include 'auth_flows.py', 'account_profile.py', 'account_username.py', 'name_policy.py', 'profile_sharing.py', 'public_profile_routes.py', 'cloud_client.py', 'cloud_sync.py', 'account_routes.py', 'personal_data.py', 'field_sync.py', 'sync_store.py', 'session_store.py', 'supabase/project.json'
     }
     into sharedPython
 }

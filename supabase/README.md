@@ -8,8 +8,8 @@ October 8, followed by username migration 003. Registration/name-policy migratio
 library restoration on a second isolated device instance were tested by the user.
 The updated registration/profile UI and sync behavior are covered by local tests.
 Social migration 005 was applied by the user on October 8; both anonymous
-directory and weekly-view setup probes passed. Windows 3.5.0 and signed
-Android 3.5.0 beta.3 downloads were rebuilt with the registration, profile,
+directory and weekly-view setup probes passed. Windows 3.5.1 and signed
+Android 3.5.1 beta.1 downloads include the current registration, profile,
 automatic sync and Social modules. Existing hosted setup needs no further
 SQL for these downloads. Hosted two-owner access separation and native
 Android lifecycle still require final release QA.
@@ -114,7 +114,7 @@ source. Rebuilding is necessary before this appears in distributed applications.
   A single local transaction copies personal fields and available public details
   before completing the new account's password. A lost completion response or
   failed session save cannot lose that staged library; later sign-in opens it.
-  The Windows v3.5.0 rebuild and Android beta.3 packages include this behavior;
+  Windows v3.5.1 and Android 3.5.1 beta.1 include this behavior;
   it requires no additional Supabase migration.
 - A private display name and one avatar ID are stored in `user_metadata.mml_profile`
   through the authenticated Auth user endpoint. The SVG avatar pack ships in
@@ -293,9 +293,9 @@ you control after setup. Automated tests use synthetic accounts only.
 
 ## Current native packages
 
-Windows v3.5.0 and Android 3.5.0 beta.3 are rebuilt with the current account,
-sync and Social modules. Mac source/build support is current; native Mac builds
-remain deferred. Package checks are recorded in [QA results](../QA_RESULTS.md).
+Windows v3.5.1 and Android 3.5.1 beta.1 include the current account,
+sync, Social and fixed username/profile controls. Mac source/build support is
+current; native 3.5.1 DMGs require a fresh macOS workflow. Package checks are recorded in [QA results](../QA_RESULTS.md).
 
 ## Enable in-app Social discovery
 
@@ -324,6 +324,22 @@ turning a profile private. If no one has opted into sharing, the directory is
 empty. If 005 is missing, Social shows a setup state while the library remains
 available. See [design and tests](../SOCIAL_DESIGN.md).
 
-The current Windows v3.5.0 rebuild and Android beta.3 include Social. Earlier
-3.5.0 Windows downloads and Android beta.1/beta.2 do not; replace them with the
-current verified packages. No Mac DMG has been built yet.
+Windows v3.5.1 and Android 3.5.1 beta.1 include Social. Earlier 3.5.0 Windows
+downloads and Android beta.1/beta.2 predate Social. The older Android beta.3
+contains Social but predates the latest profile editor fix. Mac 3.5.1 DMGs
+require a new workflow run on the updated source.
+
+## Web and per-field edit times (006)
+
+Migration [006_field_edit_times.sql](migrations/006_field_edit_times.sql) was
+applied by the owner on 10 October 2026 and its hosted public health probe
+reported `mymovielist-field-sync`, protocol 1. On a new project, apply 001–006
+in order. The migration preserves existing libraries, receipt hashes and v1
+RPCs, adds per-field edit times and an authenticated owner-only showcase
+settings read, and does not publish any profile or change private access.
+
+Current web and native source use the timed endpoints after a capability probe;
+old native packages keep working through the original endpoints. An old client
+edit has unknown time rather than the upload time being treated as edit time.
+See [WEB.md](../WEB.md) for browser storage, cookies, deployment and package
+compatibility. No service-role key is used by the web app.

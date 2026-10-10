@@ -13,7 +13,7 @@ from datetime import date
 
 from tmdb_client import movie_summary
 
-ALGORITHM_VERSION = "2"
+ALGORITHM_VERSION = "3"
 GENRES = {
     28: "Action",
     12: "Adventure",
@@ -319,6 +319,54 @@ def feature_similarity(left, right):
     return total / weight if weight else 0
 
 
+def recognition_signals(movie, quality, today=None):
+    """Bounded public evidence, not a claim that a film is officially 'cult'.
+
+    Votes proxy recognition, adjusted ratings proxy reception. Daily person
+    popularity is a weak cast signal, never a measure of acting ability.
+    """
+    today = today or date.today()
+    votes = movie.get("vote_count", 0)
+    recognition = min(1.0, math.log10(1 + votes / 100) / 2)
+    reception = min(1.0, max(0.0, (quality - 0.64) / 0.16))
+    release = movie.get("release_date")
+    released = date.fromisoformat(release) if release else None
+    age = (today - released).days / 365.2425 if released else None
+    classic = (
+        age is not None
+        and age >= 10
+        and votes >= 1000
+        and movie.get("vote_average", 0) >= 7.4
+    )
+    entities = movie.get("entities")
+    cast = entities.get("cast", []) if isinstance(entities, dict) else []
+    prominence = 0.0
+    for person in cast[:3] if isinstance(cast, list) else []:
+        popularity = person.get("popularity", 0) if isinstance(person, dict) else 0
+        if type(popularity) in (int, float) and math.isfinite(popularity):
+            prominence = max(
+                prominence,
+                min(
+                    1.0,
+                    max(
+                        0.0,
+                        (math.log1p(max(0, popularity)) - math.log(11))
+                        / (math.log(101) - math.log(11)),
+                    ),
+                ),
+            )
+    recent_cast = (
+        prominence * (1 - age / 5)
+        if age is not None and 0 <= age <= 4 and votes >= 50
+        else 0
+    )
+    return {
+        "bonus": reception
+        * (0.18 * recognition + 0.22 * classic * recognition + 0.14 * recent_cast),
+        "classic": classic,
+    }
+
+
 def rank_candidates(
     candidates, profile, excluded=(), mode="balanced", limit=10, previous=(), seed=""
 ):
@@ -375,6 +423,18 @@ def rank_candidates(
             0.45 * quality + policy["fit"] * scored["fit"] + 1.8 * scored["negative"]
         )
         score += policy["novelty"] * (1 - scored["familiarity"])
+        recognition = recognition_signals(raw, quality)
+        # Recognition complements taste. A popular off-taste classic receives
+        # only a quarter of the bonus; exploration retains room for lesser-known films.
+        taste_gate = (
+            0.25 + 0.75 * min(1.0, max(0.0, scored["fit"]) / 0.2)
+            if profile["ready"]
+            else 1.0
+        )
+        recognition_weight = {"familiar": 1.15, "balanced": 1.0, "explore": 0.55}.get(
+            mode, 1.0
+        )
+        score += recognition["bonus"] * taste_gate * recognition_weight
         if seed:
             digest = hashlib.sha256(f"{seed}:{mode}:{mid}".encode()).digest()
             score += int.from_bytes(digest[:4], "big") / 2**32 * 0.035
@@ -415,6 +475,7 @@ def rank_candidates(
                 recent=mid in recent,
                 overlap=0.0,
                 reason=reason,
+                classic=recognition["classic"],
             )
         )
     selected, directors, collections, keywords = [], Counter(), Counter(), Counter()
@@ -493,5 +554,10 @@ def rank_candidates(
                 item["overlap"], feature_similarity(item["features"], features)
             )
     return [
-        dict(movie_summary(item["raw"]), reason=item["reason"]) for item in selected
+        dict(
+            movie_summary(item["raw"]),
+            reason=item["reason"],
+            recommendation_highlight="Acclaimed classic" if item["classic"] else "",
+        )
+        for item in selected
     ]

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111114">
+  <meta name="description" content="MyMovieList ile filmlerini, puanlarını ve notlarını tek bir kişisel kütüphanede sakla. Web'de başla, uygulamada devam et.">
+  <title>MyMovieList · MyShelf</title>
+  <link rel="icon" href="/assets/logo.png"><link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#main">İçeriğe geç / Skip to content</a>
+  <header class="header">
+    <a href="/" data-route class="brand"><img src="/assets/logo.png" alt="" width="34" height="34"><span>MyMovieList<small>ON MYSHELF</small></span></a>
+    <nav aria-label="Main navigation"><a href="/discover" data-route data-i18n="discover">Keşfet</a><a href="/library" data-route data-i18n="library">Kütüphanem</a><a href="/updates" data-route data-i18n="updates">Yenilikler</a></nav>
+    <div class="header-actions"><button id="language" class="quiet" aria-label="Change language">EN</button><div id="account-actions"></div><a href="https://github.com/keremakcn/MyMovieList/releases/latest" class="button small download" target="_blank" rel="noopener" data-i18n="download">Uygulamayı indir ↗</a></div>
+  </header>
+  <main id="main" tabindex="-1"><div class="initial"><span class="spinner"></span> MyMovieList</div></main>
+  <footer><a class="brand" href="/" data-route><img src="/assets/logo.png" alt="" width="24" height="24"><span>MyMovieList</span></a><span data-i18n="footer">İzlediklerin, izleyeceklerin ve aklında kalanlar.</span><a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a><a href="https://github.com/keremakcn/MyMovieList" target="_blank" rel="noopener">GitHub ↗</a><a href="/credits" data-i18n="credits">Kaynaklar</a></footer>
+  <dialog id="auth-dialog" aria-labelledby="auth-title"><div class="auth-top"><a class="brand" href="/" data-route><img src="/assets/logo.png" alt="" width="32" height="32"><span>MyMovieList</span></a><button class="icon" data-close="auth-dialog" aria-label="Close">×</button></div><div id="auth-content"></div></dialog>
+  <dialog id="movie-dialog" aria-labelledby="movie-title"><button class="icon dialog-close" data-close="movie-dialog" aria-label="Close">×</button><div id="movie-content"></div></dialog>
+  <dialog id="profile-dialog" aria-labelledby="profile-title"><button class="icon dialog-close" data-close="profile-dialog" aria-label="Close">×</button><div id="profile-content"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript><p>MyMovieList web sürümünü kullanmak için JavaScript'i etkinleştir. / Enable JavaScript to use MyMovieList on the web.</p></noscript>
+</body>
+</html>

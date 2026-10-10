@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {equal,iso,merge,newRecord,timestamp,validateRecord} from '../public/sync-model.mjs';
+import {nameAllowed} from '../public/name-policy.mjs';
+const now=Date.parse('2026-10-10T00:00:00Z'),early='2026-10-09T10:00:00.000000+00:00',later='2026-10-09T11:00:00.000000+00:00';
+const base=()=>newRecord(603,{now:Date.parse(early)}).data;
+test('independent fields retain both values',()=>{const b=base(),m=merge(b,{...b,note:'private'},{...b,rating:9},{note:early},{rating:later},now);assert(!m.conflict);assert.equal(m.data.note,'private');assert.equal(m.data.rating,9);});
+test('newest edit wins regardless of upload order',()=>{const b=base(),m=merge(b,{...b,note:'old offline'},{...b,note:'newer online'},{note:early},{note:later},now);assert(!m.conflict);assert.equal(m.data.note,'newer online');});
+test('unknown, equal and implausible future times preserve conflict',()=>{const b=base();for(const v of [{},{note:early},{note:'2099-01-01T00:00:00Z'}])assert(merge(b,{...b,note:'local'},{...b,note:'remote'},{note:early},v,now).conflict);});
+test('newer deletion hides older edits; newer edit restores older deletion',()=>{const b=base(),left={...b,note:'new note'},right={...b,deleted_at:early};assert.equal(merge(b,left,right,{note:later},{deleted_at:early},now).data.deleted_at,null);assert.equal(merge(b,left,right,{note:early},{deleted_at:later},now).data.deleted_at,early);});
+test('UTC normalization preserves microseconds and offsets',()=>{assert.equal(timestamp('2026-10-09T13:00:00.123456+03:00'),'2026-10-09T10:00:00.123456+00:00');assert.equal(iso(0),'1970-01-01T00:00:00.000000+00:00');});
+test('catalog metadata cannot be put in personal records',()=>{assert.throws(()=>validateRecord('tmdb:603',{...base(),overview:'not personal'}));assert.throws(()=>validateRecord('tmdb:603',{...base(),rating:0}));assert.throws(()=>validateRecord('tmdb:603',{...base(),watched_date:'2026-02-30'}));});
+test('stable object equality does not depend on JSON key order',()=>{assert(equal({a:1,b:2},{b:2,a:1}));});
+test('impossible dates and midnight rollover cannot become trustworthy edit times',()=>{for(const value of ['2026-02-30T00:00:00Z','2026-04-31T00:00:00Z','2026-10-10T24:00:00Z'])assert.throws(()=>timestamp(value));assert.equal(timestamp('2024-02-29T00:00:00Z'),'2024-02-29T00:00:00.000000+00:00');});
+test('profile names share the native policy without filtering ordinary names',()=>{for(const value of ['Hitler','h1tl3r','orospu','fuck_you','nazi'])assert(!nameAllowed(value));for(const value of ['Nazım','Scunthorpe','Çağrı','Film lover'])assert(nameAllowed(value));});

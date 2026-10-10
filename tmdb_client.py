@@ -1,18 +1,22 @@
 """Bounded TMDB cache and single-flight requests shared by all discovery views."""
 
 import json
+import math
 import os
+import re
 import time
-from datetime import datetime, timezone
-from email.utils import parsedate_to_datetime
 from collections import OrderedDict
 from concurrent.futures import Future
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from threading import Lock
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 
 from version import APP_VERSION
+
+RECOMMENDATION_FEATURES_VERSION = 2
 
 GATEWAY_BASE_URL = "https://api.myshelf.cloud/3/"
 
@@ -26,12 +30,25 @@ class TMDBError(Exception):
 
 class TMDBClient:
     def __init__(self, capacity=256, base_url=None):
-        configured = base_url or os.environ.get("MOVIE_WATCHLIST_GATEWAY_URL") or GATEWAY_BASE_URL
+        configured = (
+            base_url
+            or os.environ.get("MOVIE_WATCHLIST_GATEWAY_URL")
+            or GATEWAY_BASE_URL
+        )
         parts = urlsplit(configured)
-        if (parts.scheme != "https" or not parts.hostname or parts.username or parts.password
-                or parts.query or parts.fragment or parts.path not in ("", "/", "/3", "/3/")):
+        if (
+            parts.scheme != "https"
+            or not parts.hostname
+            or parts.username
+            or parts.password
+            or parts.query
+            or parts.fragment
+            or parts.path not in ("", "/", "/3", "/3/")
+        ):
             raise ValueError("Movie discovery requires a valid HTTPS gateway address.")
-        self.base_url = configured.rstrip('/') + ('/' if parts.path.rstrip('/') == '/3' else '/3/')
+        self.base_url = configured.rstrip("/") + (
+            "/" if parts.path.rstrip("/") == "/3" else "/3/"
+        )
         self.capacity = capacity
         self.cache = OrderedDict()
         self.pending = {}
@@ -69,12 +86,18 @@ class TMDBClient:
             try:
                 return future.result(timeout=15)
             except TimeoutError as error:
-                raise TMDBError("Movie discovery is taking too long. Please try again.") from error
+                raise TMDBError(
+                    "Movie discovery is taking too long. Please try again."
+                ) from error
         try:
             result = self._request(path, params)
             if path.startswith("search/"):
                 ttl = 120
-            elif path.startswith("trending/") or path in ("movie/top_rated", "movie/now_playing", "discover/movie"):
+            elif path.startswith("trending/") or path in (
+                "movie/top_rated",
+                "movie/now_playing",
+                "discover/movie",
+            ):
                 ttl = 1800
             else:
                 ttl = 21600
@@ -82,7 +105,9 @@ class TMDBClient:
             result, ttl = error, error.retry_after
         except Exception:
             result, ttl = (
-                TMDBError("Movie discovery returned an unexpected response. Please try again."),
+                TMDBError(
+                    "Movie discovery returned an unexpected response. Please try again."
+                ),
                 3,
             )
         with self.lock:
@@ -102,13 +127,23 @@ class TMDBClient:
         return result
 
     def _request(self, path, params):
-        if not path or path.startswith('/') or any(part in ('', '.', '..') for part in path.split('/')) or '?' in path or '#' in path or '\\' in path:
+        if (
+            not path
+            or path.startswith("/")
+            or any(part in ("", ".", "..") for part in path.split("/"))
+            or "?" in path
+            or "#" in path
+            or "\\" in path
+        ):
             raise TMDBError("Invalid movie discovery request.", 400)
-        if any(key in params for key in ('api_key', 'access_token', 'token')):
+        if any(key in params for key in ("api_key", "access_token", "token")):
             raise TMDBError("Credentials are not accepted by movie discovery.", 400)
         req = Request(
             self.base_url + path + "?" + urlencode(params),
-            headers={"Accept": "application/json", "User-Agent": f"MyMovieList/{APP_VERSION}"},
+            headers={
+                "Accept": "application/json",
+                "User-Agent": f"MyMovieList/{APP_VERSION}",
+            },
         )
         try:
             with urlopen(req, timeout=12) as response:
@@ -119,7 +154,8 @@ class TMDBClient:
         except HTTPError as error:
             if error.code in (401, 403):
                 raise TMDBError(
-                    "Movie discovery is temporarily unavailable. Please try again later.", 503
+                    "Movie discovery is temporarily unavailable. Please try again later.",
+                    503,
                 ) from error
             if error.code == 429:
                 retry = error.headers.get("Retry-After", "10")
@@ -137,7 +173,9 @@ class TMDBClient:
                     except (ValueError, TypeError):
                         delay = 10
                 raise TMDBError(
-                    "Movie discovery is busy. Please wait a moment and try again.", 429, delay
+                    "Movie discovery is busy. Please wait a moment and try again.",
+                    429,
+                    delay,
                 ) from error
             if error.code == 404:
                 raise TMDBError(
@@ -155,13 +193,28 @@ class TMDBClient:
 def image_url(path, size="w342"):
     return (
         f"https://image.tmdb.org/t/p/{size}{path}"
-        if path and path.startswith("/")
+        if isinstance(path, str)
+        and re.fullmatch(r"/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)", path)
         else None
     )
 
 
+def person_metadata(person):
+    popularity = person.get("popularity", 0)
+    return {
+        "portrait_url": image_url(person.get("profile_path"), "w185"),
+        "popularity": min(100.0, popularity)
+        if type(popularity) in (int, float)
+        and math.isfinite(popularity)
+        and popularity > 0
+        else 0,
+    }
+
+
 def movie_summary(data):
     release = data.get("release_date") or ""
+    genres = data.get("genre_ids")
+    genres = genres if isinstance(genres, list) else []
     return {
         "tmdb_id": data["id"],
         "title": data.get("title") or "Untitled movie",
@@ -170,6 +223,9 @@ def movie_summary(data):
         "year": int(release[:4]) if release[:4].isdigit() else None,
         "poster_url": image_url(data.get("poster_path")),
         "overview": data.get("overview") or "",
+        "genre_ids": list(
+            dict.fromkeys(gid for gid in genres if type(gid) is int and gid > 0)
+        ),
         "score_percent": round((data.get("vote_average") or 0) * 10)
         if data.get("vote_count")
         else None,
@@ -184,6 +240,7 @@ def movie_details(data):
             "id": p["id"],
             "name": p["name"],
             "role": p.get("character") or p.get("job") or "",
+            **person_metadata(p),
         }
         for p in credits.get("cast", [])
     ]
@@ -195,12 +252,24 @@ def movie_details(data):
             if job not in jobs:
                 continue
             member = members.setdefault(
-                person["id"], {"id": person["id"], "name": person["name"], "roles": []}
+                person["id"],
+                {
+                    "id": person["id"],
+                    "name": person["name"],
+                    "roles": [],
+                    **person_metadata(person),
+                },
             )
             if job not in member["roles"]:
                 member["roles"].append(job)
         return [
-            dict(id=p["id"], name=p["name"], role=", ".join(p["roles"]))
+            dict(
+                id=p["id"],
+                name=p["name"],
+                role=", ".join(p["roles"]),
+                portrait_url=p["portrait_url"],
+                popularity=p["popularity"],
+            )
             for p in members.values()
         ]
 
@@ -216,10 +285,18 @@ def movie_details(data):
     ]
     result.update(
         genre=", ".join(g["name"] for g in data.get("genres", [])),
-        genre_ids=[g["id"] for g in data.get("genres", []) if type(g.get("id")) is int and g["id"] > 0],
-        keyword_ids=[k["id"] for k in (data.get("keywords") or {}).get("keywords", []) if type(k.get("id")) is int and k["id"] > 0],
+        genre_ids=[
+            g["id"]
+            for g in data.get("genres", [])
+            if type(g.get("id")) is int and g["id"] > 0
+        ],
+        keyword_ids=[
+            k["id"]
+            for k in (data.get("keywords") or {}).get("keywords", [])
+            if type(k.get("id")) is int and k["id"] > 0
+        ],
         collection_id=(data.get("belongs_to_collection") or {}).get("id"),
-        recommendation_features_version=1,
+        recommendation_features_version=RECOMMENDATION_FEATURES_VERSION,
         runtime=data.get("runtime"),
         director=", ".join(p["name"] for p in directors),
         cast=[p["name"] for p in people],

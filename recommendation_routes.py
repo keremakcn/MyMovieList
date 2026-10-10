@@ -14,7 +14,7 @@ from flask import (
     url_for,
 )
 
-from recommendations import MODES, Recommender, build_profile
+from recommendations import GENRES, MODES, Recommender, build_profile
 from storage import utcnow
 
 
@@ -55,6 +55,10 @@ def register_recommendations(app, db, tmdb, download_poster, service=None):
         data["movies"] = catalog.present(
             data["movies"], language(), fetch=language() == "tr"
         )
+        for movie in data["movies"]:
+            movie["genre_tags"] = [
+                t(GENRES[gid]) for gid in movie.get("genre_ids", []) if gid in GENRES
+            ]
         data["waiting"] = catalog.present(data["waiting"], language())
         return jsonify(
             profile_changed=data.get("profile_changed", False),

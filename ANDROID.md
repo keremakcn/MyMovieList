@@ -1,6 +1,6 @@
-# Android — MyMovieList 3.5.0 beta.3
+# Android — MyMovieList 3.5.1 beta.1
 
-The app runs its library on the phone itself and works without a desktop computer. Android `3.5.0-android-beta.3` includes the same bilingual discovery, recommendations, optional accounts, profiles, Social and automatic library sync as Windows v3.5.0.
+The app runs its library on the phone itself and works without a desktop computer. Android `3.5.1-android-beta.1` includes the same bilingual discovery, recommendations, optional accounts, profiles, Social and automatic library sync as Windows v3.5.1.
 
 ## Library and accounts
 
@@ -12,7 +12,9 @@ The app runs its library on the phone itself and works without a desktop compute
 
 The release ID remains `com.moviewatchlist`; its usual data path is `/data/user/0/com.moviewatchlist/files/library/`. Keep the existing signing key for updates.
 
-New registration automatically copies the guest library into the account after a disclosure on the registration screen. Notes, ratings, favorites and original order are preserved; the guest copy stays on the device. This is included in the Windows v3.5.0 rebuild and Android `3.5.0-android-beta.3` packages; it requires no additional Supabase migration.
+New registration automatically copies the guest library into the account after a disclosure on the registration screen. Notes, ratings, favorites and original order are preserved; the guest copy stays on the device. This is included in the Windows v3.5.1 rebuild and Android `3.5.1-android-beta.1` packages; it requires no additional Supabase migration.
+
+The profile editor shows a fixed username rather than a username input, even while account status loads. Display names and avatars remain editable. A confirmed username cannot be renamed through the local account endpoint. Legacy first-time selection remains in Account & sync.
 
 ## Architecture
 
@@ -41,13 +43,13 @@ From the repository root:
 
 Release signing must already be configured in `android/keystore.properties`. Use `scripts/create_android_signing.ps1` only for the initial setup; never replace the signing key for an update. Back up `.android-signing/release.jks` and `android/keystore.properties` privately.
 
-Artifacts are written to `dist/android/3.5.0-android-beta.3/`:
+Artifacts are written to `dist/android/3.5.1-android-beta.1/`:
 
-- `MyMovieList-3.5.0-android-beta.3.apk`: installable GitHub download.
-- `MyMovieList-3.5.0-android-beta.3.aab`: future Google Play submission.
+- `MyMovieList-3.5.1-android-beta.1.apk`: installable GitHub download.
+- `MyMovieList-3.5.1-android-beta.1.aab`: future Google Play submission.
 - `SHA256SUMS.txt`: package hashes.
 
-`version.py` supplies the shared 3.5.0 version. Android uses `versionCode=7` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
+`version.py` supplies the shared 3.5.1 version. Android uses `versionCode=8` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
 
 The **Android packages** GitHub Actions workflow also supports debug and release builds. Release mode needs the four Android signing secrets from the same existing key. It builds artifacts without publishing a GitHub Release.
 
@@ -59,7 +61,19 @@ Apply Supabase migrations 001–005 before announcing accounts and Social. They 
 
 Android remains a beta until the actual APK is tested for installation/update, keyboard/insets, navigation, rotation, process restart, Keystore session restoration and cross-device sync. An AAB build does not publish or approve the application on Google Play; store setup, privacy disclosures and review are separate steps.
 
-## Current build — October 9, 2026
+## Current build — 3.5.1, October 9, 2026
+
+Clean signed release builds use `3.5.1-android-beta.1` and versionCode=8,
+with the existing application ID and signing key. They include the latest
+username/profile correction and shared application updates. Release downloads
+are collected in `dist/releases/v3.5.1/`; exact validation results are recorded
+in [QA_RESULTS.md](QA_RESULTS.md). All 497 source tests passed. APK/AAB
+signatures, metadata, 16 KB alignment and all 27 shared/bridge modules plus
+69 UI assets were verified; lint reported zero errors and four existing warnings.
+Physical-device installation/update and lifecycle tests remain separate.
+No additional Supabase migration is required.
+
+## Earlier build — October 9, 2026
 
 The signed beta.3 APK/AAB were cleanly rebuilt from commit `37787eb` on October 9.
 All **480 source tests passed**; signatures, package structure and 16 KB alignment
@@ -74,7 +88,7 @@ is installed; no additional server setup is required for this rebuild.
 
 Android beta.2 (versionCode=6) added automatic guest-library copying on new
 registration. Its APK/AAB remain in dist/android/3.5.0-android-beta.2/; they
-do not include Social. Use beta.3 for the current release.
+do not include Social. Use 3.5.1 beta.1 for the current release.
 
 ## Previous build — October 7, 2026
 

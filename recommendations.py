@@ -11,7 +11,6 @@ from threading import Lock
 from catalog import CatalogService
 from recommendation_model import (
     ALGORITHM_VERSION,
-    GENRES as GENRES,
     build_profile,
     movie_features,
     profile_fingerprint,
@@ -20,9 +19,12 @@ from recommendation_model import (
     valid_candidate,
 )
 from recommendation_model import (
+    GENRES as GENRES,
+)
+from recommendation_model import (
     genre_ids as genre_ids,
 )
-from tmdb_client import TMDBError, movie_summary
+from tmdb_client import RECOMMENDATION_FEATURES_VERSION, TMDBError, movie_summary
 
 RECENT_LIMIT = 50
 POOL_LIMIT = 1200
@@ -30,7 +32,7 @@ POOL_PAGES = 20
 SESSION_RESERVE = 30
 FEATURE_BATCH = 24
 PUBLIC_CACHE_TTL = 12 * 60 * 60
-PUBLIC_CACHE_KEY = "recommendation_public_catalog_v2"
+PUBLIC_CACHE_KEY = "recommendation_public_catalog_v3"
 MODES = {
     "familiar": "Close to my taste",
     "balanced": "A little discovery",
@@ -68,11 +70,16 @@ class Recommender:
         # Only public catalog summaries enter this cache. Old/malformed caches
         # are expendable; personal library records are never changed here.
         rows = db.query("SELECT value FROM settings WHERE key=?", PUBLIC_CACHE_KEY)
+        legacy = not rows
+        if legacy:
+            rows = db.query(
+                "SELECT value FROM settings WHERE key='recommendation_public_catalog_v2'"
+            )
         try:
             cached = json.loads(rows[0]["value"]) if rows else {}
-            if cached.get("version") == ALGORITHM_VERSION and isinstance(
-                cached.get("movies"), list
-            ):
+            if cached.get("version") == (
+                "2" if legacy else ALGORITHM_VERSION
+            ) and isinstance(cached.get("movies"), list):
                 records = cached["movies"][-POOL_LIMIT:]
                 self.public_pool = {
                     m["id"]: m for m in records if valid_candidate(m) and "id" in m
@@ -83,7 +90,9 @@ class Recommender:
                 stamp = cached.get("fetched_at", 0)
                 self.pool_fetched_at = (
                     stamp
-                    if type(stamp) in (int, float) and 0 <= stamp <= time.time()
+                    if not legacy
+                    and type(stamp) in (int, float)
+                    and 0 <= stamp <= time.time()
                     else 0
                 )
         except (ValueError, TypeError, AttributeError, OverflowError):
@@ -281,7 +290,7 @@ class Recommender:
             if metadata.get(mid, {})
             .get("details", {})
             .get("recommendation_features_version")
-            != 1
+            != RECOMMENDATION_FEATURES_VERSION
             and self.feature_retry.get(mid, 0) <= now
         ][:FEATURE_BATCH]
 
@@ -297,9 +306,19 @@ class Recommender:
                 for mid, details in batch:
                     if details is not None:
                         metadata[mid] = {"details": details}
+                        if (
+                            details.get("recommendation_features_version")
+                            != RECOMMENDATION_FEATURES_VERSION
+                        ):
+                            self.feature_retry[mid] = now + 60
                     else:
                         self.feature_retry[mid] = now + 60
-                if batch and all(details is None for _, details in batch):
+                if batch and all(
+                    details is None
+                    or details.get("recommendation_features_version")
+                    != RECOMMENDATION_FEATURES_VERSION
+                    for _, details in batch
+                ):
                     # An unavailable optional detail service must not turn the
                     # first recommendation load into six timeout batches.
                     for mid in missing[start + 4 :]:
@@ -359,10 +378,12 @@ class Recommender:
             (
                 "discover/movie",
                 self.discover_params(
-                    with_genres="18|35|80|37",
                     page=self.pool_page,
                     sort_by="vote_average.desc",
-                    **{"primary_release_date.lte": "1999-12-31", "vote_count.gte": 80},
+                    **{
+                        "primary_release_date.lte": f"{date.today().year - 10}-12-31",
+                        "vote_count.gte": 1000,
+                    },
                 ),
                 None,
             )

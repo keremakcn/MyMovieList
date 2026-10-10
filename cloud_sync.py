@@ -461,6 +461,11 @@ class CloudWorkspace:
                 if not state.get("healthy"):
                     self.client.health()
                     state["healthy"] = True
+                    state["health_checked"] = time.monotonic()
+                elif time.monotonic() - state.get("health_checked", 0) >= 300:
+                    self.client.health()
+                    state["health_checked"] = time.monotonic()
+                library.store.calibrate_clock(getattr(self.client, "clock_offset", 0.0))
                 profile = library.profile.snapshot()
                 if profile["dirty"]:
                     self.authenticated_call(

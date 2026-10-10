@@ -552,6 +552,11 @@ def register_accounts(app, cloud):
                     "Usernames are being prepared. You can still edit your name and avatar."
                 )
             name = normalize_username(request.form.get("username", ""), writing=True)
+            chosen = library.username.view()["username"]
+            if chosen and chosen != name:
+                raise ValueError(
+                    "Your username has already been chosen. Your display name can still change."
+                )
             reply = cloud.authenticated_call(
                 library.owner, cloud.client.claim_username, name
             )
@@ -564,18 +569,18 @@ def register_accounts(app, cloud):
                     "Your username has already been chosen. Your display name can still change."
                 )
             flash("Username saved. This is now your profile address.")
-            return redirect(url_for("accounts.account", flow="edit-profile"), code=303)
+            return redirect(url_for("accounts.settings"), code=303)
         except CloudError as error:
             if error.kind == "validation":
-                return page(str(error), flow="edit-profile"), 422
+                return page(str(error), flow="settings"), 422
             message = (
                 "Usernames are being prepared. You can still edit your name and avatar."
                 if error.kind == "setup"
                 else "Could not confirm your username. Check your connection and try again."
             )
-            return page(message, flow="edit-profile"), 503
+            return page(message, flow="settings"), 503
         except (ValueError, TypeError) as error:
-            return page(str(error), flow="edit-profile"), 422
+            return page(str(error), flow="settings"), 422
 
     @bp.post("/account/signout")
     def signout():

@@ -10,24 +10,12 @@
         <div><h2>{{ t('A little more you') }}</h2><p>{{ t('A nickname is enough. Your real name is optional.') }}</p></div>
     </div>
     {% set handle = cloud_status.username %}
-    <div class="username-section">
-        {% if handle.username %}
-            <label for="chosen-username">{{ t('Username') }}</label>
-            <input id="chosen-username" type="text" readonly value="{{ handle.username }}" aria-describedby="username-fixed-note">
-            <p class="settings-note" id="username-fixed-note">{{ t('Your username keeps your profile link stable. You can change your display name and avatar anytime.') }}</p>
-            <p class="username-address">{{ handle.url }}</p>
-        {% else %}
-            <form class="account-form username-form" action="{{ url_for('accounts.choose_username') }}" method="post" data-loading="{{ t('Checking username…') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label for="username">{{ t('Username') }}</label>
-                <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="24" pattern="[A-Za-z][A-Za-z0-9_]{2,23}" value="{{ username_draft }}" required aria-describedby="username-note username-address" data-username-input>
-                <p class="settings-note" id="username-note">{{ t('Use 3–24 letters, numbers or underscores, starting with a letter.') }} {{ t('Choose carefully: your username is unique and stays the same.') }}</p>
-                <p class="username-address" id="username-address" data-username-address data-prefix="https://myshelf.cloud/u/">https://myshelf.cloud/u/<span data-username-preview>{{ username_draft|lower or t('your_username') }}</span></p>
-                <p class="settings-note">{{ t('Choosing a username does not make your profile public. An internet connection is needed to reserve it.') }}</p>
-                <button class="secondary" type="submit" {% if not handle.ready %}disabled{% endif %}><span data-submit-label>{{ t('Choose username') }}</span></button>
-                {% if handle.error == 'setup' or not handle.ready %}<p class="settings-note">{{ t('Usernames are being prepared. You can still edit your name and avatar.') }}</p>{% endif %}
-            </form>
-        {% endif %}
+    <div class="username-section" aria-labelledby="username-fixed-heading">
+        <p class="username-label" id="username-fixed-heading">{{ t('Username (fixed)') }}</p>
+        <p class="username-fixed" id="chosen-username" {% if not handle.username %}hidden{% endif %}>{{ icon('lock',14) }} <span data-profile-username>@{{ handle.username or '' }}</span></p>
+        <p class="settings-note" id="username-fixed-note">{{ t('Your username cannot be changed. Your display name and avatar can.') }}</p>
+        <p class="username-address" data-profile-address {% if not handle.url %}hidden{% endif %}>{{ handle.url or '' }}</p>
+        <p class="settings-note" data-username-unconfirmed {% if handle.username %}hidden{% endif %}>{{ t('Your username will appear here once confirmed.') }} <a href="{{ url_for('accounts.settings') }}">{{ t('Account & sync') }}</a></p>
     </div>
     <form class="movie-form account-form profile-form" action="{{ url_for('accounts.profile') }}" method="post" data-loading="{{ t('Saving…') }}" data-profile-editor data-discard="{{ t('Leave without saving your profile changes?') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

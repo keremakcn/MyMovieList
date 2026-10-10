@@ -47,7 +47,7 @@ def mock_recommendations(app):
                 keywords={"keywords": []},
             )
         if path == "discover/movie":
-            genre = int(str(params["with_genres"]).split("|")[0])
+            genre = int(str(params.get("with_genres", "18")).split("|")[0])
             return dict(
                 results=[
                     candidate(genre * 100 + params.get("page", 1) * 10 + i, genre)

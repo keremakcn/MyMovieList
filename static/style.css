@@ -206,6 +206,23 @@ img.company-logo { object-fit: contain; background: #e8e6ed; padding: 12px; }
 .full-cast summary { cursor: pointer; color: var(--primary); padding: 8px 0; font-size: .85rem; }
 .full-cast summary:hover { color: var(--primary-hover); }
 .full-cast[open] .entity-chips { margin-top: 6px; }
+.people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px; }
+.person-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #ffffff03; transition: border-color .18s, background .18s; }
+.person-card:hover, .person-card:focus-visible { border-color: var(--primary); background: #c4b1ff0a; }
+.person-portrait { display: grid; place-items: center; position: relative; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; background: linear-gradient(145deg, #373447, #22232d); color: #827d99; }
+.person-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.portrait-placeholder { width: 45%; max-width: 64px; }
+.person-card-info { display: flex; flex-direction: column; gap: 4px; padding: 11px; min-width: 0; }
+.person-card-info strong { color: var(--text); font-size: .79rem; font-weight: 600; overflow-wrap: anywhere; }
+.person-card-info > span { color: var(--muted); font-size: .7rem; line-height: 1.4; overflow-wrap: anywhere; }
+.directors-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.person-card-director { flex-direction: row; align-items: center; max-width: 340px; }
+.person-card-director .person-portrait { width: 72px; flex: 0 0 72px; }
+.full-cast[open] .people-grid { margin-top: 10px; }
+.movie-genre-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 0; margin: 0 0 11px; list-style: none; }
+.movie-genre-tags li { color: #d3c8ef; font-size: .65rem; line-height: 1.45; padding: 3px 7px; background: #b99afc0a; border: 1px solid #b99afc22; border-radius: 5px; }
+.recommendation-highlight { font-size: .7rem; color: #d7b878; margin: 0 0 9px; }
+.recommendation-highlight span { margin-right: 3px; }
 
 /* Film detail, forms and feedback. */
 .back-link { display: inline-block; font-size: .77rem; margin-bottom: 24px; padding: 6px 0; color: var(--muted); }
@@ -839,6 +856,9 @@ img.company-logo { object-fit: contain; background: #e8e6ed; padding: 12px; }
 /* Account handles are unique; display names remain personal. */
 .username-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
 .username-section label { display: block; margin-bottom: 8px; font-weight: 600; }
+.username-label { font-weight: 600; margin: 0 0 8px; }
+.username-fixed { display: flex; align-items: center; gap: 8px; font-weight: 700; overflow-wrap: anywhere; margin: 0; }
+.username-fixed[hidden] { display: none; }
 .username-section input { width: 100%; min-width: 0; }
 .username-section .settings-note { margin: 8px 0; }
 .username-address { color: var(--muted); font-size: .84rem; overflow-wrap: anywhere; margin: 12px 0; }

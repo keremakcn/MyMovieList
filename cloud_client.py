@@ -2,6 +2,8 @@
 
 import json
 import re
+import time
+from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -42,6 +44,8 @@ class SupabaseClient:
             raise ValueError("Use a Supabase publishable key.")
         self.url, self.key = url.rstrip("/"), key
         self.opener = opener or build_opener(NoRedirect())
+        self.field_sync = False
+        self.clock_offset = 0.0
 
     def request(self, path, body=None, *, token=None, method="POST"):
         headers = {
@@ -356,22 +360,57 @@ class SupabaseClient:
             raise CloudError(
                 "Cloud setup is not ready. Your local library is available.", "setup"
             )
+        started = time.time()
+        try:
+            timing = self.request("/rest/v1/rpc/mml_time_sync_status", {})
+        except CloudError as error:
+            if error.kind != "setup":
+                raise
+            self.field_sync = False
+            return
+        if (
+            timing.get("service") != "mymovielist-field-sync"
+            or timing.get("protocol") != 1
+        ):
+            raise CloudError("Cloud returned an unexpected response.", "protocol")
+        try:
+            instant = datetime.fromisoformat(
+                timing["server_time"].replace("Z", "+00:00")
+            )
+            if instant.tzinfo is None:
+                raise ValueError
+            self.clock_offset = (
+                instant.astimezone(timezone.utc).timestamp()
+                - (started + time.time()) / 2
+            )
+        except (ValueError, TypeError, KeyError):
+            raise CloudError(
+                "Cloud returned an unexpected response.", "protocol"
+            ) from None
+        self.field_sync = True
 
     def push(self, token, operation):
+        body = {
+            "p_operation_id": operation["operation_id"],
+            "p_record_key": operation["record_key"],
+            "p_expected_revision": operation["expected_revision"],
+            "p_data": json.loads(operation["data_json"]),
+        }
+        if self.field_sync:
+            body["p_field_versions"] = json.loads(operation.get("versions_json", "{}"))
         return self.request(
-            "/rest/v1/rpc/mml_push_change",
-            {
-                "p_operation_id": operation["operation_id"],
-                "p_record_key": operation["record_key"],
-                "p_expected_revision": operation["expected_revision"],
-                "p_data": json.loads(operation["data_json"]),
-            },
+            "/rest/v1/rpc/mml_push_change_timed"
+            if self.field_sync
+            else "/rest/v1/rpc/mml_push_change",
+            body,
             token=token,
         )
 
     def pull(self, token, cursor):
         return self.request(
-            "/rest/v1/rpc/mml_pull_changes",
+            "/rest/v1/rpc/mml_pull_changes_timed"
+            if self.field_sync
+            else "/rest/v1/rpc/mml_pull_changes",
             {"p_cursor": cursor, "p_limit": 25},
             token=token,
         )

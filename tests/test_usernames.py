@@ -261,3 +261,81 @@ def test_stale_null_status_or_error_cannot_erase_a_successful_claim(username_app
     with pytest.raises(ValueError):
         background.receive({"username": "another_owner"})
     assert library.username.view()["username"] == "deniz"
+
+
+@pytest.mark.parametrize("language", ["en", "tr"])
+@pytest.mark.parametrize("state", ["confirmed", "unconfirmed", "legacy"])
+def test_profile_editor_has_no_username_entry_in_any_loading_state(
+    username_app, language, state
+):
+    app, fake = username_app
+    client = app.test_client()
+    login(client)
+    library = app.extensions["cloud"].active()
+    if state == "confirmed":
+        fake.usernames[A] = "stable_member"
+        library.username.receive({"username": "stable_member"})
+    elif state == "legacy":
+        library.username.receive({"username": None})
+    else:
+        fake.usernames[A] = "stable_member"
+        with library.db.connect(write=True) as con:
+            con.execute("DELETE FROM settings WHERE key='account_username'")
+    post(client, "/settings/language", language=language)
+    for flow in ("edit-profile", "personalize"):
+        html = client.get("/account?flow=" + flow).get_data(as_text=True)
+        assert 'name="username"' not in html
+        assert 'action="/account/username"' not in html
+        assert '<input id="chosen-username"' not in html
+        assert 'name="display_name"' in html and 'name="avatar_id"' in html
+        assert (
+            "Kullanıcı adı (sabit)" if language == "tr" else "Username (fixed)"
+        ) in html
+    settings = client.get("/account/settings").get_data(as_text=True)
+    if state == "confirmed":
+        assert "@stable_member" in client.get("/account").get_data(as_text=True)
+        assert 'action="/account/username"' not in settings
+    else:
+        assert "data-username-setup" in settings
+        assert 'action="/account/username"' in settings
+
+
+def test_cached_username_cannot_be_renamed_even_when_offline(username_app):
+    app, fake = username_app
+    client = app.test_client()
+    login(client)
+    assert (
+        post(client, "/account/username", username="stable_member").status_code == 303
+    )
+    fake.offline = True
+    response = post(client, "/account/username", username="another_member")
+    assert response.status_code == 422
+    assert "already been chosen" in response.get_data(as_text=True)
+    assert fake.usernames[A] == "stable_member"
+    assert (
+        app.extensions["cloud"].status()["username"]["url"].endswith("/u/stable_member")
+    )
+
+
+def test_display_name_save_never_changes_handle_or_address(username_app):
+    app, fake = username_app
+    client = app.test_client()
+    login(client)
+    assert (
+        post(client, "/account/username", username="stable_member").status_code == 303
+    )
+    original = app.extensions["cloud"].status()["username"]
+    response = post(
+        client,
+        "/account/profile",
+        display_name="New display name",
+        avatar_id="cat-lilac",
+        username="forged_handle",
+    )
+    assert response.status_code == 303
+    assert app.extensions["cloud"].status()["username"] == original
+    assert fake.usernames[A] == "stable_member"
+    assert (
+        app.extensions["cloud"].status()["profile"]["display_name"]
+        == "New display name"
+    )

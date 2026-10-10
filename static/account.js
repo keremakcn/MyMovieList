@@ -149,10 +149,28 @@
             if (profileName) profileName.textContent = status.profile.display_name || profileName.dataset.profileEmpty;
             const profileAvatar = document.querySelector('[data-profile-avatar]');
             if (profileAvatar) profileAvatar.src = '/static/avatars/' + status.profile.avatar_id + '.svg';
-            const profileUsername = document.querySelector('[data-profile-username]');
-            if (profileUsername && status.username) {
-                profileUsername.hidden = !status.username.username;
-                profileUsername.textContent = status.username.username ? '@' + status.username.username : '';
+            if (status.username) {
+                const handle = status.username;
+                document.querySelectorAll('[data-profile-username]').forEach(label => {
+                    label.hidden = !handle.username;
+                    label.textContent = handle.username ? '@' + handle.username : '';
+                });
+                const fixed = document.querySelector('#chosen-username');
+                if (fixed) fixed.hidden = !handle.username;
+                const address = document.querySelector('[data-profile-address]');
+                if (address) {
+                    address.hidden = !handle.url;
+                    address.textContent = handle.url || '';
+                }
+                const unconfirmed = document.querySelector('[data-username-unconfirmed]');
+                if (unconfirmed) unconfirmed.hidden = Boolean(handle.username);
+                const setup = document.querySelector('[data-username-setup]');
+                if (setup) {
+                    setup.hidden = Boolean(handle.username);
+                    const form = setup.querySelector('form');
+                    form.querySelector('button[type="submit"]').disabled =
+                        Boolean(handle.username) || !handle.ready || !handle.checked || Boolean(handle.error) || Boolean(form.dataset.pending);
+                }
             }
             if (sharing && status.sharing) {
                 const value = status.sharing;

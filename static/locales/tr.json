@@ -704,5 +704,11 @@
   "Refresh": "Yenile",
   "Pagination": "Sayfalar",
   "Next page": "Sonraki sayfa",
-  "Clear search": "Aramayı temizle"
+  "Clear search": "Aramayı temizle",
+  "Username (fixed)": "Kullanıcı adı (sabit)",
+  "Your username cannot be changed. Your display name and avatar can.": "Kullanıcı adın değiştirilemez. Görünen adını ve avatarını değiştirebilirsin.",
+  "Your username will appear here once confirmed.": "Kullanıcı adın doğrulandığında burada görünecek.",
+  "Choose your username once": "Kullanıcı adını bir kez seç",
+  "Acclaimed classic": "Beğenilen klasik",
+  "For accounts created before usernames were introduced. This is a one-time choice, not a name change.": "Kullanıcı adı sistemi eklenmeden önce açılan hesaplar içindir. İlk kullanıcı adını bir kez belirleyebilirsin."
 }

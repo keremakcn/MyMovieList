@@ -2,6 +2,7 @@
 
 import json
 import re
+from itertools import count
 
 import pytest
 from test_app import MOVIE, post
@@ -19,7 +20,17 @@ def shelf_ids(html, name):
     return [int(value) for value in re.findall(r'data-profile-film="(\d+)"', shelf)]
 
 
-def test_shelves_are_bounded_private_local_and_exclude_removed_movies(account_app):
+@pytest.fixture
+def ordered_additions(monkeypatch):
+    # These cases specify distinct addition times. Native Windows wall clocks
+    # may repeat within one tick; UUID tie-breaking then has no insertion order.
+    ticks = count(1_800_000_000_000_000_000, 1_000_000)
+    monkeypatch.setattr("sync_store.time.time_ns", lambda: next(ticks))
+
+
+def test_shelves_are_bounded_private_local_and_exclude_removed_movies(
+    account_app, ordered_additions
+):
     app, fake, _ = account_app
     cloud = app.extensions["cloud"]
     guest = custom(cloud.guest, "GUEST-NOTE-MUST-STAY-PRIVATE")
@@ -59,7 +70,9 @@ def test_shelves_are_bounded_private_local_and_exclude_removed_movies(account_ap
     assert shelf_ids(html, "favorites") == shelf_ids(html, "recent") == []
 
 
-def test_recent_watches_use_dates_not_last_edit_and_fall_back_to_additions(account_app):
+def test_recent_watches_use_dates_not_last_edit_and_fall_back_to_additions(
+    account_app, ordered_additions
+):
     app, _, _ = account_app
     client = app.test_client()
     login(client)

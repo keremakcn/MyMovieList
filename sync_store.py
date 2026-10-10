@@ -4,6 +4,8 @@ import json
 import time
 from uuid import UUID, uuid4
 
+from field_sync import EDITABLE, clock_now, save_state, state, validate_versions
+from field_sync import merge as timed_merge
 from personal_data import dumps, from_movie, three_way, timestamp, validate_record
 from storage import utcnow
 
@@ -21,6 +23,21 @@ def create_tables(con):
     con.execute("""CREATE TABLE IF NOT EXISTS sync_conflict_archive (
         id TEXT PRIMARY KEY, record_key TEXT NOT NULL, local_json TEXT NOT NULL,
         remote_json TEXT NOT NULL, remote_revision INTEGER NOT NULL, created_at TEXT NOT NULL)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS sync_field_state (
+        record_key TEXT PRIMARY KEY, data_json TEXT NOT NULL, versions_json TEXT NOT NULL)""")
+    for table in ("sync_baselines", "sync_outbox"):
+        if "versions_json" not in {
+            r["name"] for r in con.execute(f"PRAGMA table_info({table})")
+        }:
+            con.execute(
+                f"ALTER TABLE {table} ADD COLUMN versions_json TEXT NOT NULL DEFAULT '{{}}'"
+            )
+    # Legacy edit times are unknown; never invent a fresh time for an old note.
+    for row in con.execute("SELECT * FROM movies").fetchall():
+        con.execute(
+            "INSERT OR IGNORE INTO sync_field_state VALUES (?,?,?)",
+            (row["record_key"], dumps(from_movie(dict(row))), "{}"),
+        )
 
 
 def track_movie(con, movie_id, *, queue):
@@ -39,6 +56,18 @@ def track_movie(con, movie_id, *, queue):
                 movie_id,
             ),
         )
+    row = con.execute("SELECT * FROM movies WHERE id=?", (movie_id,)).fetchone()
+    key, data = row["record_key"], from_movie(dict(row))
+    previous = con.execute(
+        "SELECT * FROM sync_field_state WHERE record_key=?", (key,)
+    ).fetchone()
+    versions = json.loads(previous["versions_json"]) if previous else {}
+    before = json.loads(previous["data_json"]) if previous else None
+    edited = [k for k in EDITABLE if before is None or data[k] != before[k]]
+    if edited:
+        when = clock_now(con)
+        versions.update({k: when for k in edited})
+    save_state(con, key, data, versions)
     if queue:
         key = con.execute(
             "SELECT record_key FROM movies WHERE id=?", (movie_id,)
@@ -73,6 +102,12 @@ class SyncStore:
             "exported_at": utcnow(),
             "records": records,
             "conflict_versions": archived,
+            "field_versions": {
+                r["record_key"]: json.loads(r["versions_json"])
+                for r in con.execute(
+                    "SELECT record_key,versions_json FROM sync_field_state"
+                )
+            },
         }
 
     def copy_from(self, source):
@@ -103,6 +138,10 @@ class SyncStore:
         if not isinstance(records, list) or len(records) > 10000:
             raise ValueError("An import can contain up to 10,000 films.")
         validated = []
+        clocks = document.get("field_versions", {})
+        if not isinstance(clocks, dict) or len(clocks) > 10000:
+            raise ValueError("Invalid field edit times.")
+        clocks = {key: validate_versions(value) for key, value in clocks.items()}
         for r in records:
             if not isinstance(r, dict) or set(r) != {"record_key", "data"}:
                 raise ValueError("Invalid personal record.")
@@ -154,7 +193,7 @@ class SyncStore:
                 ).fetchone():
                     skipped += 1
                     continue
-                self._apply(con, key, data)
+                self._apply(con, key, data, clocks.get(key, {}))
                 if self.db.owner_id:
                     con.execute("INSERT OR IGNORE INTO sync_dirty VALUES (?)", (key,))
                 imported += 1
@@ -205,7 +244,7 @@ class SyncStore:
         return imported, skipped
 
     @staticmethod
-    def _apply(con, key, data):
+    def _apply(con, key, data, versions=None):
         row = con.execute("SELECT * FROM movies WHERE record_key=?", (key,)).fetchone()
         values = {
             "status": data["status"],
@@ -246,6 +285,9 @@ class SyncStore:
                 + ")",
                 tuple(values.values()),
             )
+        save_state(
+            con, key, data, versions if versions is not None else state(con, key)
+        )
 
     def next_operation(self):
         with self.db.connect(write=True) as con:
@@ -271,9 +313,10 @@ class SyncStore:
                 "operation_id": str(uuid4()),
                 "expected_revision": baseline["revision"] if baseline else 0,
                 "data_json": dumps(from_movie(dict(movie))),
+                "versions_json": dumps(state(con, key)),
             }
             con.execute(
-                "INSERT INTO sync_outbox VALUES (?,?,?,?)",
+                "INSERT INTO sync_outbox VALUES (?,?,?,?,?)",
                 tuple(
                     operation[k]
                     for k in (
@@ -281,6 +324,7 @@ class SyncStore:
                         "operation_id",
                         "expected_revision",
                         "data_json",
+                        "versions_json",
                     )
                 ),
             )
@@ -298,8 +342,13 @@ class SyncStore:
             if not current or current["operation_id"] != operation["operation_id"]:
                 raise ValueError("The queued operation changed.")
             con.execute(
-                "INSERT OR REPLACE INTO sync_baselines VALUES (?,?,?)",
-                (operation["record_key"], revision, operation["data_json"]),
+                "INSERT OR REPLACE INTO sync_baselines VALUES (?,?,?,?)",
+                (
+                    operation["record_key"],
+                    revision,
+                    operation["data_json"],
+                    operation.get("versions_json", "{}"),
+                ),
             )
             con.execute(
                 "DELETE FROM sync_outbox WHERE operation_id=?",
@@ -322,11 +371,16 @@ class SyncStore:
                 (operation["record_key"],),
             )
             self._merge(
-                con, operation["record_key"], remote["revision"], remote["data"]
+                con,
+                operation["record_key"],
+                remote["revision"],
+                remote["data"],
+                remote.get("field_versions"),
             )
 
-    def _merge(self, con, key, revision, data):
+    def _merge(self, con, key, revision, data, versions=None):
         data = validate_record(key, data)
+        remote_versions = validate_versions(versions) if versions is not None else {}
         baseline = con.execute(
             "SELECT * FROM sync_baselines WHERE record_key=?", (key,)
         ).fetchone()
@@ -341,28 +395,50 @@ class SyncStore:
         ).fetchone()
         local = from_movie(dict(row)) if row else None
         merged, competing = (data, False)
+        merged_versions = remote_versions
+        archived = False
         if row and (dirty or conflict):
-            merged, competing = three_way(
-                json.loads(baseline["data_json"]) if baseline else None, local, data
+            base = json.loads(baseline["data_json"]) if baseline else None
+            merged, competing = three_way(base, local, data)
+            archived = competing
+            if versions is not None:
+                offset = con.execute(
+                    "SELECT value FROM settings WHERE key='sync_clock_offset'"
+                ).fetchone()
+                from datetime import datetime, timedelta, timezone
+
+                now = datetime.now(timezone.utc) + timedelta(
+                    seconds=float(offset[0]) if offset else 0
+                )
+                merged, merged_versions, competing = timed_merge(
+                    base,
+                    local,
+                    data,
+                    state(con, key),
+                    remote_versions,
+                    now=now.isoformat(),
+                )
+        if archived:
+            con.execute(
+                "INSERT INTO sync_conflict_archive VALUES (?,?,?,?,?,?)",
+                (str(uuid4()), key, dumps(local), dumps(data), revision, utcnow()),
             )
         if competing:
             con.execute(
                 "INSERT OR REPLACE INTO sync_conflicts VALUES (?,?,?,?)",
                 (key, revision, dumps(local), dumps(data)),
             )
-            con.execute(
-                "INSERT INTO sync_conflict_archive VALUES (?,?,?,?,?,?)",
-                (str(uuid4()), key, dumps(local), dumps(data), revision, utcnow()),
-            )
         else:
-            self._apply(con, key, merged)
+            self._apply(con, key, merged, merged_versions)
             con.execute("DELETE FROM sync_conflicts WHERE record_key=?", (key,))
             con.execute("DELETE FROM sync_dirty WHERE record_key=?", (key,))
-            if merged != data and self.db.owner_id:
+            if (
+                merged != data or merged_versions != remote_versions
+            ) and self.db.owner_id:
                 con.execute("INSERT INTO sync_dirty VALUES (?)", (key,))
         con.execute(
-            "INSERT OR REPLACE INTO sync_baselines VALUES (?,?,?)",
-            (key, revision, dumps(data)),
+            "INSERT OR REPLACE INTO sync_baselines VALUES (?,?,?,?)",
+            (key, revision, dumps(data), dumps(remote_versions)),
         )
 
     def apply_page(self, page):
@@ -386,7 +462,13 @@ class SyncStore:
                     (change["record_key"],),
                 ).fetchone():
                     raise ValueError("Push pending operations before pulling changes.")
-                self._merge(con, change["record_key"], revision, change["data"])
+                self._merge(
+                    con,
+                    change["record_key"],
+                    revision,
+                    change["data"],
+                    change.get("field_versions"),
+                )
             if page.get("cursor") != previous:
                 raise ValueError("Invalid synchronization cursor.")
             con.execute(
@@ -434,7 +516,14 @@ class SyncStore:
             selected = local if choice == "local" else remote
             for name in ("added_at", "order_key"):
                 selected[name] = remote[name]
-            self._apply(con, key, selected)
+            baseline = con.execute(
+                "SELECT versions_json FROM sync_baselines WHERE record_key=?", (key,)
+            ).fetchone()
+            versions = json.loads(baseline[0]) if baseline else {}
+            if choice == "local":
+                when = clock_now(con)
+                versions.update({k: when for k in EDITABLE if local[k] != remote[k]})
+            self._apply(con, key, selected, versions)
             con.execute("DELETE FROM sync_conflicts WHERE record_key=?", (key,))
             con.execute("DELETE FROM sync_dirty WHERE record_key=?", (key,))
             if choice == "local":
@@ -445,3 +534,15 @@ class SyncStore:
             SELECT record_key FROM sync_dirty UNION SELECT record_key FROM sync_outbox)""")[
             0
         ]["count"]
+
+    def calibrate_clock(self, offset):
+        if (
+            not isinstance(offset, (int, float))
+            or not -315576000 <= offset <= 315576000
+        ):
+            return
+        with self.db.connect(write=True) as con:
+            con.execute(
+                "INSERT OR REPLACE INTO settings VALUES ('sync_clock_offset',?)",
+                (str(offset),),
+            )
