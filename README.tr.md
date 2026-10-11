@@ -8,23 +8,25 @@
 
 [English](README.md) | **Türkçe**
 
-**3.6.0 sürümü:** web ve uygulama arasında kütüphane eşitlemesi, tür etiketleri, iyileştirilen klasik film önerileri ve oyuncu/yönetmen fotoğrafları. Windows ve imzalı Android paketleri bu sürüm için hazırlanmıştır; macOS için güncel kodla yeni derleme gerekir. GitHub indirmeleri yeni sürüm yayımlandığında değişir.
+**3.7.0 — Favori kişiler:** favori oyuncu ve yönetmenler, iki ayrı özel liste ve otomatik hesap eşitlemesi. Web tanıtım sayfasındaki afişler de günlük yenilenir, üzerine gelince açılır ve film detayına gider. Kaynak kod hazır; Windows, Android ve macOS 3.7.0 paketleri henüz derlenmedi. GitHub indirmeleri sürüm yayımlandığında değişir.
 
 ## Başlarken
 
-**Windows — v3.6.0**
+Aşağıdaki dosya adları hazırlanacak 3.7.0 sürümüne aittir; paketler henüz derlenmedi.
 
-1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v3.6.0-windows.zip` dosyasını indir.
-2. Arşivi çıkar ve `MyMovieList-v3.6.0.exe` dosyasını aç. Python kurman gerekmez.
+**Windows — v3.7.0**
+
+1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v3.7.0-windows.zip` dosyasını indir.
+2. Arşivi çıkar ve `MyMovieList-v3.7.0.exe` dosyasını aç. Python kurman gerekmez.
 3. Bir film arayıp kütüphanene ekle. Keşif için ek ayar gerekmez.
 
-**Android — 3.6.0-android-beta.1**
+**Android — 3.7.0-android-beta.1**
 
-**Assets** bölümünden `MyMovieList-3.6.0-android-beta.1.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
+**Assets** bölümünden `MyMovieList-3.7.0-android-beta.1.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
 
-**macOS — v3.6.0 beta**
+**macOS — v3.7.0 beta**
 
-macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. 3.6.0 kaynakları değişiklik zamanlarına göre eşitlemeyi, öneri etiketlerini, fotoğraflı kişi kartlarını, sabit kullanıcı adı kontrollerini ve paketlenmiş HTTPS sertifikalarını içerir. Kodlar yüklendikten sonra macOS iş akışıyla yeni DMG'ler derlenmelidir; eski DMG dosyaları güncel değişikliklerin tamamını içermez. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
+macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. 3.7.0 kaynakları favori oyuncu/yönetmenleri, değişiklik zamanlarına göre eşitlemeyi, öneri etiketlerini, fotoğraflı kişi kartlarını, sabit kullanıcı adı kontrollerini ve paketlenmiş HTTPS sertifikalarını içerir. Kodlar yüklendikten sonra macOS iş akışıyla yeni DMG'ler derlenmelidir; eski DMG dosyaları güncel değişikliklerin tamamını içermez. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
 
 ## Web
 
@@ -38,12 +40,13 @@ GitHub'da yayımlanmış son sürüme gider. Kurulum ayrıntıları [WEB.md](WEB
 Yeni kaynak kod web, Windows, Android ve macOS için alan bazında değişiklik
 zamanlarını taşır. Zamanı güvenilir olan çakışmalarda yeni değişiklik seçilir;
 farklı alanlar birleştirilir. Eski, zamanı bilinmeyen kayıtların iki sürümü de
-korunur. Yeniden derlenen Windows ve Android 3.6.0 beta.1 paketleri bu davranışı
-içerir. Eski paketler uyumludur; macOS paketlerinin alan bazında güvenilir
-değişiklik zamanlarını kullanması için yeniden derlenmesi gerekir.
+korunur. Bu davranış tüm platformların 3.7.0 kaynak kodunda bulunur. Mevcut
+paketler uyumludur; 3.7.0 özelliklerinin tamamını içeren paketler için yeni
+derleme gerekir.
 
 ## Neler yapabilirsin?
 
+- **Oyuncu ve yönetmenlerini favorile.** Kişi kartındaki kalbe dokun; profilinden veya sol menüdeki **Favori kişiler** bölümünden iki ayrı listene ulaş. Hesapsız kullanımda cihazına kaydedilir, giriş yaptıysan otomatik eşitlenir. Favori kişiler herkese açık vitrinine eklenmez.
 - **Sosyal.** İsim veya kullanıcı adıyla açık profilleri bul, seçilmiş vitrinlere uygulama içinden ulaş. Bu hafta bölümünde yalnızca vitrindeki izleme tarihi girilmiş filmler görünür. Özel notlar ve kütüphanenin geri kalanı gizli kalır. Vitrinini paylaşmak isteğe bağlıdır; profil paylaşımını açana kadar hesabın gizli kalır.
 - **Türkçe veya İngilizce kullan.** İlk açılışta cihazının arayüz dili esas alınır; Türkçe dışındaki diller için İngilizce kullanılır. Tercihini **Ayarlar → Dil** bölümünden değiştirebilirsin. Türkçe filmler özgün Türkçe adlarıyla gösterilir; özetlerde mevcut Türkçe çeviri, bulunamazsa İngilizce metin kullanılır.
 - **Kendi film kütüphaneni oluştur.** İzlediklerini ve izlemek istediklerini takip et; puan, favori ve kişisel not ekle. Kütüphaneni filtrele, sırala ve yanlışlıkla sildiğin bir filmi bilgilerini kaybetmeden geri al.

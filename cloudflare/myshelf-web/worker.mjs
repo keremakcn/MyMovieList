@@ -1,3 +1,4 @@
+import {validatePerson} from './public/people-model.mjs';
 import {upstreamURL} from '../watchlist-api/worker.js';
 import {validateRecord, versions} from './public/sync-model.mjs';
 import {nameAllowed} from './public/name-policy.mjs';
@@ -126,7 +127,7 @@ async function api(request,env,url,cookies) {
   if(path.startsWith('catalog/') && request.method==='GET') {
     const candidate=new URL('https://api.myshelf.cloud/3/'+path.slice(8));candidate.search=url.search;
     const validated=upstreamURL(candidate);
-    if(!validated || !/^(search\/movie|trending\/movie\/(day|week)|discover\/movie|movie\/[1-9]\d{0,9})$/.test(candidate.pathname.slice(3))) throw new Failure('invalid_request',400);
+    if(!validated || !/^(search\/movie|trending\/movie\/(day|week)|discover\/movie|(?:movie|person)\/[1-9]\d{0,9})$/.test(candidate.pathname.slice(3))) throw new Failure('invalid_request',400);
     let response;try{response=await fetch(candidate,{redirect:'manual',signal:AbortSignal.timeout(12000),headers:{Accept:'application/json'}});}catch{throw new Failure('catalog_unavailable',503);}
     if(!response.ok)throw new Failure('catalog_unavailable',response.status===429 ? 429 : 503);
     const value=await response.json();return json(value);
@@ -182,7 +183,17 @@ async function api(request,env,url,cookies) {
   }
   const s=await active(request,env,cookies);
   let value;
-  if(path==='sync/pull') {
+  if(path==='people/push') {
+    const op=input.operation;
+    if(!op || !uuid.test(op.operation_id))throw new Failure('invalid_request');
+    let record;try{const {operation_id,...fields}=op;record=validatePerson(fields);}catch{throw new Failure('invalid_fields',422);}
+    value=await upstream(env,'/rest/v1/rpc/mml_write_person_favorite',{
+      p_operation_id:op.operation_id,p_role:record.role,p_person_id:record.person_id,
+      p_favorite:record.favorite,p_edited_at:record.edited_at},s.access);
+  } else if(path==='people/pull') {
+    if(!Number.isSafeInteger(input.cursor) || input.cursor<0)throw new Failure('invalid_request');
+    value=await upstream(env,'/rest/v1/rpc/mml_pull_person_favorites',{p_cursor:input.cursor,p_limit:100},s.access);
+  } else if(path==='sync/pull') {
     if(!Number.isSafeInteger(input.cursor) || input.cursor<0)throw new Failure('invalid_request');
     value=await upstream(env,input.timed===true ? '/rest/v1/rpc/mml_pull_changes_timed' : '/rest/v1/rpc/mml_pull_changes',{p_cursor:input.cursor,p_limit:100},s.access);
   } else if(path==='sync/push') {
@@ -212,7 +223,7 @@ export default {
       if(url.pathname.startsWith('/api/'))return await api(request,env,url,cookies);
       if(request.method!=='GET' && request.method!=='HEAD')throw new Failure('method_not_allowed',405);
       if(url.pathname.startsWith('/u/'))return fetch(new Request('https://profiles.myshelf.cloud'+url.pathname+url.search,{method:request.method}));
-      const appRoute=/^\/(?:discover|library|account|updates|profile|movie\/[1-9]\d{0,9})?\/?$/.test(url.pathname);
+      const appRoute=/^\/(?:discover|library|account|updates|profile|people|(?:movie|person)\/[1-9]\d{0,9})?\/?$/.test(url.pathname);
       const target=new URL(request.url);if(appRoute)target.pathname='/index.html';if(url.pathname==='/credits')target.pathname='/credits.html';
       const result=await env.ASSETS.fetch(new Request(target,{method:request.method}));
       const response=new Response(result.body,result);

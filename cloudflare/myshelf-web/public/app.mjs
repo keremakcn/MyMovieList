@@ -1,13 +1,17 @@
 import * as store from './storage.mjs';
+import * as peopleStore from './people-storage.mjs';
+import {peopleState,peoplePending,personKey} from './people-model.mjs';
 import {equal,iso} from './sync-model.mjs';
 import {tr,en} from './strings.mjs';
 import {nameAllowed} from './name-policy.mjs';
+import {dailyPosters,posterDay,posterPicks} from './hero.mjs';
 
 const $=s=>document.querySelector(s), e=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={lang:localStorage.getItem('myshelf-language') || (navigator.language.toLowerCase().startsWith('tr') ? 'tr' : 'en'),user:null,owner:'guest',timed:false,syncing:false,error:null,view:0,query:'',discover:'trending',page:1,results:[],filter:'all',auth:{flow:'signin',step:'email',email:'',avatar:'cat-luna'},detail:null};
 const avatarIds=['luna','cocoa','sunshine','sage','coral','cloud','midnight','peach','sky','mocha','lilac','mint','cherry','gold','ocean','silver'].map(s=>'cat-'+s);
 const t=key=>(state.lang==='tr' ? tr : en)[key] || key;
 const image=(path,size='w342')=>/^\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/.test(path || '') ? 'https://image.tmdb.org/t/p/'+size+path : '';
+let peopleRetryAt=0,peopleRole='actor',peoplePageNumber=1;
 let retryAt=0,failures=0,syncTimer,toastTimer;
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4500);}
 function errorText(error){return t(error?.code || error?.message)=== (error?.code || error?.message) ? t('genericError') : t(error.code || error.message);}
@@ -49,20 +53,67 @@ async function gridLibrary(work){
   }));
   return list.map(({entry,movie,custom})=>custom ? `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-custom="${e(entry.key)}"><span class="poster-fallback">${e(entry.data.custom.title)}</span></button></div><h3 class="card-title">${e(entry.data.custom.title)}</h3><div class="card-meta">${e(entry.data.custom.year || '')}</div></article>` : card(movie,work,entry.data.status==='Watched'?t('watched'):t('watchlist'))).join('');
 }
-function syncLabel(work){if(state.owner==='guest')return t('guest');if(!navigator.onLine)return t('offline');if(state.syncing)return t('syncing');if(state.error==='sign_in_required')return t('signInAgain');if(!work.enabled)return t('paused');if(Object.values(work.entries).some(e=>e.conflict))return t('conflictStatus');return store.pending(work) || work.share_outbox || work.profile_pending || state.error ? t('pending') : t('upToDate');}
+function syncLabel(work){if(state.owner==='guest')return t('guest');if(!navigator.onLine)return t('offline');if(state.syncing)return t('syncing');if(state.error==='sign_in_required')return t('signInAgain');if(!work.enabled)return t('paused');if(Object.values(work.entries).some(e=>e.conflict))return t('conflictStatus');return store.pending(work) || peoplePending(work) || work.share_outbox || work.profile_pending || state.error ? t('pending') : t('upToDate');}
 async function home(view){
   const work=await store.read(state.owner);
-  $('#main').innerHTML=`<section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="dot"></span>${t('eyebrow')}</div><h1>${t('hero1')}<br><span>${t('hero2')}</span></h1><p>${t('intro')}</p><div class="actions"><a class="button" href="/discover" data-route>${t('start')} <span>→</span></a><a class="button secondary" href="/library" data-route>${t('library')}</a></div><div class="hero-note">${t('guestNote')}</div></div><div class="poster-stage" id="hero-posters"><div class="floating-note"><div class="stars">★★★★★</div><strong>${t('floating')}</strong><span>${t('personalNote')}</span></div></div></section><section class="value-strip">${[1,2,3].map(n=>`<div><strong><span class="number">0${n}</span>${t('value'+n)}</strong><p>${t('value'+n+'p')}</p></div>`).join('')}</section><section class="section"><div class="section-heading"><div><h2>${t('trending')}</h2><p>${t('trendingp')}</p></div><a class="text-link" href="/discover" data-route>${t('seeAll')}</a></div><div class="movie-grid home-grid" id="home-films"><div class="status-line"><span class="spinner"></span></div></div></section><section class="join-banner"><div><h2>${t('join')}</h2><p>${t('joinp')}</p></div><a class="button secondary" href="https://github.com/keremakcn/MyMovieList/releases/latest" target="_blank" rel="noopener">${t('download')}</a></section>`;
-  try{
-    const response=await api(`catalog/trending/movie/week?language=${state.lang==='tr'?'tr-TR':'en-US'}`);
-    if(view!==state.view)return;
-    const films=(response.results || []).filter(m=>!m.adult).slice(0,6);
-    $('#home-films').innerHTML=films.map(m=>card(m,work)).join('');
-    for(const m of films)await store.cacheMetadata(state.lang+':'+m.id,m);
-    const posters=films.filter(m=>image(m.poster_path)).slice(0,4).map(m=>`<img class="hero-poster" src="${image(m.poster_path,'w500')}" alt="${e(m.title)}">`).join('');
-    $('#hero-posters').insertAdjacentHTML('afterbegin',posters);
-  }catch(err){if(view===state.view)$('#home-films').innerHTML=`<p>${e(errorText(err))}</p>`;}
+  $('#main').innerHTML=`<section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="dot"></span>${t('eyebrow')}</div><h1>${t('hero1')}<br><span>${t('hero2')}</span></h1><p>${t('intro')}</p><div class="actions"><a class="button" href="/discover" data-route>${t('start')} <span>→</span></a><a class="button secondary" href="/library" data-route>${t('library')}</a></div><div class="hero-note">${t('guestNote')}</div></div><section class="poster-stage" aria-label="${t('dailyPosters')}"><div class="hero-fan" id="hero-posters"></div><div class="hero-caption" aria-live="polite" aria-atomic="true"><span class="hero-kicker">${t('dailyPosters')}</span><strong id="hero-caption-title">${t('posterHint')}</strong><span id="hero-caption-meta">${t('posterRefresh')}</span></div></section></section><section class="value-strip">${[1,2,3].map(n=>`<div><strong><span class="number">0${n}</span>${t('value'+n)}</strong><p>${t('value'+n+'p')}</p></div>`).join('')}</section><section class="section"><div class="section-heading"><div><h2>${t('trending')}</h2><p>${t('trendingp')}</p></div><a class="text-link" href="/discover" data-route>${t('seeAll')}</a></div><div class="movie-grid home-grid" id="home-films"><div class="status-line"><span class="spinner"></span></div></div></section><section class="join-banner"><div><h2>${t('join')}</h2><p>${t('joinp')}</p></div><a class="button secondary" href="https://github.com/keremakcn/MyMovieList/releases/latest" target="_blank" rel="noopener">${t('download')}</a></section>`;
+  let weekly=[];
+  await Promise.allSettled([
+    refreshHero(view),
+    (async()=>{
+      try{
+        const response=await api(`catalog/trending/movie/week?language=${state.lang==='tr'?'tr-TR':'en-US'}`);
+        if(view!==state.view)return;
+        weekly=(response.results || []).filter(m=>!m.adult).slice(0,6);
+        $('#home-films').innerHTML=weekly.map(m=>card(m,work)).join('');
+        for(const m of weekly)await store.cacheMetadata(state.lang+':'+m.id,m);
+      }catch(err){if(view===state.view)$('#home-films').innerHTML=`<p>${e(errorText(err))}</p>`;}
+    })()
+  ]);
+  if(view===state.view && !$('#hero-posters').children.length){
+    const fallback=posterPicks(weekly);
+    if(fallback.length)showHero(fallback,'');
+    else $('#hero-caption-meta').textContent=t('posterUnavailable');
+  }
 }
+async function refreshHero(view=state.view){
+  const stage=$('#hero-posters');
+  if(!stage || stage.dataset.day===posterDay())return;
+  const language=state.lang;
+  const selection=await dailyPosters(language,{pref:store.pref,fetchCatalog:api});
+  if(view!==state.view || language!==state.lang || !stage.isConnected)return;
+  if(stage.dataset.day!==selection.day || !stage.children.length)showHero(selection.films,selection.day);
+}
+function showHero(films,day){
+  const stage=$('#hero-posters');stage.dataset.day=day;
+  stage.innerHTML=films.map(m=>`<a class="hero-poster" href="/movie/${m.id}" data-route aria-label="${e((m.title || m.original_title)+' · '+t('filmDetails'))}"><img src="${image(m.poster_path,'w500')}" alt="${e(m.title || m.original_title)}" width="500" height="750" decoding="async"><span class="hero-poster-open" aria-hidden="true">↗</span></a>`).join('');
+  const links=[...stage.children],captionTitle=$('#hero-caption-title'),captionMeta=$('#hero-caption-meta');
+  const activate=link=>{
+    const index=links.indexOf(link);
+    links.forEach((item,i)=>{
+      item.classList.toggle('is-active',i===index);
+      item.classList.toggle('is-before',index>=0 && i<index);
+      item.classList.toggle('is-after',index>=0 && i>index);
+    });
+    const film=films[index];
+    captionTitle.textContent=film ? film.title || film.original_title : t('posterHint');
+    captionMeta.textContent=film ? [film.release_date?.slice(0,4),film.vote_average>0?'★ '+Number(film.vote_average).toFixed(1):'',t('filmDetails')+' →'].filter(Boolean).join(' · ') : t('posterRefresh');
+  };
+  for(const link of links){
+    link.addEventListener('pointerenter',event=>{if(event.pointerType!=='touch')activate(link);});
+    link.addEventListener('focus',()=>activate(link));
+  }
+  stage.onpointerleave=()=>activate(links.includes(document.activeElement)?document.activeElement:null);
+  stage.onfocusout=event=>activate(links.includes(event.relatedTarget)?event.relatedTarget:stage.querySelector('.hero-poster:hover'));
+  activate(null);
+}
+async function moviePage(id,view){
+  $('#movie-dialog').close();$('#movie-content').replaceChildren();state.detail=null;
+  $('#main').innerHTML=`<section class="movie-page"><a class="text-link movie-back" href="/" data-route>← ${t('backHome')}</a><div id="movie-page-content"><div class="status-line"><span class="spinner"></span></div></div></section>`;
+  await movie(id,null,{container:$('#movie-page-content'),modal:false,view});
+  if(view===state.view && state.detail?.id===id)document.title=state.detail.movie.title+' · MyMovieList';
+}
+
 async function discover(view){
   $('#main').innerHTML=`<div class="page-head"><h1>${t('discoverTitle')}</h1><p>${t('discoverp')}</p></div><div class="toolbar"><form id="search-form" class="search-box"><input name="query" placeholder="${t('search')}" aria-label="${t('search')}" value="${e(state.query)}" maxlength="200"><button aria-label="${t('searchButton')}">⌕</button></form><div class="tabs">${['trending','topRated','classics'].map(k=>`<button class="tab ${state.discover===k?'selected':''}" data-discover="${k}">${t(k==='trending'?'trendingTab':k)}</button>`).join('')}</div></div><div class="movie-grid" id="discover-grid"></div><div class="load-more"><button class="button secondary" id="load-more">${t('loadMore')}</button></div>`;
   await loadDiscover(view);
@@ -83,7 +134,7 @@ async function loadDiscover(view=state.view){
 async function library(view){
   const work=await store.read(state.owner),count=Object.values(work.entries).filter(x=>!x.data.deleted_at).length;
   const cards=await gridLibrary(work);if(view!==state.view)return;
-  $('#main').innerHTML=`<div class="page-head"><div class="eyebrow">${count} ${t('filmCount')}</div><h1>${t('libraryTitle')}</h1><p>${t('libraryp')}</p><div class="status-line ${state.error || store.pending(work) ? 'attention':''}"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div></div>${state.owner==='guest' ? `<div class="info-banner">${t('guestBanner')} <button class="quiet red" data-auth="signup">${t('signup')} →</button></div>` : ''}<div class="toolbar"><div class="tabs">${['all','watchlist','watched','favorites'].map(k=>`<button class="tab ${state.filter===k?'selected':''}" data-filter="${k}">${t(k)}</button>`).join('')}</div><div class="actions"><button class="quiet" data-action="export">${t('export')} ↗</button><label class="quiet import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div></div>${cards ? `<div class="movie-grid">${cards}</div>` : `<div class="empty"><h2>${t('emptyLibrary')}</h2><p>${t('emptyLibraryp')}</p><a class="button" href="/discover" data-route>${t('browse')} →</a></div>`}<div class="section"></div>`;
+  $('#main').innerHTML=`<div class="page-head"><div class="eyebrow">${count} ${t('filmCount')}</div><h1>${t('libraryTitle')}</h1><p>${t('libraryp')}</p><a class="text-link" href="/people" data-route>♡ ${t('favoritePeople')} →</a><div class="status-line ${state.error || store.pending(work) ? 'attention':''}"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div></div>${state.owner==='guest' ? `<div class="info-banner">${t('guestBanner')} <button class="quiet red" data-auth="signup">${t('signup')} →</button></div>` : ''}<div class="toolbar"><div class="tabs">${['all','watchlist','watched','favorites'].map(k=>`<button class="tab ${state.filter===k?'selected':''}" data-filter="${k}">${t(k)}</button>`).join('')}</div><div class="actions"><button class="quiet" data-action="export">${t('export')} ↗</button><label class="quiet import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div></div>${cards ? `<div class="movie-grid">${cards}</div>` : `<div class="empty"><h2>${t('emptyLibrary')}</h2><p>${t('emptyLibraryp')}</p><a class="button" href="/discover" data-route>${t('browse')} →</a></div>`}<div class="section"></div>`;
   hydrate(work,view);
 }
 async function hydrate(work,view){
@@ -107,15 +158,15 @@ async function profilePage(view){
   if(view!==state.view)return;
   draft ||= {tmdb_ids:[],show_ratings:false,show_stats:false};
   const picks=await Promise.all(active.filter(e=>e.key.startsWith('tmdb:')).map(async entry=>{const id=Number(entry.key.split(':')[1]),m=await store.metadata(state.lang+':'+id);return `<button class="showcase-pick ${draft.tmdb_ids.includes(id)?'selected':''}" data-pick="${id}" aria-label="${e(m?.title || 'TMDB #'+id)}" aria-pressed="${draft.tmdb_ids.includes(id)}">${image(m?.poster_path) ? `<img src="${image(m.poster_path)}" alt="${e(m.title)}" loading="lazy">` : `<span class="poster-fallback">${id}</span>`}${draft.tmdb_ids.includes(id) ? `<span>${draft.tmdb_ids.indexOf(id)+1}</span>` : ''}</button>`;}));
-  $('#main').innerHTML=`<div class="profile-header"><img src="/assets/avatars/${e(p.avatar_id)}.svg" alt=""><div><h1>${e(p.display_name || state.user.username || t('yourProfile'))}</h1><div class="handle">${state.user.username?'@'+e(state.user.username):''}</div></div><button class="button secondary small" data-action="edit-profile">${t('editProfile')}</button></div><div class="stat-row">${[[active.length,'all'],[active.filter(e=>e.data.status==='Watched').length,'watched'],[active.filter(e=>e.data.favorite).length,'favorites']].map(([n,k])=>`<div class="stat"><strong>${n}</strong><span>${t(k)}</span></div>`).join('')}</div><div class="status-line"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div><section class="settings-panel"><h2>${t('showcase')}</h2><p>${t('showcaseP')}</p>${share?.owner_settings || draft.tmdb_ids.length || state.timed ? `<div class="showcase-picks">${picks.join('')}</div><label class="check-row"><input type="checkbox" id="share-public" ${share?.is_public?'checked':''}>${t('publicShowcase')}</label><label class="check-row"><input type="checkbox" id="share-ratings" ${draft.show_ratings?'checked':''}>${t('shareRatings')}</label><label class="check-row"><input type="checkbox" id="share-stats" ${draft.show_stats?'checked':''}>${t('shareStats')}</label><div class="actions"><button class="button small" data-action="save-showcase">${t('saveShowcase')}</button>${state.user.username?`<a class="quiet" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}</div>` : `<p>${t('showcaseApp')}</p>${state.user.username?`<a class="text-link" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}`}<p class="form-hint">${t('privateNotice')}</p></section><section class="settings-panel"><h2>${t('backupTitle')}</h2><p>${t('backupP')}</p><div class="actions"><button class="button secondary small" data-action="export">${t('export')}</button><label class="button secondary small import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div><div class="actions"><button class="quiet red" data-action="copy-guest">${t('guestCopy')}</button></div><p class="form-hint">${t('copyP')}</p><label class="check-row"><input type="checkbox" id="sync-enabled" ${work.enabled?'checked':''}>${t('enableSync')}</label></section>${conflicts.length?`<section class="settings-panel"><h2>${t('conflicts')}</h2><p>${t('conflictsP')}</p>${conflicts.map(c=>`<div class="conflict"><div class="conflict-cols"><div><strong>${t('localVersion')}</strong><pre>${personalSummary(c.data)}</pre><button class="button secondary small" data-resolve="local" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepLocal')}</button></div><div><strong>${t('cloudVersion')}</strong><pre>${personalSummary(c.conflict.remote)}</pre><button class="button secondary small" data-resolve="remote" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepRemote')}</button></div></div></div>`).join('')}<p>${t('historyNotice')}</p></section>`:''}<div class="actions"><button class="quiet red" data-action="signout">${t('signout')}</button></div><div class="section"></div>`;
+  $('#main').innerHTML=`<div class="profile-header"><img src="/assets/avatars/${e(p.avatar_id)}.svg" alt=""><div><h1>${e(p.display_name || state.user.username || t('yourProfile'))}</h1><div class="handle">${state.user.username?'@'+e(state.user.username):''}</div></div><button class="button secondary small" data-action="edit-profile">${t('editProfile')}</button></div><div class="stat-row">${[[active.length,'all'],[active.filter(e=>e.data.status==='Watched').length,'watched'],[active.filter(e=>e.data.favorite).length,'favorites']].map(([n,k])=>`<div class="stat"><strong>${n}</strong><span>${t(k)}</span></div>`).join('')}</div><div class="status-line"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div><section class="settings-panel"><h2>${t('favoritePeople')}</h2><p>${t('peoplePrivate')}</p><a class="button secondary small" href="/people" data-route>♡ ${t('viewPeople')} →</a></section><section class="settings-panel"><h2>${t('showcase')}</h2><p>${t('showcaseP')}</p>${share?.owner_settings || draft.tmdb_ids.length || state.timed ? `<div class="showcase-picks">${picks.join('')}</div><label class="check-row"><input type="checkbox" id="share-public" ${share?.is_public?'checked':''}>${t('publicShowcase')}</label><label class="check-row"><input type="checkbox" id="share-ratings" ${draft.show_ratings?'checked':''}>${t('shareRatings')}</label><label class="check-row"><input type="checkbox" id="share-stats" ${draft.show_stats?'checked':''}>${t('shareStats')}</label><div class="actions"><button class="button small" data-action="save-showcase">${t('saveShowcase')}</button>${state.user.username?`<a class="quiet" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}</div>` : `<p>${t('showcaseApp')}</p>${state.user.username?`<a class="text-link" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}`}<p class="form-hint">${t('privateNotice')}</p></section><section class="settings-panel"><h2>${t('backupTitle')}</h2><p>${t('backupP')}</p><div class="actions"><button class="button secondary small" data-action="export">${t('export')}</button><label class="button secondary small import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div><div class="actions"><button class="quiet red" data-action="copy-guest">${t('guestCopy')}</button></div><p class="form-hint">${t('copyP')}</p><label class="check-row"><input type="checkbox" id="sync-enabled" ${work.enabled?'checked':''}>${t('enableSync')}</label></section>${conflicts.length?`<section class="settings-panel"><h2>${t('conflicts')}</h2><p>${t('conflictsP')}</p>${conflicts.map(c=>`<div class="conflict"><div class="conflict-cols"><div><strong>${t('localVersion')}</strong><pre>${personalSummary(c.data)}</pre><button class="button secondary small" data-resolve="local" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepLocal')}</button></div><div><strong>${t('cloudVersion')}</strong><pre>${personalSummary(c.conflict.remote)}</pre><button class="button secondary small" data-resolve="remote" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepRemote')}</button></div></div></div>`).join('')}<p>${t('historyNotice')}</p></section>`:''}<div class="actions"><button class="quiet red" data-action="signout">${t('signout')}</button></div><div class="section"></div>`;
 }
 async function updates(view){
   $('#main').innerHTML=`<div class="page-head"><h1>${t('updatesTitle')}</h1><p>${t('updatesP')}</p></div><div class="updates-list"><section class="update-entry"><div class="eyebrow">${t('latestRelease')}</div><h2 id="release-tag">MyMovieList</h2><div class="actions"><a class="button secondary small" href="https://github.com/keremakcn/MyMovieList/releases/latest" target="_blank" rel="noopener">${t('releaseLink')}</a></div></section><section class="update-entry"><span class="updates-status">${t('webBeta')}</span><h2>${t('webUpdate')}</h2><p>${t('webUpdateP')}</p></section><section class="update-entry"><span class="updates-status">${t('development')}</span><h2>${t('recommendUpdate')}</h2><ul>${['recommend1','recommend2','recommend3'].map(k=>`<li>${t(k)}</li>`).join('')}</ul><p class="form-hint">${t('developmentNote')}</p></section></div><div class="section"></div>`;
   try{const r=await api('releases');if(view===state.view && r.tag)$('#release-tag').textContent='MyMovieList '+r.tag;}catch{}
 }
 async function render(){
-  const view=++state.view;header();document.title=(location.pathname==='/library'?t('library'):location.pathname==='/profile'?t('profile'):location.pathname==='/discover'?t('discover'):'MyMovieList')+' · MyShelf';
-  try{if(location.pathname==='/discover')await discover(view);else if(location.pathname==='/library')await library(view);else if(location.pathname==='/profile' || location.pathname==='/account')await profilePage(view);else if(location.pathname==='/updates')await updates(view);else await home(view);}catch(err){if(view===state.view)$('#main').innerHTML=`<div class="empty"><h2>MyMovieList</h2><p>${e(errorText(err))}</p><a class="button" href="/" data-route>${t('browse')}</a></div>`;}
+  const view=++state.view;const personRoute=/^\/person\/([1-9]\d{0,9})\/?$/.exec(location.pathname);const filmRoute=/^\/movie\/([1-9]\d{0,9})\/?$/.exec(location.pathname);header();document.title=(location.pathname==='/library'?t('library'):location.pathname==='/profile'?t('profile'):location.pathname==='/discover'?t('discover'):location.pathname==='/people'?t('favoritePeople'):'MyMovieList')+' · MyShelf';
+  try{if(location.pathname==='/discover')await discover(view);else if(location.pathname==='/library')await library(view);else if(location.pathname==='/profile' || location.pathname==='/account')await profilePage(view);else if(location.pathname==='/updates')await updates(view);else if(personRoute)await personPage(Number(personRoute[1]),view);else if(location.pathname==='/people')await favoritePeople(view);else if(filmRoute)await moviePage(Number(filmRoute[1]),view);else await home(view);}catch(err){if(view===state.view)$('#main').innerHTML=`<div class="empty"><h2>MyMovieList</h2><p>${e(errorText(err))}</p><a class="button" href="/" data-route>${t('browse')}</a></div>`;}
 }
 function navigate(path){history.pushState({},'',path);window.scrollTo(0,0);render();}
 function avatars(selected){return `<div class="avatar-grid">${avatarIds.map(id=>`<button type="button" class="avatar-option ${id===selected?'selected':''}" data-avatar="${id}" aria-label="${e(id.replace('cat-',''))}" aria-pressed="${id===selected}"><img src="/assets/avatars/${id}.svg" alt=""></button>`).join('')}</div>`;}
@@ -153,20 +204,94 @@ async function submitAuth(form){
     }
   }catch(err){$('#auth-error').textContent=errorText(err);}finally{if(button.isConnected)button.disabled=false;}
 }
-async function movie(id,key=null){
+async function movie(id,key=null,{container=$('#movie-content'),modal=true,view}={}){
   const owner=state.owner,work=await store.read(owner);key ||= 'tmdb:'+id;
   const entry=work.entries[key];let m;
   if(key.startsWith('custom:'))m={id:null,title:entry.data.custom.title,release_date:String(entry.data.custom.year || ''),overview:''};
   else{try{m=await catalog(id);}catch(err){m=await store.metadata(state.lang+':'+id) || {id:Number(id),title:'TMDB #'+id};toast(errorText(err));}}
-  if(owner!==state.owner)return;
+  if(owner!==state.owner || view!==undefined && view!==state.view || !container.isConnected)return;
   state.detail={id:m.id,key,owner,movie:m,initial:entry ? structuredClone(entry.data) : null};
   const d=entry && !entry.data.deleted_at ? entry.data : null;
   const people=(m.credits?.cast || []).slice(0,12),directors=(m.credits?.crew || []).filter(p=>p.job==='Director');
-  const person=p=>`<a class="person" href="https://www.themoviedb.org/person/${Number(p.id)}" target="_blank" rel="noopener">${image(p.profile_path,'w185')?`<img src="${image(p.profile_path,'w185')}" alt="${e(p.name)}" loading="lazy">`:`<span class="person-placeholder">${e(p.name?.[0] || '?')}</span>`}${e(p.name)}</a>`;
-  $('#movie-content').innerHTML=`<div class="movie-detail"><div class="detail-side">${image(m.poster_path)?`<img class="detail-poster" src="${image(m.poster_path,'w500')}" alt="${e(m.title)}">`:`<div class="detail-poster poster-fallback">${e(m.title)}</div>`}${!d?`<button class="button" data-add="${Number(id)}">${t('add')} +</button>`:''}</div><div><h1 id="movie-title">${e(m.title)}</h1><div class="detail-meta"><span>${e(m.release_date?.slice(0,4) || '')}</span>${m.runtime?`<span>${m.runtime} ${t('minutes')}</span>`:''}${m.vote_average?`<span class="card-rating">★ ${Number(m.vote_average).toFixed(1)}</span>`:''}</div><div class="genre-tags">${(m.genres || []).map(g=>`<span class="genre-tag">${e(g.name)}</span>`).join('')}</div><p class="overview">${e(m.overview || t('noOverview'))}</p>${directors.length?`<h2 class="subheading">${t('director')}</h2><div class="people-row">${directors.map(person).join('')}</div>`:''}${people.length?`<h2 class="subheading">${t('cast')}</h2><div class="people-row">${people.map(person).join('')}</div>`:''}${d?`<form id="detail-form" class="detail-form"><div class="detail-row"><label class="field">${t('status')}<select name="status"><option value="Watchlist" ${d.status==='Watchlist'?'selected':''}>${t('watchlist')}</option><option value="Watched" ${d.status==='Watched'?'selected':''}>${t('watched')}</option></select></label><label class="field">${t('rating')}<select name="rating"><option value="">${t('unrated')}</option>${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${d.rating===i+1?'selected':''}>${i+1}/10</option>`).join('')}</select></label></div><label class="field">${t('watchedDate')}<input type="date" name="watched_date" value="${e(d.watched_date || '')}"></label><label class="field">${t('note')}<textarea name="note" maxlength="20000" placeholder="${t('notePlaceholder')}">${e(d.note || '')}</textarea></label><label class="check-row"><input type="checkbox" name="favorite" ${d.favorite?'checked':''}>${t('favorite')}</label><div class="actions"><button class="button small" type="submit">${t('save')}</button><button type="button" class="quiet" data-action="remove">${t('remove')}</button></div><p class="form-hint">${t('privateNotice')}</p></form>`:''}</div></div>`;
-  if(!$('#movie-dialog').open)$('#movie-dialog').showModal();
+  container.innerHTML=`<div class="movie-detail"><div class="detail-side">${image(m.poster_path)?`<img class="detail-poster" src="${image(m.poster_path,'w500')}" alt="${e(m.title)}">`:`<div class="detail-poster poster-fallback">${e(m.title)}</div>`}${!d?`<button class="button" data-add="${Number(id)}">${t('add')} +</button>`:''}</div><div><h1 id="movie-title">${e(m.title)}</h1><div class="detail-meta"><span>${e(m.release_date?.slice(0,4) || '')}</span>${m.runtime?`<span>${m.runtime} ${t('minutes')}</span>`:''}${m.vote_average?`<span class="card-rating">★ ${Number(m.vote_average).toFixed(1)}</span>`:''}</div><div class="genre-tags">${(m.genres || []).map(g=>`<span class="genre-tag">${e(g.name)}</span>`).join('')}</div><p class="overview">${e(m.overview || t('noOverview'))}</p>${directors.length?`<h2 class="subheading">${t('director')}</h2><div class="people-row">${directors.map(p=>personCard(p,'director',work)).join('')}</div>`:''}${people.length?`<h2 class="subheading">${t('cast')}</h2><div class="people-row">${people.map(p=>personCard(p,'actor',work)).join('')}</div>`:''}${d?`<form id="detail-form" class="detail-form"><div class="detail-row"><label class="field">${t('status')}<select name="status"><option value="Watchlist" ${d.status==='Watchlist'?'selected':''}>${t('watchlist')}</option><option value="Watched" ${d.status==='Watched'?'selected':''}>${t('watched')}</option></select></label><label class="field">${t('rating')}<select name="rating"><option value="">${t('unrated')}</option>${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${d.rating===i+1?'selected':''}>${i+1}/10</option>`).join('')}</select></label></div><label class="field">${t('watchedDate')}<input type="date" name="watched_date" value="${e(d.watched_date || '')}"></label><label class="field">${t('note')}<textarea name="note" maxlength="20000" placeholder="${t('notePlaceholder')}">${e(d.note || '')}</textarea></label><label class="check-row"><input type="checkbox" name="favorite" ${d.favorite?'checked':''}>${t('favorite')}</label><div class="actions"><button class="button small" type="submit">${t('save')}</button><button type="button" class="quiet" data-action="remove">${t('remove')}</button></div><p class="form-hint">${t('privateNotice')}</p></form>`:''}</div></div>`;
+  await Promise.all([...people,...directors].filter(p=>Number.isSafeInteger(p.id)).map(p=>store.cacheMetadata('person:'+p.id,{id:p.id,name:p.name,profile_path:p.profile_path})));
+  if(modal && !$('#movie-dialog').open)$('#movie-dialog').showModal();
 }
 function editProfile(){const p=state.user.profile;state.profileAvatar=p.avatar_id;$('#profile-content').innerHTML=`<div class="auth-body"><h1 id="profile-title">${t('editProfile')}</h1><p>${t('fixedUsername')}</p><div class="handle">@${e(state.user.username || '')}</div><form id="profile-form">${field('displayName','display_name','text',p.display_name,'maxlength="40" autocomplete="nickname"')}<p class="subheading">${t('avatar')}</p>${avatars(p.avatar_id)}<div class="form-error" id="profile-error" role="alert"></div><button class="button full">${t('save')}</button></form></div>`;$('#profile-form [name=display_name]').required=false;$('#profile-dialog').showModal();}
+const heartIcon=selected=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="${selected?'currentColor':'none'}" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20.5 5.5a5 5 0 0 0-7 0L12 7l-1.5-1.5a5 5 0 0 0-7 7L12 21l8.5-8.5a5 5 0 0 0 0-7z"/></svg>`;
+const personAction=(role,selected)=>t(role==='actor'?(selected?'removeActor':'addActor'):(selected?'removeDirector':'addDirector'));
+function personButton(p,role,work,label=false){
+  const selected=!!peopleState(work).entries[role+':'+p.id]?.data.favorite;
+  return `<button type="button" class="person-heart ${selected?'selected':''}" data-person-favorite="${Number(p.id)}" data-person-role="${role}" data-person-name="${e(p.name)}" title="${t(role==='actor'?'favoriteActor':'favoriteDirector')}" data-owner="${e(state.owner)}" ${label?'data-favorite-label':''} aria-pressed="${selected}" aria-label="${e(personAction(role,selected)+' · '+p.name)}">${heartIcon(selected)}${label?`<span>${t(role==='actor'?'favoriteActor':'favoriteDirector')}</span>`:''}</button>`;
+}
+function personCard(p,role,work){return `<div class="person-card-wrap"><a class="person" href="/person/${Number(p.id)}" data-route>${image(p.profile_path,'w185')?`<img src="${image(p.profile_path,'w185')}" alt="" loading="lazy">`:`<span class="person-placeholder">${e(p.name?.[0] || '?')}</span>`}<strong>${e(p.name)}</strong></a>${personButton(p,role,work)}</div>`;}
+async function personCatalog(id,credits=false){
+  const key='person:'+state.lang+':'+id,cached=await store.metadata(key);
+  if(cached && (cached.movie_credits || !credits))return cached;
+  try{
+    const person=await api(`catalog/person/${id}?language=${state.lang==='tr'?'tr-TR':'en-US'}${credits?'&append_to_response=movie_credits':''}`);
+    if(person.id!==id)throw Error('invalid_response');
+    await store.cacheMetadata(key,person);await store.cacheMetadata('person:'+id,{id,name:person.name,profile_path:person.profile_path});return person;
+  }catch(error){const fallback=cached || await store.metadata('person:'+id);if(fallback)return fallback;throw error;}
+}
+async function favoritePeople(view){
+  const owner=state.owner,work=await store.read(owner),entries=Object.values(peopleState(work).entries).filter(x=>x.data.favorite);
+  const counts=Object.fromEntries(['actor','director'].map(role=>[role,entries.filter(x=>x.data.role===role).length]));
+  const list=entries.filter(x=>x.data.role===peopleRole).sort((a,b)=>b.data.edited_at.localeCompare(a.data.edited_at) || a.data.person_id-b.data.person_id);
+  const pages=Math.max(1,Math.ceil(list.length/24));peoplePageNumber=Math.min(peoplePageNumber,pages);
+  const selected=list.slice((peoplePageNumber-1)*24,peoplePageNumber*24);
+  const known=await Promise.all(selected.map(async x=>await store.metadata('person:'+state.lang+':'+x.data.person_id) || await store.metadata('person:'+x.data.person_id) || {id:x.data.person_id,name:'TMDB #'+x.data.person_id}));
+  if(view!==state.view || owner!==state.owner)return;
+  $('#main').innerHTML=`<div class="page-head"><div class="eyebrow">${t('profile')}</div><h1>${t('favoritePeople')}</h1><p>${t('peopleIntro')}</p><a class="text-link" href="${state.user?'/profile':'/library'}" data-route>← ${t(state.user?'profile':'library')}</a></div><div class="toolbar"><div class="tabs">${['actor','director'].map(role=>`<button class="tab ${peopleRole===role?'selected':''}" data-people-role="${role}">${t(role==='actor'?'favoriteActors':'favoriteDirectors')} <span>${counts[role]}</span></button>`).join('')}</div></div><p class="form-hint">${t('peoplePrivate')}</p>${Date.now()<peopleRetryAt?`<p class="form-hint">${t('peopleSyncWaiting')}</p>`:''}<div class="favorite-people-grid">${known.map(p=>personCard(p,peopleRole,work)).join('')}</div>${!known.length?`<div class="empty"><p>${t('peopleEmpty')}</p><a class="button secondary" href="/discover" data-route>${t('browse')}</a></div>`:''}${pages>1?`<div class="actions people-pagination">${peoplePageNumber>1?`<button class="button secondary small" data-people-page="${peoplePageNumber-1}">${t('previousPage')}</button>`:''}<span>${peoplePageNumber} / ${pages}</span>${peoplePageNumber<pages?`<button class="button secondary small" data-people-page="${peoplePageNumber+1}">${t('nextPage')}</button>`:''}</div>`:''}<div class="section"></div>`;
+  // Hydrate just the visible page; no unbounded background catalog downloads.
+  if(navigator.onLine){
+    for(let n=0;n<known.length;n+=4){
+      if(view!==state.view || owner!==state.owner)return;
+      const targets=known.slice(n,n+4).filter(p=>p.name.startsWith('TMDB #'));
+      const results=await Promise.allSettled(targets.map(p=>personCatalog(p.id)));
+      if(view!==state.view || owner!==state.owner)return;
+      for(const result of results)if(result.status==='fulfilled'){
+        const p=result.value,card=$(`.favorite-people-grid a[href="/person/${p.id}"]`)?.parentElement;
+        if(card)card.outerHTML=personCard(p,peopleRole,await store.read(owner));
+      }
+      if(results.some(r=>r.status==='rejected'))break;
+    }
+  }
+}
+async function personPage(id,view){
+  const owner=state.owner,work=await store.read(owner),p=await personCatalog(id,true),credits=p.movie_credits || {};
+  if(view!==state.view || owner!==state.owner)return;
+  const roles=[...(credits.cast?.length || p.known_for_department==='Acting'?['actor']:[]),...(credits.crew?.some(x=>x.job==='Director') || p.known_for_department==='Directing'?['director']:[])];
+  const films=[...new Map([...(credits.cast || []),...(credits.crew || [])].filter(m=>m.id && !m.adult).sort((a,b)=>(b.popularity || 0)-(a.popularity || 0)).map(m=>[m.id,m])).values()].slice(0,48);
+  document.title=p.name+' · MyShelf';
+  $('#main').innerHTML=`<a class="text-link" href="/people" data-route>← ${t('favoritePeople')}</a><section class="person-profile">${image(p.profile_path,'w185')?`<img src="${image(p.profile_path,'w185')}" alt="${e(p.name)}">`:`<span class="person-placeholder">${e(p.name?.[0] || '?')}</span>`}<div><h1>${e(p.name)}</h1><div class="actions">${roles.map(role=>personButton(p,role,work,true)).join('')}</div>${p.biography?`<details class="person-biography"><summary>${t('biography')}</summary><p>${e(p.biography)}</p></details>`:''}</div></section><p class="form-hint">${t('peoplePrivate')}</p><h2 class="section-title">${t('filmography')}</h2><div class="movie-grid">${films.map(m=>card(m,work)).join('')}</div><div class="section"></div>`;
+}
+function refreshPersonButtons(work){
+  document.querySelectorAll('[data-person-favorite]').forEach(button=>{
+    if(button.dataset.owner!==state.owner)return;
+    const selected=!!peopleState(work).entries[button.dataset.personRole+':'+button.dataset.personFavorite]?.data.favorite;
+    button.setAttribute('aria-pressed',String(selected));button.classList.toggle('selected',selected);
+    button.innerHTML=heartIcon(selected)+(button.dataset.favoriteLabel!==undefined?`<span>${t(button.dataset.personRole==='actor'?'favoriteActor':'favoriteDirector')}</span>`:'');
+    button.setAttribute('aria-label',personAction(button.dataset.personRole,selected)+' · '+button.dataset.personName);
+  });
+}
+async function syncPeople(owner){
+  if(Date.now()<peopleRetryAt)return;
+  try{
+    for(let n=0;n<20;n++){
+      if(owner!==state.owner)return;
+      const op=await peopleStore.next(owner);if(!op)break;
+      const reply=await api('people/push',{operation:op},owner);await peopleStore.acknowledge(owner,op,reply);
+    }
+    if(Object.values(peopleState(await store.read(owner)).entries).some(e=>e.outbox)){queueSync();return;}
+    for(let n=0;n<10;n++){
+      if(owner!==state.owner)return;
+      const work=await store.read(owner),page=await api('people/pull',{cursor:peopleState(work).cursor},owner);
+      await peopleStore.page(owner,page);if(page.changes.length<100)break;
+    }
+    peopleRetryAt=0;if(owner===state.owner)refreshPersonButtons(await store.read(owner));
+  }catch(error){if(['sign_in_required','account_changed'].includes(error.code))throw error;peopleRetryAt=Date.now()+60000;}
+}
 async function updateStatus(){const label=$('#sync-label');if(label)label.textContent=syncLabel(await store.read(state.owner));}
 function queueSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>runSync(),650);}
 async function runSync(){
@@ -194,6 +319,7 @@ async function runSync(){
           const current=await store.read(owner),page=await api('sync/pull',{cursor:current.cursor,timed:state.timed},owner);await store.page(owner,page);if(page.changes.length<100)break;
         }
       }
+      if(work.enabled)await syncPeople(owner);
       let current=await store.read(owner);
       if(current.profile_pending && work.enabled){
         const frozen=current.profile_pending;await api('profile/update',{profile:frozen.profile},owner);
@@ -207,8 +333,8 @@ async function runSync(){
         if(reply.status==='conflict')toast(t('privacyChanged'));
       }
       state.error=null;failures=0;retryAt=0;
-      if(owner===state.owner && ['/library','/profile'].includes(location.pathname))await render();
-      if(store.pending(await store.read(owner)))queueSync();
+      if(owner===state.owner && ['/library','/profile','/people'].includes(location.pathname))await render();
+      if(store.pending(await store.read(owner)) || Date.now()>=peopleRetryAt && peoplePending(await store.read(owner)))queueSync();
     }catch(err){state.error=err.code || err.message;failures++;retryAt=Date.now()+Math.min(1800000,30000*2**Math.min(failures-1,5));}
     finally{state.syncing=false;await updateStatus();}
   };
@@ -216,9 +342,24 @@ async function runSync(){
 }
 async function click(event){
   const button=event.target.closest('button,a,label');if(!button)return;
-  if(button.dataset.route!==undefined && button.origin===location.origin){event.preventDefault();for(const d of document.querySelectorAll('dialog[open]'))d.close();navigate(button.pathname);return;}
+  if(button.dataset.route!==undefined && button.origin===location.origin){if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;event.preventDefault();for(const d of document.querySelectorAll('dialog[open]'))d.close();navigate(button.pathname);return;}
   if(button.dataset.auth){if($('#auth-dialog').open)$('#auth-dialog').close();auth(button.dataset.auth);return;}
   if(button.dataset.close){$('#'+button.dataset.close).close();return;}
+  if(button.dataset.personFavorite){
+    const owner=state.owner,id=Number(button.dataset.personFavorite),role=button.dataset.personRole;
+    if(button.dataset.owner!==owner)throw Error('account_changed');
+    button.disabled=true;
+    try{
+      await peopleStore.editPerson(owner,id,role,button.getAttribute('aria-pressed')!=='true');
+      if(owner!==state.owner)return;
+      const work=await store.read(owner),selected=!!peopleState(work).entries[role+':'+id]?.data.favorite;
+      document.querySelectorAll(`[data-person-favorite="${id}"][data-person-role="${role}"]`).forEach(b=>{b.setAttribute('aria-pressed',String(selected));b.classList.toggle('selected',selected);b.innerHTML=heartIcon(selected)+(b.dataset.favoriteLabel!==undefined?`<span>${t(role==='actor'?'favoriteActor':'favoriteDirector')}</span>`:'');b.setAttribute('aria-label',personAction(role,selected)+' · '+b.dataset.personName);});
+      queueSync();toast(t(selected?'personAdded':'personRemoved'));
+      if(location.pathname==='/people')await render();
+    }finally{if(button.isConnected)button.disabled=false;}return;
+  }
+  if(button.dataset.peopleRole){peopleRole=button.dataset.peopleRole;peoplePageNumber=1;await render();return;}
+  if(button.dataset.peoplePage){peoplePageNumber=Number(button.dataset.peoplePage);await render();return;}
   if(button.dataset.movie){await movie(Number(button.dataset.movie));return;}
   if(button.dataset.custom){await movie(null,button.dataset.custom);return;}
   if(button.dataset.add){
@@ -279,10 +420,11 @@ document.addEventListener('change',async event=>{
     const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024)throw Error('invalid_import');const doc=JSON.parse(await file.text());await store.importLibrary(state.owner,doc);queueSync();await render();toast(t('imported'));
   }else if(event.target.id==='sync-enabled'){await store.mutate(state.owner,w=>w.enabled=event.target.checked);retryAt=0;queueSync();await updateStatus();}}catch(err){toast(errorText(err));}
 });
-document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement){const img=event.target;if(img.closest('.poster-open')){img.replaceWith(Object.assign(document.createElement('span'),{className:'poster-fallback',textContent:img.alt}));}else if(img.classList.contains('hero-poster'))img.hidden=true;else if(img.closest('.person')){img.replaceWith(Object.assign(document.createElement('span'),{className:'person-placeholder',textContent:img.alt[0] || '?'}));}}},true);
-window.addEventListener('popstate',render);window.addEventListener('online',()=>{retryAt=0;queueSync();updateStatus();});window.addEventListener('offline',updateStatus);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){queueSync();}});
+document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement){const img=event.target;if(img.closest('.poster-open')){img.replaceWith(Object.assign(document.createElement('span'),{className:'poster-fallback',textContent:img.alt}));}else if(img.closest('.hero-poster')){img.replaceWith(Object.assign(document.createElement('span'),{className:'hero-poster-fallback',textContent:img.alt}));}else if(img.closest('.person')){img.replaceWith(Object.assign(document.createElement('span'),{className:'person-placeholder',textContent:img.alt[0] || '?'}));}}},true);
+window.addEventListener('popstate',()=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();render();});window.addEventListener('online',()=>{retryAt=0;queueSync();updateStatus();});window.addEventListener('offline',updateStatus);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){queueSync();refreshHero().catch(()=>{});}});
 setInterval(()=>{if(document.visibilityState==='visible')runSync();},30000);
+setInterval(()=>{if(document.visibilityState==='visible')refreshHero().catch(()=>{});},60000);
 translateShell();
 try{
   await session();

@@ -1,0 +1,10 @@
+{% set selected = (favorite_role ~ ':' ~ person.id) in favorite_people %}
+<form class="person-favorite-form" data-person-id="{{ person.id }}" data-person-role="{{ favorite_role }}" data-add-label="{{ t('Add to favorite actors' if favorite_role == 'actor' else 'Add to favorite directors') }} · {{ person.name }}" data-remove-label="{{ t('Remove from favorite actors' if favorite_role == 'actor' else 'Remove from favorite directors') }} · {{ person.name }}" data-added="{{ t('Added to favorite people.') }}" data-removed="{{ t('Removed from favorite people.') }}" action="{{ url_for('people.favorite',role=favorite_role,person_id=person.id) }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="favorite" value="{{ '0' if selected else '1' }}">
+    <input type="hidden" name="name" value="{{ person.name }}">
+    <input type="hidden" name="portrait_url" value="{{ person.portrait_url or '' }}">
+    <input type="hidden" name="profile_path" value="{{ person.profile_path or '' }}">
+    <input type="hidden" name="next" value="{{ current_url }}">
+    <button class="person-favorite-button{{ ' selected' if selected }}" type="submit" aria-pressed="{{ 'true' if selected else 'false' }}" aria-label="{{ t('Remove from favorite actors' if selected else 'Add to favorite actors') if favorite_role == 'actor' else t('Remove from favorite directors' if selected else 'Add to favorite directors') }} · {{ person.name }}" title="{{ t('Favorite actor' if favorite_role == 'actor' else 'Favorite director') }}">{{ icon('heart',18) }}{% if favorite_label %}<span>{{ t('Favorite actor' if favorite_role == 'actor' else 'Favorite director') }}</span>{% endif %}</button>
+</form>

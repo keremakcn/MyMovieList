@@ -198,6 +198,7 @@ def register_accounts(app, cloud):
             if pending
             else 0,
             guest_count=cloud.guest.library_stats()["total"],
+            guest_people_count=len(cloud._library(None).people.keys()),
             conflicts=conflicts,
         )
 

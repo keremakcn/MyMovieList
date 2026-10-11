@@ -65,7 +65,7 @@ def mock_tmdb(app):
             return {"results": results, "total_pages": 3, "total_results": 50}
         if path.startswith("person/"):
             return {
-                "id": 6384,
+                "id": int(path.split("/")[1]),
                 "name": "Keanu Reeves",
                 "known_for_department": "Acting",
                 "biography": "Actor.",

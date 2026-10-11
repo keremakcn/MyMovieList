@@ -236,6 +236,15 @@ class SupabaseClient:
             method="PUT",
         )
 
+    def push_person_favorite(self, token, operation):
+        return self.request("/rest/v1/rpc/mml_write_person_favorite", {
+            "p_operation_id":operation["operation_id"],"p_role":operation["role"],
+            "p_person_id":operation["person_id"],"p_favorite":operation["favorite"],
+            "p_edited_at":operation["edited_at"]}, token=token)
+
+    def pull_person_favorites(self, token, cursor):
+        return self.request("/rest/v1/rpc/mml_pull_person_favorites", {"p_cursor":cursor,"p_limit":100}, token=token)
+
     def sharing_status(self, token):
         return validate_settings(
             self.request("/rest/v1/rpc/mml_sharing_status", {}, token=token)

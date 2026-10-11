@@ -18,6 +18,7 @@ from account_username import UsernameStore
 from catalog import CatalogService
 from cloud_client import CloudError, SupabaseClient
 from profile_sharing import SharingStore
+from people_favorites import PersonFavorites
 from recommendations import Recommender
 from session_store import SessionStore
 from storage import Database
@@ -136,6 +137,7 @@ class CloudWorkspace:
                     catalog=catalog,
                     recommender=Recommender(db, self.tmdb, catalog),
                     store=SyncStore(db),
+                    people=PersonFavorites(db),
                     profile=ProfileStore(db),
                     sharing=SharingStore(db, self.public_ready and bool(owner)),
                     username=UsernameStore(
@@ -342,7 +344,9 @@ class CloudWorkspace:
             label, state_name = "Sync needs attention", "attention"
         elif library.db.query("SELECT COUNT(*) n FROM sync_conflicts")[0]["n"]:
             label, state_name = "Review sync conflicts", "attention"
-        elif library.store.pending() or profile["dirty"]:
+        elif state.get("people_error"):
+            label, state_name = "Person favorites are saved on this device · sync will retry", "waiting"
+        elif library.store.pending() or library.people.pending() or profile["dirty"]:
             label, state_name = "Syncing…", "syncing"
         elif state.get("last_synced"):
             label, state_name = "Up to date", "current"
@@ -364,7 +368,7 @@ class CloudWorkspace:
             "signed_in": bool(
                 self.session and self.session["user_id"] == library.owner
             ),
-            "pending": library.store.pending() + int(profile["dirty"]),
+            "pending": library.store.pending() + library.people.pending() + int(profile["dirty"]),
             "profile": profile["profile"],
             "sharing": sharing,
             "username": username,
@@ -424,6 +428,46 @@ class CloudWorkspace:
         except (TypeError, ValueError, OSError):
             store.error("protocol")
             store.next_attempt = time.monotonic() + 300
+
+    def sync_people(self, library):
+        # Missing optional schema cannot interrupt the existing movie library.
+        if not library.owner or not all(hasattr(self.client, m) for m in ("push_person_favorite", "pull_person_favorites")):
+            return
+        state = self.states.setdefault(library.owner, {})
+        if state.get("people_retry_at",0)>time.monotonic():
+            return
+        try:
+            for _ in range(20):
+                if self.selected != library.owner or not self.enabled(library):
+                    return
+                operation = library.people.next_operation()
+                if operation is None:
+                    break
+                reply = self.authenticated_call(library.owner, self.client.push_person_favorite, operation)
+                if self.selected != library.owner:
+                    return
+                library.people.acknowledge(operation, reply)
+            if library.db.query("SELECT 1 FROM person_favorites WHERE outbox IS NOT NULL LIMIT 1"):
+                self.wake.set()
+                return
+            for _ in range(10):
+                if self.selected != library.owner or not self.enabled(library):
+                    return
+                page = self.authenticated_call(library.owner,self.client.pull_person_favorites,library.people.cursor())
+                if self.selected != library.owner:
+                    return
+                library.people.apply_page(page)
+                if len(page["changes"])<100:
+                    break
+            state.update(people_error="",people_retry_at=0)
+            if library.people.pending():
+                self.wake.set()
+        except CloudError as error:
+            if error.kind=="auth":
+                raise
+            state.update(people_error=error.kind,people_retry_at=time.monotonic()+max(60,error.retry_after))
+        except (ValueError,KeyError,TypeError,sqlite3.Error,OSError):
+            state.update(people_error="protocol",people_retry_at=time.monotonic()+300)
 
     def run_once(self):
         if (
@@ -516,6 +560,7 @@ class CloudWorkspace:
                     library.store.apply_page(page)
                     if len(page["changes"]) < 25:
                         break
+                self.sync_people(library)
                 state.update(
                     message="Cloud sync is up to date.",
                     last_synced=time.time(),

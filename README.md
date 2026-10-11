@@ -8,23 +8,25 @@
 
 **English** | [Türkçe](README.tr.md)
 
-**Version 3.6.0:** web and app library sync, genre tags, improved classic-film recommendations and actor/director photo cards. Windows and signed Android packages are prepared for this release; macOS packages require a fresh native workflow. GitHub downloads change when the new release is published.
+**Version 3.7.0 — Favorite People:** private favorite actors and directors, separate collections and automatic account sync. Web landing posters also refresh daily, expand on hover and open film details. The source is ready; Windows, Android and macOS 3.7.0 packages still need building. GitHub downloads change after publication.
 
 ## Get started
 
-**Windows — v3.6.0**
+The filenames below are for the upcoming 3.7.0 release; its packages have not been built yet.
 
-1. Download `MyMovieList-v3.6.0-windows.zip` from the release’s **Assets**.
-2. Extract it and open `MyMovieList-v3.6.0.exe`. No Python installation is needed.
+**Windows — v3.7.0**
+
+1. Download `MyMovieList-v3.7.0-windows.zip` from the release’s **Assets**.
+2. Extract it and open `MyMovieList-v3.7.0.exe`. No Python installation is needed.
 3. Search for a film and add it to your library. Discovery is ready without setup.
 
-**Android — 3.6.0 beta.1**
+**Android — 3.7.0 beta.1**
 
-Download `MyMovieList-3.6.0-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
+Download `MyMovieList-3.7.0-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
 
-**macOS — v3.6.0 beta**
+**macOS — v3.7.0 beta**
 
-Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.6.0 includes time-aware sync, recommendation tags, portrait cards, fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; older DMGs do not include all current changes. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
+Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.7.0 includes favorite actors/directors, time-aware sync, recommendation tags, portrait cards, fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; older DMGs do not include all current changes. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
 
 ## Web
 
@@ -37,9 +39,9 @@ Source and deployment details are in [WEB.md](WEB.md).
 
 The new source carries per-field edit times across web, Windows, Android and
 macOS. Newer trustworthy competing edits win; independent changes merge and
-unknown legacy times keep recoverable review. The refreshed Windows build
-and Android 3.6.0 beta.1 include this behavior. Older downloads remain compatible;
-macOS packages still need rebuilding to gain reliable per-field edit times.
+unknown legacy times keep recoverable review. This behavior is shared by
+the 3.7.0 source for every platform. Existing packages remain compatible;
+new builds are required to include all 3.7.0 features.
 
 ## Features
 
@@ -50,6 +52,7 @@ macOS packages still need rebuilding to gain reliable per-field edit times.
 - Add films directly from search without losing your results.
 - Browse **Trending films** by day or week, **Highest rated**, **New releases** and **Genres** in Explore. Open full lists, hide library films and add directly from a poster card.
 - Explore actors and directors through photo cards, then discover their films. Missing photos use a silhouette; names and links stay available. You can also explore production companies.
+- Keep favorite actors and directors in separate private collections. Use the heart on a person card, then open **Favorite people** from your profile or the sidebar. Favorites work locally without an account and sync automatically when signed in; they never appear in your public showcase.
 - Get personal recommendations from your ratings and favorites, using genres, available themes, directors and lead cast. The three discovery modes balance familiar films with new interests; refresh for new picks with fewer recent repeats.
 - Recommendation cards show genre tags. Well-received, recognizable classics that fit your taste get more weight; recent films can receive a small bonus for notable lead cast. Smaller interests and diversity remain part of the selection. The public movie pool includes popular films, classics and rotating international selections and is cached on your device.
 - Choose films you enjoyed to help personalize recommendations.

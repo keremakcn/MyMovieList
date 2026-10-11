@@ -175,6 +175,28 @@
     document.addEventListener('submit', async event => {
         const form = event.target;
         if (!(form instanceof HTMLFormElement)) return;
+        if (form.matches('.person-favorite-form')) {
+            event.preventDefault();
+            if (pendingForms.has(form)) return;
+            pendingForms.add(form);
+            const button = form.querySelector('button');
+            button.disabled = true;
+            try {
+                const result = await post(form.action, new FormData(form));
+                if (String(result.person_id) !== form.dataset.personId || result.role !== form.dataset.personRole || typeof result.favorite !== 'boolean') throw new Error(t('Something went wrong. Please try again.'));
+                document.querySelectorAll(`.person-favorite-form[data-person-id="${result.person_id}"][data-person-role="${result.role}"]`).forEach(other => {
+                    other.elements.favorite.value = result.favorite ? '0' : '1';
+                    const control = other.querySelector('button');
+                    control.classList.toggle('selected', result.favorite);
+                    control.setAttribute('aria-pressed', String(result.favorite));
+                    control.setAttribute('aria-label', result.favorite ? other.dataset.removeLabel : other.dataset.addLabel);
+                });
+                toast(result.favorite ? form.dataset.added : form.dataset.removed);
+                if (document.querySelector('.favorite-people-grid') && !result.favorite) window.location.reload();
+            } catch (error) { toast(error.message, null, '', true); }
+            finally { button.disabled = false; pendingForms.delete(form); }
+            return;
+        }
         if (!form.matches('[data-add-movie], [data-delete], [data-quick-action]')) return;
         event.preventDefault();
         if (pendingForms.has(form)) return;

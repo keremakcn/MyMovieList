@@ -11,6 +11,8 @@ from storage import utcnow
 
 
 def create_tables(con):
+    from people_favorites import create_tables as create_people_tables
+    create_people_tables(con)
     con.execute("""CREATE TABLE IF NOT EXISTS sync_baselines (
         record_key TEXT PRIMARY KEY, revision INTEGER NOT NULL, data_json TEXT NOT NULL)""")
     con.execute("CREATE TABLE IF NOT EXISTS sync_dirty (record_key TEXT PRIMARY KEY)")
@@ -86,6 +88,7 @@ class SyncStore:
 
     @staticmethod
     def _export(con):
+        from people_favorites import export as export_people
         records = [
             {"record_key": r["record_key"], "data": from_movie(dict(r))}
             for r in con.execute("SELECT * FROM movies ORDER BY order_key")
@@ -101,6 +104,7 @@ class SyncStore:
             "version": 1,
             "exported_at": utcnow(),
             "records": records,
+            "person_favorites": export_people(con),
             "conflict_versions": archived,
             "field_versions": {
                 r["record_key"]: json.loads(r["versions_json"])
@@ -125,7 +129,12 @@ class SyncStore:
                     "FROM movie_metadata"
                 )
             ]
-        return self.import_new(document, _catalog_snapshot=(rows, metadata))
+        result = self.import_new(document, _catalog_snapshot=(rows, metadata))
+        # Public person cache does not belong to the cloud/export payload.
+        with self.db.connect(write=True) as con:
+            con.executemany("INSERT OR IGNORE INTO person_metadata VALUES (?,?,?)",
+                [(r["person_id"],r["locale"],r["data_json"]) for r in source.query("SELECT * FROM person_metadata")])
+        return result
 
     def import_new(self, document, *, _catalog_snapshot=None):
         if (
@@ -183,10 +192,13 @@ class SyncStore:
                     timestamp(r["created_at"]),
                 )
             )
+        from people_favorites import validate_export, import_new as import_people
+        people = validate_export(document.get("person_favorites", []))
         catalog_rows, metadata = _catalog_snapshot or ([], [])
         imported = skipped = 0
         new_keys = set()
         with self.db.connect(write=True) as con:
+            import_people(con, people)
             for key, data in validated:
                 if con.execute(
                     "SELECT 1 FROM movies WHERE record_key=?", (key,)

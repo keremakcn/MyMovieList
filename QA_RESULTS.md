@@ -1,3 +1,50 @@
+# Release 3.7.0 source preparation — 2026-10-12
+
+- Main Desktop/movie-watchlist source version is **3.7.0**. Android derives
+  **3.7.0-android-beta.1** from the same version and increments versionCode to
+  **11**; macOS bundle/DMG names and Windows filenames also derive from version.py.
+- EN/TR READMEs, current release notes and Android/Mac/web/cloud setup docs are
+  updated. Release notes cover private person favorites and daily clickable
+  landing posters. Historical build records retain their original versions.
+- Migration 007 is installed on the hosted service and its protocol probe
+  succeeds. Source validation for person favorites is recorded below.
+- After transfer, all **four desktop/macOS packaging regression tests passed**
+  against the authoritative main source. Release-file hashes match the reviewed
+  files; Android's shared version and versionCode 11 were checked.
+- No 3.7.0 EXE/APK/AAB/DMG has been built or published. Previous package files
+  and their checksums are unchanged; no Git commit or push was made.
+
+# Private favorite actors and directors — 2026-10-12
+
+- Source adds separate actor/director preferences, hearts on person cards,
+  private paginated collections and person filmography navigation. Guest choices
+  remain local; new registration adopts them along with saved films. Portable
+  exports include only person IDs, roles, choices and edit times, not catalog data.
+- **543 Python tests passed, 9 skipped** in the full isolated run. The nine
+  unchanged Mac HTTPS tests need the optional certifi dependency in this Windows
+  test environment. After the final pagination correction, all **29 person/app
+  cases passed**. Synthetic libraries were used; personal AppData was untouched.
+- **32 Node tests passed**, covering the existing web/session/library behavior
+  and new preference merges, stable retries, role independence, owner checks and
+  public person catalog routing. JavaScript syntax validation passed.
+- Real PostgreSQL via local PGlite applied migrations **001–007** and reran 007.
+  RPC checks passed for replay and mismatched receipts, newer removal winning,
+  equal-time server decisions, independent roles, ordered pagination, two-owner
+  separation, denied direct/anonymous access and invalid timestamps/IDs.
+- Browser QA passed local native/web add, remove and reload persistence, person
+  filmography, actor/director tabs and 390 px layouts without horizontal overflow.
+  Favoriting a cast member in the web movie page retains an unsaved film note;
+  the native heart updates without leaving the movie page.
+- Main source, Android shared-source inclusion and Mac package verification are
+  updated. No new EXE/APK/AAB/DMG was built; existing release files predate this
+  feature. The user applied migration 007 in Supabase; the hosted public protocol
+  probe confirms service mymovielist-person-favorites, protocol 1. Missing optional
+  person schema does not interrupt existing movie sync.
+- Web deployed to myshelf.cloud with version
+  f85c4f1e-80c7-405a-8543-b75c47542461. Live movie QA confirms actor/director
+  hearts, translated actions and internal person navigation. The hosted 007
+  public protocol probe succeeds; no hosted-account round trip is claimed.
+
 # Release 3.6.0 — 2026-10-10
 
 - Authoritative Desktop/movie-watchlist source and current bilingual READMEs,

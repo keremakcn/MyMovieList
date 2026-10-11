@@ -864,3 +864,18 @@ img.company-logo { object-fit: contain; background: #e8e6ed; padding: 12px; }
 .username-address { color: var(--muted); font-size: .84rem; overflow-wrap: anywhere; margin: 12px 0; }
 .profile-handle { color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; margin: 5px 0 8px; }
 .username-form button { align-self: flex-start; }
+
+/* Person preferences: the link and favorite button are separate hit targets. */
+.person-favorite-card{position:relative;min-width:0}
+.person-favorite-card .person-card{height:100%}
+.directors-grid .person-favorite-card{max-width:340px}
+.person-card-director .person-card-info{padding-right:48px}
+.person-favorite-card>.person-favorite-form{position:absolute;top:8px;right:8px;z-index:1}
+.person-favorite-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:40px;min-height:40px;padding:8px;border:1px solid #ffffff24;border-radius:999px;background:#17191fe8;color:#ddd;cursor:pointer;box-shadow:0 2px 9px #0004}
+.person-favorite-button.selected{color:#ff6c81;border-color:#ff6c8170;background:#301820}
+.person-favorite-button.selected svg{fill:currentColor}
+.person-favorite-button:hover{color:#ff8b9c;transform:translateY(-1px)}
+.person-favorite-button:focus-visible{outline:2px solid #ff8b9c;outline-offset:3px}
+.person-favorite-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}
+.person-favorite-actions .person-favorite-button{padding:9px 15px;font:inherit}
+.favorite-people-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-top:24px}

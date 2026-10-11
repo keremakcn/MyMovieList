@@ -15,6 +15,11 @@
         <div>
             <p class="eyebrow">{{ t(role_label)|upper }}</p>
             <h1>{{ profile.name }}</h1>
+            {% if kind == 'person' %}<div class="person-favorite-actions">
+                {% set person = profile %}{% set favorite_label = true %}
+                {% for favorite_role in person_roles %}{% include '_person_favorite.html' %}{% endfor %}
+                <a class="edit-link" href="{{ url_for('people.index') }}">{{ t('View favorite people') }}</a>
+            </div>{% endif %}
             <p>{{ profile.known_for_department or profile.headquarters or '' }}</p>
             {% if profile.biography or profile.description %}
                 <details class="biography">

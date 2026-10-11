@@ -1,4 +1,5 @@
-{% macro person_card(person, director=false) %}
+{% macro person_card(person, director=false, favorite_kind=none) %}
+    <div class="person-favorite-card">
     <a class="person-card{{ ' person-card-director' if director }}"
        href="{{ url_for('entity', kind='person', entity_id=person.id, back=current_url) }}"
        aria-label="{{ person.name }}" {% if person.role %}title="{{ person.role }}"{% endif %}>
@@ -17,8 +18,10 @@
             {% if person.role %}<span>{{ t(person.role) if director else person.role }}</span>{% endif %}
         </span>
     </a>
+    {% set favorite_role = favorite_kind or ('director' if director else 'actor') %}{% include '_person_favorite.html' %}
+    </div>
 {% endmacro %}
-{% if tmdb.entities %}
+{% if tmdb is defined and tmdb.entities %}
     <section class="entity-links" aria-label="{{ t("Explore cast, crew and companies") }}">
         {% for key,label in [('directors','Directed by'),('cast','Cast'),('writers','Writing'),('producers','Producers'),('companies','Production companies')] %}
             {% if tmdb.entities.get(key) %}

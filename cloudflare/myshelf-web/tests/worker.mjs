@@ -94,3 +94,24 @@ test('limits fail closed and assets have strict script/frame policy',async()=>{
   const broken={...env,API_LIMITER:null};assert.equal((await worker.fetch(new Request('https://myshelf.cloud/api/status'),broken)).status,503);
   const response=await worker.fetch(new Request('https://myshelf.cloud/library'),env);assert.equal(response.status,200);assert(response.headers.get('Content-Security-Policy').includes("frame-ancestors 'none'"));assert(!response.headers.get('Content-Security-Policy').includes('unsafe-inline'));
 });
+
+test('person preference writes are authenticated, owner-bound and validated',async()=>{
+  await mock(async calls=>{
+    const cookie=await sessionCookie(),headers={Cookie:cookie,'X-MyShelf-Owner':A};
+    const operation={operation_id:A,person_id:6384,role:'actor',favorite:true,edited_at:'2026-10-11T12:00:00Z'};
+    const response=await worker.fetch(request('people/push',{operation},headers),env);
+    assert.equal(response.status,200);const call=calls.at(-1);assert(call.url.endsWith('/mml_write_person_favorite'));
+    const body=JSON.parse(call.options.body);assert.equal(body.p_person_id,6384);assert.equal(body.p_role,'actor');assert(!('p_user_id' in body));
+    assert.equal(call.options.headers.Authorization,'Bearer PRIVATE-ACCESS');
+    assert.equal((await worker.fetch(request('people/push',{operation},{...headers,'X-MyShelf-Owner':B}),env)).status,409);
+    assert.equal((await worker.fetch(request('people/push',{operation:{...operation,photo:'PRIVATE'}},headers),env)).status,422);
+    assert.equal((await worker.fetch(request('people/pull',{cursor:-1},headers),env)).status,400);
+  },()=>ok({status:'applied'}));
+});
+test('internal person pages use public catalog calls without private credentials',async()=>{
+  await mock(async calls=>{
+    const response=await worker.fetch(new Request('https://myshelf.cloud/api/catalog/person/6384?language=tr-TR&append_to_response=movie_credits',{headers:{Cookie:await sessionCookie()}}),env);
+    assert.equal(response.status,200);assert(calls[0].url.includes('/3/person/6384?'));assert(!calls[0].options.headers.Authorization);
+    for(const path of ['/people','/person/6384'])assert.equal((await worker.fetch(new Request('https://myshelf.cloud'+path),env)).status,200);
+  },()=>ok({id:6384}));
+});

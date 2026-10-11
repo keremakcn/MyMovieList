@@ -1,6 +1,7 @@
 # MyMovieList cloud setup
 
-Status: optional accounts and time-aware sync enabled in MyMovieList 3.6.0, October 10, 2026. The hosted SQL
+Status: MyMovieList 3.7.0 source prepared on October 12, 2026, with optional accounts,
+time-aware library sync and private person favorites. The hosted SQL
 001 was applied on October 7; optional sharing migration 002 was applied on
 October 8, followed by username migration 003. Registration/name-policy migration
 004 was applied by the user and its anonymous setup probe verified on October 8
@@ -8,11 +9,11 @@ October 8, followed by username migration 003. Registration/name-policy migratio
 library restoration on a second isolated device instance were tested by the user.
 The updated registration/profile UI and sync behavior are covered by local tests.
 Social migration 005 was applied by the user on October 8; both anonymous
-directory and weekly-view setup probes passed. Windows 3.6.0 and signed
-Android 3.6.0 beta.1 downloads include the current registration, profile,
-automatic sync and Social modules. Existing hosted setup needs no further
-SQL: migration 006 was applied on October 10. Local two-owner checks passed; native
-Android lifecycle still require final release QA.
+directory and weekly-view setup probes passed. The earlier Windows 3.6.0 and signed
+Android 3.6.0 beta.1 builds include registration, profiles, library sync and Social.
+Migration 006 was applied on October 10; 007 was applied and its hosted
+protocol-1 probe verified on October 12. No further SQL is needed for the current
+hosted setup. New 3.7.0 native packages still need building and device QA.
 
 ## Apply the database setup
 
@@ -293,9 +294,10 @@ you control after setup. Automated tests use synthetic accounts only.
 
 ## Current native packages
 
-Windows v3.6.0 and Android 3.6.0 beta.1 include the current account,
-sync, Social and fixed username/profile controls. Mac source/build support is
-current; native 3.6.0 DMGs require a fresh macOS workflow. Package checks are recorded in [QA results](../QA_RESULTS.md).
+Current source is 3.7.0 across Windows, Android and Mac, including the new
+person-favorite modules. Android targets 3.7.0-android-beta.1 / versionCode 11.
+No 3.7.0 native packages have been compiled yet. Existing packages retain their
+original metadata. Package checks are recorded in [QA results](../QA_RESULTS.md).
 
 ## Enable in-app Social discovery
 
@@ -326,7 +328,7 @@ available. See [design and tests](../SOCIAL_DESIGN.md).
 
 Windows v3.6.0 and Android 3.6.0 beta.1 include Social. Earlier 3.5.0 Windows
 downloads and Android beta.1/beta.2 predate Social. The older Android beta.3
-contains Social but predates the latest profile editor fix. Mac 3.6.0 DMGs
+contains Social but predates the latest profile editor fix. Mac 3.7.0 DMGs
 require a new workflow run on the updated source.
 
 ## Web and per-field edit times (006)
@@ -343,3 +345,21 @@ old native packages keep working through the original endpoints. An old client
 edit has unknown time rather than the upload time being treated as edit time.
 See [WEB.md](../WEB.md) for browser storage, cookies, deployment and package
 compatibility. No service-role key is used by the web app.
+
+## Private person favorites (007)
+
+Run [007_person_favorites.sql](migrations/007_person_favorites.sql) after 001–006.
+This additive migration leaves movie records, Auth metadata, usernames and
+public showcases unchanged. The new private tables have RLS enabled and direct
+client privileges revoked. Only authenticated users can call the write/pull
+functions; ownership always comes from `auth.uid()`, never a supplied user ID.
+The anonymous protocol probe reports only a service name and version.
+
+Only person ID, actor/director role, favorite boolean and UTC edit time sync.
+False rows retain removals; per-owner locked counters prevent cursor skips,
+and durable receipts make retries idempotent. Each owner can hold up to 10,000
+person preference rows. New source clients use these separate endpoints while
+older clients continue using the existing movie endpoints. The owner applied 007 on 12 October 2026, and the hosted anonymous probe
+returned `mymovielist-person-favorites`, protocol 1. Local PostgreSQL and client
+tests cover two-owner privacy, retries, independent roles and newer removals;
+a real-account cross-device person-favorite round trip remains an acceptance check.

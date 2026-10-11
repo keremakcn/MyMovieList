@@ -1,6 +1,6 @@
-# Android — MyMovieList 3.6.0 beta.1
+# Android — MyMovieList 3.7.0 beta.1
 
-The app runs its library on the phone itself and works without a desktop computer. Android `3.6.0-android-beta.1` includes the same bilingual discovery, recommendations, optional accounts, profiles, Social and automatic library sync as Windows v3.6.0.
+The app runs its library on the phone itself and works without a desktop computer. The 3.7.0 source targets `3.7.0-android-beta.1` / versionCode 11, with the same bilingual discovery, recommendations, optional accounts, profiles, Social and automatic library sync as Windows. It also includes private favorite actors and directors. A new APK/AAB build is still required.
 
 ## Library and accounts
 
@@ -12,7 +12,7 @@ The app runs its library on the phone itself and works without a desktop compute
 
 The release ID remains `com.moviewatchlist`; its usual data path is `/data/user/0/com.moviewatchlist/files/library/`. Keep the existing signing key for updates.
 
-New registration automatically copies the guest library into the account after a disclosure on the registration screen. Notes, ratings, favorites and original order are preserved; the guest copy stays on the device. This is included in the Windows v3.6.0 rebuild and Android `3.6.0-android-beta.1` packages; it requires no additional Supabase migration.
+New registration automatically copies the guest library into the account after a disclosure on the registration screen. Notes, ratings, favorites and original order are preserved; the guest copy stays on the device. Guest-library adoption requires no additional Supabase migration. Actor/director favorites use migration 007; registration copies those guest choices too.
 
 The profile editor shows a fixed username rather than a username input, even while account status loads. Display names and avatars remain editable. A confirmed username cannot be renamed through the local account endpoint. Legacy first-time selection remains in Account & sync.
 
@@ -43,13 +43,13 @@ From the repository root:
 
 Release signing must already be configured in `android/keystore.properties`. Use `scripts/create_android_signing.ps1` only for the initial setup; never replace the signing key for an update. Back up `.android-signing/release.jks` and `android/keystore.properties` privately.
 
-Artifacts are written to `dist/android/3.6.0-android-beta.1/`:
+Artifacts are written to `dist/android/3.7.0-android-beta.1/`:
 
-- `MyMovieList-3.6.0-android-beta.1.apk`: installable GitHub download.
-- `MyMovieList-3.6.0-android-beta.1.aab`: future Google Play submission.
+- `MyMovieList-3.7.0-android-beta.1.apk`: installable GitHub download.
+- `MyMovieList-3.7.0-android-beta.1.aab`: future Google Play submission.
 - `SHA256SUMS.txt`: package hashes.
 
-`version.py` supplies the shared 3.6.0 version. Android uses `versionCode=10` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
+`version.py` supplies the shared 3.7.0 version. Android uses `versionCode=11` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
 
 The **Android packages** GitHub Actions workflow also supports debug and release builds. Release mode needs the four Android signing secrets from the same existing key. It builds artifacts without publishing a GitHub Release.
 
@@ -57,11 +57,20 @@ The **Android packages** GitHub Actions workflow also supports debug and release
 
 Source tests cover native authentication, CSRF, library preservation and account/sync flows with synthetic data. Release checks verify APK signatures, alignment, AAB structure and packaged source/assets; results are recorded in [QA_RESULTS.md](QA_RESULTS.md).
 
-Apply Supabase migrations 001–006 to enable accounts, Social and time-aware sync. They are installed on the hosted service. The public profile Worker is already separate from the phone app; see [cloud setup](supabase/README.md). No real user account or library is needed for package verification.
+Apply Supabase migrations 001–007 to enable accounts, Social, time-aware sync and private person favorites. They are installed on the hosted service. The public profile Worker is already separate from the phone app; see [cloud setup](supabase/README.md). No real user account or library is needed for package verification.
 
 Android remains a beta until the actual APK is tested for installation/update, keyboard/insets, navigation, rotation, process restart, Keystore session restoration and cross-device sync. An AAB build does not publish or approve the application on Google Play; store setup, privacy disclosures and review are separate steps.
 
-## Current build — 3.6.0 beta.1, October 10, 2026
+## Current source — 3.7.0 beta.1, October 12, 2026
+
+The shared source includes favorite actors/directors, private paginated collections,
+person filmography and automatic preference sync. Android includes both new
+person modules in its packaging allowlist. Migration 007 is installed and its
+hosted protocol probe succeeds. The target version is `3.7.0-android-beta.1`,
+versionCode 11; no new APK/AAB has been compiled yet. Existing 3.6.0 packages
+retain their original metadata and do not include person favorites.
+
+## Earlier build — 3.6.0 beta.1, October 10, 2026
 
 Clean signed release builds use `3.6.0-android-beta.1` and `versionCode=10`.
 They contain the same current shared source as Windows 3.6.0: time-aware cloud
@@ -121,7 +130,7 @@ is installed; no additional server setup is required for this rebuild.
 
 Android beta.2 (versionCode=6) added automatic guest-library copying on new
 registration. Its APK/AAB remain in dist/android/3.5.0-android-beta.2/; they
-do not include Social. Use 3.6.0 beta.1 for the current release.
+do not include Social. See the current source and earlier-build status above.
 
 ## Previous build — October 7, 2026
 

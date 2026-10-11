@@ -176,6 +176,7 @@ def create_app(config=None):
             "primary_modifier": "⌘" if sys.platform == "darwin" else "Ctrl",
             "library_scope": cloud.scope(),
             "account_status": cloud.status(),
+            "favorite_people": cloud.current().people.keys(),
             "csrf_token": csrf_token,
             "current_url": current_url,
             "page_url": page_url,
@@ -699,15 +700,23 @@ def create_app(config=None):
         if kind not in ("person", "company"):
             abort(404)
         page = integer(request.args.get("page"))
-        profile = tmdb.get(
-            f"{kind}/{entity_id}",
-            **(
-                {"language": provider_language(), "append_to_response": "movie_credits"}
-                if kind == "person"
-                else {}
-            ),
-        )
+        try:
+            profile = tmdb.get(
+                f"{kind}/{entity_id}",
+                **(
+                    {"language": provider_language(), "append_to_response": "movie_credits"}
+                    if kind == "person"
+                    else {}
+                ),
+            )
+            if kind == "person" and profile.get("id") != entity_id:
+                raise TMDBError("Could not load this person. Please try again.")
+        except TMDBError:
+            profile = cloud.current().people.metadata(entity_id, app.extensions["i18n"]["language"]()) if kind == "person" else None
+            if not profile:
+                raise
         if kind == "person":
+            cloud.current().people.cache(entity_id, profile, app.extensions["i18n"]["language"]())
             credits = profile.get("movie_credits", {})
             items = credits.get("cast", []) + credits.get("crew", [])
             items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
@@ -738,6 +747,7 @@ def create_app(config=None):
             else "Company",
             kind=kind,
             entity_id=entity_id,
+            person_roles=(["actor"] if credits.get("cast") or profile.get("known_for_department")=="Acting" else []) + (["director"] if any(m.get("job")=="Director" for m in credits.get("crew",[])) or profile.get("known_for_department")=="Directing" else []) if kind=="person" else [],
             movies=annotate(movies),
             page=page,
             pages=pages,
@@ -926,6 +936,8 @@ def create_app(config=None):
     from account_routes import register_accounts
 
     register_accounts(app, cloud)
+    from people_routes import register_people
+    register_people(app, cloud)
     from public_profile_routes import register_public_profiles
     register_public_profiles(app, cloud)
     from social_routes import register_social

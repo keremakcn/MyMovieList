@@ -38,6 +38,7 @@
                    {% if request.blueprint in ['social','public_profiles'] %} aria-current="page" {% endif %}>{{ icon('social') }}<span>{{ t("Social") }}</span></a>
                 <a href="{{ url_for('accounts.account') }}" class="profile-nav"
                    {% if request.blueprint == 'accounts' and request.endpoint != 'accounts.settings' and flow != 'settings' %} aria-current="page" {% endif %}>{{ icon('profile') }}<span>{{ t("Profile") }}</span></a>
+                <a href="{{ url_for('people.index') }}" {% if request.blueprint == 'people' %}aria-current="page"{% endif %}>{{ icon('heart') }}<span>{{ t('Favorite people') }}</span></a>
                 <a href="/settings"
                    {% if request.endpoint in ['settings','accounts.settings'] or (request.blueprint == 'accounts' and flow == 'settings') %} aria-current="page" {% endif %}>{{ icon('settings') }}<span>{{ t("Settings") }}</span></a>
             </nav>

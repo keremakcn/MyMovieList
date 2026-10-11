@@ -27,10 +27,11 @@
     <p class="settings-note"><span data-cloud-pending>{{ cloud_status.pending }}</span> {{ t('changes waiting to sync') }} <a href="{{ url_for('accounts.settings',review='conflicts') }}#conflicts" data-conflicts-link {% if not cloud_status.conflicts %}hidden{% endif %}>· <span data-cloud-conflicts>{{ cloud_status.conflicts }}</span> {{ t('conflicts to review') }}</a></p>
     <form action="{{ url_for('accounts.sync_settings') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="enabled" value="{{ '0' if cloud_status.enabled else '1' }}"><input type="hidden" name="consent" value="yes"><button class="secondary" type="submit">{{ t('Pause cloud sync') if cloud_status.enabled else t('Resume automatic sync') }}</button></form>
 </section>
-{% if guest_count %}
+{% if guest_count or guest_people_count %}
     <section class="form-card" aria-labelledby="adopt-heading">
         <h2 id="adopt-heading">{{ t('Bring your existing local library') }}</h2>
         <p>{{ t('Your original local library has {count} films. Copy them into this account library; existing account records will be kept.',count=guest_count) }}</p>
+        {% if guest_people_count %}<p>{{ t('Your local favorite people will also be copied. Existing account preferences are kept.') }}</p>{% endif %}
         <p class="settings-note">{{ t('Copied films, including their private notes, will sync to this account. Your original local library stays intact.') }}</p>
         <p class="settings-note">{{ t('Films already in your account keep their notes and ratings. Any different local versions remain in your original local library; sign out to open it.') }}</p>
         <form action="{{ url_for('accounts.adopt_local') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="confirm" value="yes"><button class="secondary" type="submit">{{ t('Copy local library into this account') }}</button></form>

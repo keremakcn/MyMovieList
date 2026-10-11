@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('Favorite people') }} · MyMovieList{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('accounts.account') if account_status.owner else '/' }}">{{ t('← Back') }}</a>
+<header class="page-heading"><p class="eyebrow">{{ t('YOUR CINEMA') }}</p><h1>{{ t('Favorite people') }}</h1><p>{{ t('The actors and directors you keep close.') }}</p></header>
+<nav class="profile-tabs" aria-label="{{ t('Favorite people') }}">
+    <a href="{{ url_for('people.index',role='actor') }}" {% if favorite_role == 'actor' %}aria-current="page"{% endif %}>{{ t('Favorite actors') }}</a>
+    <a href="{{ url_for('people.index',role='director') }}" {% if favorite_role == 'director' %}aria-current="page"{% endif %}>{{ t('Favorite directors') }}</a>
+</nav>
+<p class="showcase-privacy-note">{{ icon('lock',14) }} {{ t('Your favorite people are private. They are not added to your public showcase.') }}</p>
+<section class="entity-links">
+    <div class="section-heading"><h2>{{ t('Favorite actors' if favorite_role == 'actor' else 'Favorite directors') }}</h2><span>{{ total }}</span></div>
+    {% from '_entities.html' import person_card with context %}
+    {% if people %}<div class="people-grid favorite-people-grid">{% for person in people %}{{ person_card(person,false,favorite_role) }}{% endfor %}</div>
+    {% else %}<div class="empty-state"><h2>{{ t('Your favorites start here.') }}</h2><p>{{ t('Open a film and use the heart beside an actor or director.') }}</p><a class="secondary-button" href="/search">{{ t('Explore') }}</a></div>{% endif %}
+</section>
+{% include '_pagination.html' %}
+{% endblock %}

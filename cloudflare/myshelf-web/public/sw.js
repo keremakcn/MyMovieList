@@ -1,5 +1,5 @@
-const VERSION='myshelf-shell-2026-10-10-3';
-const SHELL=['/index.html','/style.css','/app.mjs','/strings.mjs','/storage.mjs','/sync-model.mjs','/name-policy.mjs','/assets/logo.png'];
+const VERSION='myshelf-shell-2026-10-11-2';
+const SHELL=['/index.html','/style.css','/app.mjs','/hero.mjs','/people-model.mjs','/people-storage.mjs','/strings.mjs','/storage.mjs','/sync-model.mjs','/name-policy.mjs','/assets/logo.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('myshelf-shell-') && k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
@@ -9,7 +9,7 @@ self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET' || url.origin!==location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/u/'))return;
   const navigation=event.request.mode==='navigate';
   // Standalone pages must never replace the offline application's HTML shell.
-  if(navigation && !/^\/(?:discover|library|account|updates|profile|movie\/[1-9]\d{0,9})?\/?$/.test(url.pathname))return;
+  if(navigation && !/^\/(?:discover|library|account|updates|profile|people|(?:movie|person)\/[1-9]\d{0,9})?\/?$/.test(url.pathname))return;
   if(!navigation && !SHELL.includes(url.pathname) && !url.pathname.startsWith('/assets/avatars/'))return;
   event.respondWith((async()=>{
     const cache=await caches.open(VERSION),key=navigation ? '/index.html' : event.request;

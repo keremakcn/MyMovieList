@@ -7,6 +7,15 @@ Windows, Android and macOS. Movie catalog requests use the existing
 `api.myshelf.cloud` gateway. Downloads point to the latest published GitHub
 release; developing the website does not update those downloadable packages.
 
+## Landing posters
+
+The four landing-page posters expand on hover or keyboard focus and link to
+`/movie/<TMDB ID>`, which also works when opened directly or refreshed. Detail
+pages use the same ratings, notes and library actions as the catalog dialog.
+The hero uses daily TMDB trends, cached per UTC date and language in the browser;
+an open page checks the date every minute and on return to the tab. A failed
+refresh keeps the last usable selection. The weekly grid below is unchanged.
+
 ## Using the web app
 
 - Search and save films without creating an account. Browser records persist in
@@ -46,9 +55,10 @@ addition/order keys and numeric film identities are preserved.
 
 Legacy native releases still use protocol 1. Migration 006 retains their RPCs
 and existing receipt hashes; their changed fields have unknown edit times.
-The 3.6.0 native source is shared across platforms, including the Android
-packaging allowlist. The Windows 3.6.0 and Android 3.6.0 beta.1 builds include
-time-aware conflict handling. Mac 3.6.0 DMGs require a fresh native workflow.
+The 3.7.0 native source is shared across platforms, including the Android
+packaging allowlist. It includes time-aware conflict handling and private person
+favorites. Windows, Android and Mac 3.7.0 packages need fresh builds; existing
+downloads retain the features of their original version.
 
 ## Cloudflare deployment
 
@@ -82,10 +92,32 @@ session secret. The production configuration never enables this mode.
 ## Checks
 
 Run `node --test cloudflare/myshelf-web/tests/worker.mjs
-cloudflare/myshelf-web/tests/sync-model.mjs` from the repository root. Python
+cloudflare/myshelf-web/tests/sync-model.mjs cloudflare/myshelf-web/tests/hero.mjs
+cloudflare/myshelf-web/tests/people.mjs` from the repository root. Python
 regression tests include native field clocks, frozen retries, portable export,
 legacy compatibility and recoverable conflict handling. Full verification is
 recorded in [QA_RESULTS.md](QA_RESULTS.md).
 
 Film credits and the approved TMDB logo are in `/credits`, following the
 [official attribution instructions](https://developer.themoviedb.org/docs/faq).
+
+## Private favorite actors and directors (007)
+
+Person cards link to `/person/<TMDB ID>`, with biography and filmography.
+Hearts record independent actor/director choices. `/people` is available to
+guests; signed-in profiles link to the same private collection. Metadata is
+cached separately from account preferences. Refresh retains choices, and
+toggling a heart preserves unsaved movie notes.
+
+Migration `supabase/migrations/007_person_favorites.sql` is installed on the
+hosted service; its protocol-1 probe was verified on 12 October 2026. Apply it
+after 001–006 when setting up another project. It exposes authenticated owner-bound RPCs over private tables. Cloud
+payloads contain person ID, role, boolean and edit time, with no photographs,
+names or biographies. Removals retain tombstones, retries keep operation IDs,
+and newer edits win. Missing 007 retains choices locally and retries without
+interrupting movie sync. Portable exports and new-account guest adoption
+include these preferences. Existing native downloads need rebuilding; the
+Android shared-source list includes the modules. Public showcases are unchanged.
+
+Run `node --test cloudflare/myshelf-web/tests/people.mjs` and
+`python -m pytest tests/test_people_favorites.py` alongside the existing checks.

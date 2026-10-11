@@ -1,5 +1,7 @@
 import {EDITABLE,equal,iso,merge,newRecord,timestamp,validateRecord,versions} from './sync-model.mjs';
 
+import {validatePeopleExport,peopleState,importPeople} from './people-model.mjs';
+
 const database=new Promise((resolve,reject)=>{
   const request=indexedDB.open('myshelf-web',1);
   request.onupgradeneeded=()=>{for(const name of ['workspaces','catalog','preferences'])request.result.createObjectStore(name,{keyPath:'key'});};
@@ -118,14 +120,15 @@ export async function resolve(owner,key,choice,revision) {
 export async function copyGuest(owner) {
   if(owner==='guest')return;
   const guest=await read('guest');
-  return mutate(owner,work=>{let copied=0;for(const [key,e] of Object.entries(guest.entries)){if(!work.entries[key]){work.entries[key]={...structuredClone(e),baseline:null,baseVersions:{},revision:0,outbox:null,conflict:null};copied++;}}return copied;});
+  return mutate(owner,work=>{importPeople(work,Object.values(peopleState(guest).entries).map(e=>e.data));let copied=0;for(const [key,e] of Object.entries(guest.entries)){if(!work.entries[key]){work.entries[key]={...structuredClone(e),baseline:null,baseVersions:{},revision:0,outbox:null,conflict:null};copied++;}}return copied;});
 }
 export async function exportLibrary(owner) {
   const w=await read(owner);
-  return {format:'mymovielist-personal-library',version:1,exported_at:iso(),records:Object.values(w.entries).map(e=>({record_key:e.key,data:e.data})),field_versions:Object.fromEntries(Object.values(w.entries).map(e=>[e.key,e.versions])),conflict_versions:w.archive};
+  return {format:'mymovielist-personal-library',version:1,exported_at:iso(),person_favorites:Object.values(peopleState(w).entries).map(e=>e.data),records:Object.values(w.entries).map(e=>({record_key:e.key,data:e.data})),field_versions:Object.fromEntries(Object.values(w.entries).map(e=>[e.key,e.versions])),conflict_versions:w.archive};
 }
 export async function importLibrary(owner,document) {
   if(document?.format!=='mymovielist-personal-library' || document.version!==1 || !Array.isArray(document.records) || document.records.length>10000)throw Error('invalid_import');
+  const people=validatePeopleExport(document.person_favorites);
   const records=document.records.map(r=>({key:r.record_key,data:validateRecord(r.record_key,r.data),versions:versions(document.field_versions?.[r.record_key] || {})}));
   if(document.conflict_versions!==undefined && (!Array.isArray(document.conflict_versions) || document.conflict_versions.length>50000))throw Error('invalid_import');
   // Validate archive records before any commit, retaining their portable contract.
@@ -134,5 +137,5 @@ export async function importLibrary(owner,document) {
     validateRecord(r.record_key,JSON.parse(r.local_json));validateRecord(r.record_key,JSON.parse(r.remote_json));
     return {...r,created_at:timestamp(r.created_at)};
   });
-  return mutate(owner,w=>{let count=0;for(const r of records)if(!w.entries[r.key]){w.entries[r.key]={...r,baseline:null,baseVersions:{},revision:0,outbox:null,conflict:null};count++;}const known=new Set(w.archive.map(r=>r.id));for(const a of archives)if(!known.has(a.id))w.archive.push(a);return count;});
+  return mutate(owner,w=>{importPeople(w,people);let count=0;for(const r of records)if(!w.entries[r.key]){w.entries[r.key]={...r,baseline:null,baseVersions:{},revision:0,outbox:null,conflict:null};count++;}const known=new Set(w.archive.map(r=>r.id));for(const a of archives)if(!known.has(a.id))w.archive.push(a);return count;});
 }

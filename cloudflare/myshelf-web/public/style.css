@@ -10,3 +10,48 @@
 @media(max-width:600px){.profile-header{flex-wrap:wrap}.profile-header>.button{margin-left:0;flex-basis:100%}.profile-header>div{max-width:calc(100% - 95px)}.stat-row{grid-template-columns:repeat(3,minmax(0,1fr))}.stat{min-width:0}.toolbar .actions{margin-left:auto}}
 .showcase-pick .poster-fallback{position:static;width:100%;height:100%;border-radius:0;background:linear-gradient(145deg,#2a2732,#17171d);padding:12px;color:var(--muted);font-size:12px;white-space:normal}
 @media(max-width:600px){.account-buttons{gap:9px}.account-buttons .signup-link{display:inline-flex;font-size:10px}.account-buttons .quiet{font-size:10px}.brand{font-size:14px}}
+
+/* Landing posters: the links retain stable numeric catalog identities. */
+.poster-stage{display:flex;flex-direction:column;min-height:460px;perspective:1100px;overflow:visible}
+.poster-stage:before{width:100%;height:380px;top:0;pointer-events:none;background:radial-gradient(ellipse,#f04b6115,transparent 68%)}
+.hero-fan{--hero-size:165px;--hero-x1:-154px;--hero-x2:-63px;--hero-x3:58px;--hero-x4:155px;--hero-y1:-25px;--hero-y2:-5px;--hero-y3:16px;--hero-y4:47px;position:relative;isolation:isolate;min-height:380px;width:100%}
+.hero-fan .hero-poster{--x:var(--hero-x1);--y:var(--hero-y1);--angle:-13deg;--layer:1;--shift:0px;position:absolute;top:75px;left:50%;display:block;width:var(--hero-size);aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:var(--panel2);border:1px solid #ffffff26;box-shadow:0 22px 45px #0008;transform:translate(calc(-50% + var(--x) + var(--shift)),var(--y)) rotate(var(--angle));transform-origin:50% 80%;z-index:var(--layer);transition:transform .46s cubic-bezier(.2,.8,.2,1),filter .46s,box-shadow .46s,border-color .3s}
+.hero-fan .hero-poster:nth-child(2){--x:var(--hero-x2);--y:var(--hero-y2);--angle:-5deg;--layer:2}
+.hero-fan .hero-poster:nth-child(3){--x:var(--hero-x3);--y:var(--hero-y3);--angle:5deg;--layer:3}
+.hero-fan .hero-poster:nth-child(4){--x:var(--hero-x4);--y:var(--hero-y4);--angle:13deg;--layer:4}
+.hero-poster img{width:100%;height:100%;display:block;object-fit:cover}
+.hero-fan .hero-poster.is-before{--shift:-20px;filter:brightness(.78) saturate(.82);transform:translate(calc(-50% + var(--x) + var(--shift)),var(--y)) rotate(var(--angle)) scale(.93)}
+.hero-fan .hero-poster.is-after{--shift:20px;filter:brightness(.78) saturate(.82);transform:translate(calc(-50% + var(--x) + var(--shift)),var(--y)) rotate(var(--angle)) scale(.93)}
+.hero-fan .hero-poster.is-active{transform:translate(calc(-50% + var(--x)),calc(var(--y) - 12px)) rotate(0deg) scale(1.18);z-index:12;filter:brightness(1.04);box-shadow:0 30px 65px #000b,0 0 0 1px #ffffff1a;border-color:#ffffff65}
+.hero-poster-open{position:absolute;right:10px;bottom:10px;display:grid;place-items:center;width:28px;height:28px;background:#111114c9;border:1px solid #ffffff45;border-radius:50%;font-size:14px;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s}
+.hero-poster.is-active .hero-poster-open{opacity:1;transform:translateY(0)}
+.hero-poster-fallback{display:flex;align-items:center;justify-content:center;height:100%;padding:18px;text-align:center;font-size:15px;background:linear-gradient(145deg,#352332,#17171d)}
+.hero-caption{z-index:15;pointer-events:none;min-height:76px;width:100%;max-width:420px;padding:13px 20px 0;text-align:center}
+.hero-kicker{display:block;font-size:9px;letter-spacing:.2em;color:#dac083;margin-bottom:7px}
+.hero-caption strong{display:block;font-size:15px;font-weight:600;line-height:1.45;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hero-caption-meta{display:block;font-size:10px;color:var(--muted);line-height:1.6;margin-top:5px}
+.movie-page{padding:35px 0 60px;max-width:1000px;margin:auto}
+.movie-back{display:inline-flex;padding:8px 0;margin-bottom:15px}
+.movie-page .movie-detail{padding:24px 0;grid-template-columns:250px minmax(0,1fr);gap:40px}
+@media(max-width:1100px){.hero-fan{--hero-size:145px;--hero-x1:-112px;--hero-x2:-45px;--hero-x3:40px;--hero-x4:118px;min-height:360px}.hero-caption{max-width:350px}}
+@media(max-width:800px){.poster-stage{min-height:430px;margin-top:15px}.hero-fan{min-height:350px}.movie-page .movie-detail{grid-template-columns:175px minmax(0,1fr);gap:26px}}
+@media(max-width:480px){.poster-stage{min-height:365px;overflow:visible;margin:10px -5px 0}.hero-fan{--hero-size:clamp(94px,29vw,129px);--hero-x1:calc(var(--hero-size)*-.74);--hero-x2:calc(var(--hero-size)*-.28);--hero-x3:calc(var(--hero-size)*.23);--hero-x4:calc(var(--hero-size)*.74);--hero-y1:-13px;--hero-y2:0px;--hero-y3:12px;--hero-y4:33px;min-height:clamp(235px,64vw,285px)}.hero-fan .hero-poster{top:44px}.hero-fan .hero-poster.is-before{--shift:-12px}.hero-fan .hero-poster.is-after{--shift:12px}.hero-caption{padding-top:7px;max-width:300px}.hero-caption strong{font-size:13px}.movie-page{padding-top:22px}.movie-page .movie-detail{display:block;padding:14px 0}}
+@media(hover:none){.hero-poster-open{opacity:1;transform:none}}
+
+/* Private actor and director collections */
+.person-card-wrap{position:relative;flex:0 0 120px;min-width:0}
+.person-card-wrap .person{width:100%;align-items:flex-start;gap:10px}
+.person-card-wrap .person img,.person-card-wrap .person-placeholder{width:100%;height:156px;aspect-ratio:3/4;object-fit:cover;border-radius:14px}
+.person-card-wrap .person strong{font-size:13px;font-weight:550;line-height:1.35;text-align:left}
+.person-heart{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:40px;min-height:40px;background:#181a20eb;color:#d3d2d6;border:1px solid #ffffff28;border-radius:999px;box-shadow:0 2px 10px #0005;padding:9px;transition:color .15s,transform .15s}
+.person-card-wrap>.person-heart{position:absolute;top:7px;right:7px}
+.person-heart.selected{color:#ff788a;background:#351923;border-color:#ff788a70}
+.person-heart:hover{transform:translateY(-2px);color:#ff98a6}
+.person-heart[data-favorite-label]{padding:10px 16px}
+.favorite-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:28px 20px;margin:26px 0}
+.person-profile{display:flex;align-items:flex-start;gap:36px;margin:32px 0}
+.person-profile>img,.person-profile>.person-placeholder{width:155px;height:206px;object-fit:cover;border-radius:18px;flex-shrink:0}
+.person-profile h1{margin:0 0 22px;font-size:clamp(28px,4vw,46px)}
+.person-biography{margin-top:22px;max-width:800px}.person-biography summary{cursor:pointer}.person-biography p{white-space:pre-line;margin-top:14px}
+.people-pagination{justify-content:center;margin-top:26px}
+@media(max-width:600px){.person-profile{gap:20px;flex-wrap:wrap}.person-profile>img{width:110px;height:147px}.favorite-people-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:22px 14px}}

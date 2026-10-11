@@ -43,6 +43,8 @@ MODULES = (
     "social",
     "social_routes",
     "public_catalog",
+    "people_favorites",
+    "people_routes",
 )
 FORBIDDEN = {
     ".git",
