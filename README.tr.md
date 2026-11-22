@@ -8,11 +8,11 @@
 
 [English](README.md) | **Türkçe**
 
-**3.7.0 — Favori kişiler:** favori oyuncu ve yönetmenler, iki ayrı özel liste ve otomatik hesap eşitlemesi. Web tanıtım sayfasındaki afişler de günlük yenilenir, üzerine gelince açılır ve film detayına gider. Kaynak kod hazır; Windows, Android ve macOS 3.7.0 paketleri henüz derlenmedi. GitHub indirmeleri sürüm yayımlandığında değişir.
+**3.7.0 — Favori kişiler:** favori oyuncu ve yönetmenler, iki ayrı özel liste ve otomatik hesap eşitlemesi. Web tanıtım sayfasındaki afişler de günlük yenilenir, üzerine gelince açılır ve film detayına gider. Windows EXE ve imzalı Android APK/AAB güncel 3.7.0 koduyla derlendi; macOS için yeni yerel derleme gerekiyor. GitHub indirmeleri sürüm yayımlandığında değişir.
 
 ## Başlarken
 
-Aşağıdaki dosya adları hazırlanacak 3.7.0 sürümüne aittir; paketler henüz derlenmedi.
+Windows ve Android 3.7.0 paketleri hazır; sürüm yayımlandığında Assets bölümünde görünecek. Mac paketleri için yeni yerel derleme gerekiyor.
 
 **Windows — v3.7.0**
 
@@ -41,8 +41,8 @@ Yeni kaynak kod web, Windows, Android ve macOS için alan bazında değişiklik
 zamanlarını taşır. Zamanı güvenilir olan çakışmalarda yeni değişiklik seçilir;
 farklı alanlar birleştirilir. Eski, zamanı bilinmeyen kayıtların iki sürümü de
 korunur. Bu davranış tüm platformların 3.7.0 kaynak kodunda bulunur. Mevcut
-paketler uyumludur; 3.7.0 özelliklerinin tamamını içeren paketler için yeni
-derleme gerekir.
+paketler uyumludur. Güncel Windows ve Android derlemeleri 3.7.0 özelliklerini
+içerir; Mac paketleri için yeni yerel derleme gerekir.
 
 ## Neler yapabilirsin?
 

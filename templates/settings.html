@@ -30,6 +30,37 @@
             <p>{{ t("Search films, actors, directors and production studios without setting up an API key or account.") }}</p>
             <p class="settings-note">{{ t("Discovery needs an internet connection. If the service is unavailable, your saved library and downloaded posters remain accessible.") }}</p>
         </section>
+        <section class="form-card external-import-card"
+                 id="external-import"
+                 aria-labelledby="external-import-heading">
+            <h2 id="external-import-heading">{{ t("Import from Letterboxd or IMDb") }}</h2>
+            <p>{{ t("Bring your watched history, watchlist, ratings and reviews into MyMovieList in seconds.") }}</p>
+            {% if external_import_error %}
+                <p class="form-error" role="alert">{{ t(external_import_error) }}</p>
+            {% endif %}
+            <form class="movie-form"
+                  action="{{ url_for('import_external') }}"
+                  method="post"
+                  enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label for="external-import-source">{{ t("Source format") }}</label>
+                <select id="external-import-source" name="source">
+                    <option value="auto">{{ t("Auto-detect (Letterboxd or IMDb)") }}</option>
+                    <option value="letterboxd">{{ t("Letterboxd (ZIP archive or CSV)") }}</option>
+                    <option value="imdb">{{ t("IMDb (CSV export)") }}</option>
+                </select>
+                <label for="external-import-file">{{ t("Export file (.zip or .csv)") }}</label>
+                <input id="external-import-file"
+                       type="file"
+                       name="import_file"
+                       accept=".zip,.csv,text/csv,application/zip"
+                       aria-describedby="external-import-help external-import-privacy"
+                       required>
+                <p id="external-import-help" class="settings-note">{{ t("Supports full Letterboxd .zip exports (watched, watchlist, ratings, diary, reviews), individual Letterboxd .csv files and IMDb .csv exports up to 25 MB.") }}</p>
+                <p id="external-import-privacy" class="settings-note">{{ t("Half-star Letterboxd ratings convert to 1–10. Existing films in your library keep their notes and ratings, and TV series or episodes from IMDb are skipped.") }}</p>
+                <button type="submit">{{ t("Import films") }}</button>
+            </form>
+        </section>
         {% include '_account_backup.html' %}
         <section class="settings-help">
             <h2>{{ t("Your library stays yours") }}</h2>

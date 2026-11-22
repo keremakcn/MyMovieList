@@ -6,6 +6,29 @@ const A='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',B='bbbbbbbb-bbbb-4bbb-bbbb-bbbbbb
 const env={SESSION_SECRET:'11'.repeat(32),SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test',AUTH_LIMITER:{limit:async()=>({success:true})},API_LIMITER:{limit:async()=>({success:true})},ASSETS:{fetch:async()=>new Response('<html>public shell</html>',{headers:{'Content-Type':'text/html'}})}};
 const auth={user:{id:A,email:'a@example.test',user_metadata:{mml_registration:'pending-v1'}},access_token:'PRIVATE-ACCESS',refresh_token:'PRIVATE-REFRESH',expires_in:3600};
 const data={status:'Watchlist',rating:null,note:'PRIVATE NOTE',favorite:false,watched_date:null,added_at:'2026-10-09T10:00:00.000000+00:00',order_key:'00000000000000000001:'+A,deleted_at:null,custom:null};
+
+test('Social uses only anonymous public RPCs, even for a signed-in visitor',async()=>{
+  await mock(async calls=>{
+    const response=await worker.fetch(new Request('https://myshelf.cloud/api/social?view=people&q=%40alice',{headers:{Cookie:await sessionCookie(),Authorization:'Bearer MUST-NOT-FORWARD'}}),env);
+    assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'no-store');
+    assert.equal(calls.length,1);assert(calls[0].url.endsWith('/rpc/mml_social_page'));
+    assert(!calls[0].options.headers.Authorization);assert.deepEqual(JSON.parse(calls[0].options.body),{p_view:'people',p_query:'alice',p_cursor:null});
+  },()=>ok({protocol:1,view:'people',rows:[{username:'alice',display_name:'Alice',avatar_id:'cat-luna'}],next_cursor:null,week_start:'2026-10-12',week_end:'2026-10-18'}));
+});
+test('Social rejects malformed requests and refuses unexpected private response fields',async()=>{
+  await mock(async calls=>{
+    for(const path of ['?view=private','?q='+encodeURIComponent('x'.repeat(61)),'?view=people&view=week','?cursor=invalid'])assert.equal((await worker.fetch(new Request('https://myshelf.cloud/api/social'+path),env)).status,400);
+    assert.equal(calls.length,0);
+    const response=await worker.fetch(new Request('https://myshelf.cloud/api/social'),env);
+    assert.equal(response.status,502);assert(!(await response.text()).includes('PRIVATE NOTE'));
+  },()=>ok({protocol:1,view:'people',rows:[{username:'alice',display_name:'Alice',avatar_id:'cat-luna',note:'PRIVATE NOTE'}],next_cursor:null,week_start:'2026-10-12',week_end:'2026-10-18'}));
+});
+test('For-you, Stats and Social direct links and refreshes resolve to the app shell',async()=>{
+  for(const route of ['/stats','/recommendations','/social?view=week','/social?q=alice']){
+    const response=await worker.fetch(new Request('https://myshelf.cloud'+route),env);
+    assert.equal(response.status,200);assert((await response.text()).includes('public shell'));
+  }
+});
 async function mock(run,handler){const original=globalThis.fetch,calls=[];globalThis.fetch=async(url,options={})=>{calls.push({url:String(url),options});return handler(String(url),options,calls);};try{return await run(calls);}finally{globalThis.fetch=original;}}
 function request(path,body={},headers={}){return new Request('https://myshelf.cloud/api/'+path,{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://myshelf.cloud','X-MyShelf-Client':'web-v1',...headers},body:JSON.stringify(body)});}
 const ok=v=>new Response(JSON.stringify(v),{headers:{'Content-Type':'application/json'}});
@@ -114,4 +137,25 @@ test('internal person pages use public catalog calls without private credentials
     assert.equal(response.status,200);assert(calls[0].url.includes('/3/person/6384?'));assert(!calls[0].options.headers.Authorization);
     for(const path of ['/people','/person/6384'])assert.equal((await worker.fetch(new Request('https://myshelf.cloud'+path),env)).status,200);
   },()=>ok({id:6384}));
+});
+
+test('movie and person routes inject escaped Open Graph metadata and fail open on catalog outage',async()=>{
+  const htmlEnv={...env,ASSETS:{fetch:async()=>new Response('<!doctype html><html><head><title>MyMovieList</title><meta property="og:title" content="Default"></head><body></body></html>',{headers:{'Content-Type':'text/html'}})}};
+  await mock(async calls=>{
+    const res=await worker.fetch(new Request('https://myshelf.cloud/movie/603',{headers:{Cookie:await sessionCookie(),'Accept-Language':'en-US'}}),htmlEnv);
+    assert.equal(res.status,200);
+    const body=await res.text();
+    assert(body.includes('<title>The Matrix &amp; &quot;Reloaded&quot; (1999) · MyMovieList</title>'));
+    assert(body.includes('https://image.tmdb.org/t/p/w500/matrix.jpg'));
+    assert(body.includes('content="summary_large_image"'));
+    assert(!body.includes('<script>'));
+    assert(!calls[0].options.headers.Authorization);
+    assert(!calls[0].options.headers.Cookie);
+  },()=>ok({id:603,title:'The Matrix & "Reloaded"',release_date:'1999-03-31',overview:'<script>alert(1)</script> A hacker learns the truth.',poster_path:'/matrix.jpg'}));
+
+  await mock(async()=>{
+    const res=await worker.fetch(new Request('https://myshelf.cloud/movie/603'),htmlEnv);
+    assert.equal(res.status,200);
+    assert((await res.text()).includes('<title>MyMovieList</title>'));
+  },()=>{throw new Error('network down');});
 });

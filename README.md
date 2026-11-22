@@ -8,11 +8,11 @@
 
 **English** | [Türkçe](README.tr.md)
 
-**Version 3.7.0 — Favorite People:** private favorite actors and directors, separate collections and automatic account sync. Web landing posters also refresh daily, expand on hover and open film details. The source is ready; Windows, Android and macOS 3.7.0 packages still need building. GitHub downloads change after publication.
+**Version 3.7.0 — Favorite People:** private favorite actors and directors, separate collections and automatic account sync. Web landing posters also refresh daily, expand on hover and open film details. Windows EXE and signed Android APK/AAB packages are built from the current 3.7.0 source; macOS requires a fresh native workflow. GitHub downloads change after publication.
 
 ## Get started
 
-The filenames below are for the upcoming 3.7.0 release; its packages have not been built yet.
+Windows and Android 3.7.0 packages are built locally and will appear in Assets after publication. Mac packages require a fresh native workflow.
 
 **Windows — v3.7.0**
 
@@ -41,7 +41,7 @@ The new source carries per-field edit times across web, Windows, Android and
 macOS. Newer trustworthy competing edits win; independent changes merge and
 unknown legacy times keep recoverable review. This behavior is shared by
 the 3.7.0 source for every platform. Existing packages remain compatible;
-new builds are required to include all 3.7.0 features.
+current Windows and Android builds include the 3.7.0 features; Mac packages need a fresh native build.
 
 ## Features
 

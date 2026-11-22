@@ -1,3 +1,59 @@
+# Web recommendations and Social — 2026-10-12
+
+- Browser v3 recommendation scoring matches native profile confidence, feature
+  evidence, movie ordering and classic highlights across **42 parity scenarios**.
+  All **46 Node tests passed**: existing auth/sync/people/hero behavior plus public
+  catalog caching, private-field isolation, translation identity, failed-refresh
+  retention, strict Social projections and view/search-bound cursors.
+- A synthetic first-cloud-pull race test confirms that films restored while
+  discovery loads supply rating/favorite evidence and cannot become suggestions.
+  Startup schedules sync before catalog rendering; later library changes update
+  the recommendation view without rerendering it on unchanged periodic pulls.
+- Wrangler dry-run succeeded with the existing production bindings. No new SQL,
+  secret, database permission or native packaging change is needed.
+- Browser QA used an isolated localhost guest library. Real public movie cards
+  load in TR/EN, genre/classic labels and mode controls work, adding a film excludes
+  it from suggestions, and hide/restore controls preserve account-local choices.
+  The saved film remains in the guest library. The live public member RPC loads
+  the opt-in directory; search and weekly tab parameters remain in the URL.
+  The hosted week is currently empty and displays the correct UTC week range.
+- 390 px recommendation and Social layouts have no horizontal overflow. No real
+  user session, private library or hosted account mutation was used in this QA.
+- Final web deployment: 4585d6e9-2a8e-45c1-89ca-66b401789b51,
+  published from the authoritative main project. Live /recommendations renders
+  ten real catalog films, three modes, 29 genre tags and classic badges without
+  an incomplete-metadata warning. /social lists the opt-in public member; its
+  profile card opens the existing six-film public showcase. The weekly route
+  retains its tab parameter and correctly displays the currently empty week.
+  Production guest startup/refresh and public views were verified; no new live
+  account signup or private-account sync round trip is claimed.
+- Changed files are limited to the web source, its tests and web documentation.
+  Desktop/movie-watchlist is the authoritative transfer target. Native 3.7.0
+  EXE/APK/AAB packages retain their existing code and checksums.
+
+# Release 3.7.0 native builds — 2026-10-12
+
+- Clean builds use the authoritative Desktop/movie-watchlist source. **552 full
+  isolated Python tests passed**, zero failures/skips; synthetic storage was used.
+- **Windows:** MyMovieList-v3.7.0.exe contains the current launcher, all **30
+  application modules** and **71 UI assets**, including both new person modules.
+  Compiled code and assets match main source. Actual EXE startup, actor/director
+  favoriting, separate private collections, restart persistence, TR-to-EN
+  switching, saved library retention and signup/recovery/Social checks passed.
+- **Android:** clean signed 3.7.0-android-beta.1 APK/AAB, **versionCode 11**,
+  unchanged com.moviewatchlist and previous release signing certificate. All
+  **30 shared/bridge modules** and **71 UI assets** match source/intermediates.
+  Each package passed nine archive CRC checks and 16 KB ELF checks across 138
+  libraries / 408 load segments. APK v2 signing, 16 KB ZIP alignment, AAB signing,
+  structure, alignment configuration and compiled version metadata passed.
+  Lint has zero errors and four existing warnings. No phone installation or
+  physical-device lifecycle verification is claimed; no device was connected.
+- EXE and APK/AAB are copied to the Desktop. Windows ZIP, APK/AAB, release notes
+  and combined SHA-256 checksums are collected in dist/releases/v3.7.0.
+  Old package files remain intact. Personal AppData and real accounts were unused.
+- Native macOS DMGs require a fresh Actions build from current source. No Git
+  commit/push, GitHub release upload or Google Play submission occurred.
+
 # Release 3.7.0 source preparation — 2026-10-12
 
 - Main Desktop/movie-watchlist source version is **3.7.0**. Android derives

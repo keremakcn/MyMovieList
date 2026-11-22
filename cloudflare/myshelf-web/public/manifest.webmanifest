@@ -1,0 +1,20 @@
+{
+  "name": "MyMovieList — MyShelf",
+  "short_name": "MyMovieList",
+  "description": "Your films. Your thoughts. Your space. Personal movie library, discovery and private journal.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111114",
+  "theme_color": "#111114",
+  "categories": ["entertainment", "lifestyle"],
+  "icons": [
+    {
+      "src": "/assets/logo.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% set month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] %}
+{% block title %}
+    {{ t("Cinema stats") }} · MyMovieList
+{% endblock %}
+{% block content %}
+    <header class="app-header stats-header">
+        <div>
+            <p class="eyebrow">{{ t("YOUR CINEMA IN NUMBERS") }}</p>
+            <h1>
+                {{ t("Cinema stats") }}<span class="heading-dot">.</span>
+            </h1>
+            <p class="page-subtitle">{{ t("A quiet look at the films you keep, the stories you return to, and the hours spent in the dark.") }}</p>
+        </div>
+    </header>
+
+    {% if stats.totals.total < 1 %}
+        <section class="empty-state stats-empty-state" data-stats-empty>
+            <div class="empty-state-icon">{{ icon('stats', 36) }}</div>
+            <h2>{{ t("Your cinema stats start with your first film") }}</h2>
+            <p>{{ t("Add films you have watched or want to watch, rate your favorites, and your personal screening room statistics will take shape here.") }}</p>
+            <div class="stats-empty-actions">
+                <a class="add-movie-link" href="/search">{{ icon('search', 16) }}<span>{{ t("Explore films") }}</span></a>
+                <a class="secondary-button" href="/settings#external-import">{{ t("Import from Letterboxd or IMDb") }}</a>
+            </div>
+        </section>
+    {% else %}
+        <section class="stats-kpi-grid" aria-label="{{ t("Cinema overview") }}" data-stats-totals>
+            <article class="stats-kpi-card">
+                <span class="stats-kpi-label">{{ icon('check', 16) }}<span>{{ t("Watched") }}</span></span>
+                <strong class="stats-kpi-value" data-stat-watched>{{ stats.totals.watched }}</strong>
+                <small class="stats-kpi-sub">{{ t("{count} in library", count=stats.totals.total) }}</small>
+            </article>
+            <article class="stats-kpi-card">
+                <span class="stats-kpi-label">{{ icon('clock', 16) }}<span>{{ t("Watch time") }}</span></span>
+                <strong class="stats-kpi-value" data-stat-hours>
+                    {% if stats.totals.total_minutes %}
+                        {{ t("{hours}h {minutes}m", hours=stats.totals.total_hours, minutes=stats.totals.total_minutes % 60) }}
+                    {% else %}
+                        0h
+                    {% endif %}
+                </strong>
+                <small class="stats-kpi-sub">
+                    {% if stats.totals.runtime_count %}
+                        {{ t("{minutes} min across {count} films", minutes=stats.totals.total_minutes, count=stats.totals.runtime_count) }}
+                    {% else %}
+                        {{ t("Runtime appears on watched films") }}
+                    {% endif %}
+                </small>
+            </article>
+            <article class="stats-kpi-card stats-kpi-gold">
+                <span class="stats-kpi-label">{{ icon('star', 16) }}<span>{{ t("Average rating") }}</span></span>
+                <strong class="stats-kpi-value" data-stat-avg>{{ "★ " ~ stats.totals.avg_rating if stats.totals.avg_rating is not none else "—" }}</strong>
+                <small class="stats-kpi-sub">{{ t("{count} rated", count=stats.totals.rated) }}</small>
+            </article>
+            <article class="stats-kpi-card">
+                <span class="stats-kpi-label">{{ icon('heart', 16) }}<span>{{ t("Favorites") }}</span></span>
+                <strong class="stats-kpi-value" data-stat-favorites>{{ stats.totals.favorites }}</strong>
+                <small class="stats-kpi-sub">{{ t("{count} want to watch", count=stats.totals.watchlist) }}</small>
+            </article>
+            <article class="stats-kpi-card">
+                <span class="stats-kpi-label">{{ icon('film', 16) }}<span>{{ t("Watched in {year}", year=stats.year) }}</span></span>
+                <strong class="stats-kpi-value" data-stat-this-year>{{ stats.totals.watched_this_year }}</strong>
+                <small class="stats-kpi-sub">{{ t("{count} personal notes", count=stats.totals.with_notes) }}</small>
+            </article>
+        </section>
+
+        <div class="stats-panels-grid">
+            <section class="stats-panel" aria-labelledby="stats-ratings-heading" data-stats-ratings>
+                <div class="stats-panel-header">
+                    <h2 id="stats-ratings-heading">{{ t("Rating distribution") }}</h2>
+                    <span class="stats-panel-badge">
+                        {% if stats.totals.avg_rating is not none %}
+                            {{ t("★ {avg} average · {count} rated", avg=stats.totals.avg_rating, count=stats.totals.rated) }}
+                        {% else %}
+                            {{ t("No ratings yet") }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="stats-vchart" role="list" aria-label="{{ t("Rating distribution") }}">
+                    {% for item in stats.rating_distribution %}
+                        <div class="stats-vbar-col" role="listitem" data-rating-bin="{{ item.rating }}">
+                            <span class="stats-bar-count">{{ item.count }}</span>
+                            <svg class="stats-vbar-svg" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
+                                <rect class="stats-bar-track" x="3" y="0" width="18" height="100" rx="5"></rect>
+                                {% if item.bar_height > 0 %}
+                                    <rect class="stats-bar-fill{{ ' stats-bar-fill-gold' if item.rating >= 8 else '' }}"
+                                          x="3"
+                                          y="{{ 100 - item.bar_height }}"
+                                          width="18"
+                                          height="{{ item.bar_height }}"
+                                          rx="5"></rect>
+                                {% endif %}
+                            </svg>
+                            <span class="stats-bar-label">★ {{ item.rating }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="stats-panel" aria-labelledby="stats-monthly-heading" data-stats-monthly>
+                <div class="stats-panel-header">
+                    <h2 id="stats-monthly-heading">{{ t("{year} watch cadence", year=stats.year) }}</h2>
+                    <span class="stats-panel-badge">{{ t("{count} dated logs", count=stats.totals.watched_this_year) }}</span>
+                </div>
+                <div class="stats-vchart stats-vchart-months" role="list" aria-label="{{ t("{year} watch cadence", year=stats.year) }}">
+                    {% for item in stats.monthly_activity %}
+                        <div class="stats-vbar-col" role="listitem" data-month-bin="{{ item.month }}">
+                            <span class="stats-bar-count">{{ item.count }}</span>
+                            <svg class="stats-vbar-svg" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
+                                <rect class="stats-bar-track" x="3" y="0" width="18" height="100" rx="5"></rect>
+                                {% if item.bar_height > 0 %}
+                                    <rect class="stats-bar-fill"
+                                          x="3"
+                                          y="{{ 100 - item.bar_height }}"
+                                          width="18"
+                                          height="{{ item.bar_height }}"
+                                          rx="5"></rect>
+                                {% endif %}
+                            </svg>
+                            <span class="stats-bar-label">{{ t(month_labels[item.month - 1]) }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="stats-panel" aria-labelledby="stats-genres-heading" data-stats-genres>
+                <div class="stats-panel-header">
+                    <h2 id="stats-genres-heading">{{ t("Top genres") }}</h2>
+                    <span class="stats-panel-badge">{{ t("{count} genres", count=stats.top_genres|length) }}</span>
+                </div>
+                {% if stats.top_genres %}
+                    <ul class="stats-hbar-list">
+                        {% for genre in stats.top_genres %}
+                            <li class="stats-hbar-item">
+                                <div class="stats-hbar-meta">
+                                    <strong>{{ t(genre.name) if genre.known else genre.name }}</strong>
+                                    <span>{{ t("{count} film" if genre.count == 1 else "{count} films", count=genre.count) }}{% if genre.avg_rating is not none %} · ★ {{ genre.avg_rating }}{% endif %}</span>
+                                </div>
+                                <svg class="stats-hbar-svg" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
+                                    <rect class="stats-bar-track" x="0" y="0" width="100" height="8" rx="4"></rect>
+                                    {% if genre.bar_width > 0 %}
+                                        <rect class="stats-bar-fill" x="0" y="0" width="{{ genre.bar_width }}" height="8" rx="4"></rect>
+                                    {% endif %}
+                                </svg>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="stats-empty-note">{{ t("Genres will appear as you add films.") }}</p>
+                {% endif %}
+            </section>
+
+            <section class="stats-panel" aria-labelledby="stats-decades-heading" data-stats-decades>
+                <div class="stats-panel-header">
+                    <h2 id="stats-decades-heading">{{ t("Films by decade") }}</h2>
+                    <span class="stats-panel-badge">{{ t("{count} eras", count=stats.decades|length) }}</span>
+                </div>
+                {% if stats.decades %}
+                    <ul class="stats-hbar-list">
+                        {% for item in stats.decades %}
+                            <li class="stats-hbar-item" data-decade="{{ item.decade }}">
+                                <div class="stats-hbar-meta">
+                                    <strong>{{ item.label_tr if ui_language == 'tr' else item.decade }}</strong>
+                                    <span>{{ t("{count} film" if item.count == 1 else "{count} films", count=item.count) }}</span>
+                                </div>
+                                <svg class="stats-hbar-svg" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
+                                    <rect class="stats-bar-track" x="0" y="0" width="100" height="8" rx="4"></rect>
+                                    {% if item.bar_width > 0 %}
+                                        <rect class="stats-bar-fill stats-bar-fill-gold" x="0" y="0" width="{{ item.bar_width }}" height="8" rx="4"></rect>
+                                    {% endif %}
+                                </svg>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="stats-empty-note">{{ t("Release years will appear as you add films.") }}</p>
+                {% endif %}
+            </section>
+
+            <section class="stats-panel" aria-labelledby="stats-directors-heading" data-stats-directors>
+                <div class="stats-panel-header">
+                    <h2 id="stats-directors-heading">{{ t("Most watched directors") }}</h2>
+                    <span class="stats-panel-badge">{{ t("Watched films") }}</span>
+                </div>
+                {% if stats.top_directors %}
+                    <div class="stats-people-grid">
+                        {% for person in stats.top_directors %}
+                            {% if person.id %}
+                                <a class="stats-person-card"
+                                   href="{{ url_for('entity', kind='person', entity_id=person.id, back='/stats') }}">
+                                    <div class="stats-person-info">
+                                        <strong>{{ person.name }}</strong>
+                                        <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
+                                    </div>
+                                    <span class="stats-person-arrow" aria-hidden="true">{{ icon('arrow', 15) }}</span>
+                                </a>
+                            {% else %}
+                                <div class="stats-person-card">
+                                    <div class="stats-person-info">
+                                        <strong>{{ person.name }}</strong>
+                                        <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="stats-empty-note">{{ t("Watch films to see your most frequented directors.") }}</p>
+                {% endif %}
+            </section>
+
+            <section class="stats-panel" aria-labelledby="stats-actors-heading" data-stats-actors>
+                <div class="stats-panel-header">
+                    <h2 id="stats-actors-heading">{{ t("Most watched actors") }}</h2>
+                    <span class="stats-panel-badge">{{ t("Watched films") }}</span>
+                </div>
+                {% if stats.top_actors %}
+                    <div class="stats-people-grid">
+                        {% for person in stats.top_actors %}
+                            {% if person.id %}
+                                <a class="stats-person-card"
+                                   href="{{ url_for('entity', kind='person', entity_id=person.id, back='/stats') }}">
+                                    <div class="stats-person-info">
+                                        <strong>{{ person.name }}</strong>
+                                        <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
+                                    </div>
+                                    <span class="stats-person-arrow" aria-hidden="true">{{ icon('arrow', 15) }}</span>
+                                </a>
+                            {% else %}
+                                <div class="stats-person-card">
+                                    <div class="stats-person-info">
+                                        <strong>{{ person.name }}</strong>
+                                        <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="stats-empty-note">{{ t("Watch films to see the actors who appear most in your library.") }}</p>
+                {% endif %}
+            </section>
+        </div>
+    {% endif %}
+{% endblock %}

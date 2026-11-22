@@ -45,6 +45,8 @@ MODULES = (
     "public_catalog",
     "people_favorites",
     "people_routes",
+    "external_import",
+    "cinema_stats",
 )
 FORBIDDEN = {
     ".git",

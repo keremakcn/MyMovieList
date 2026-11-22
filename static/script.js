@@ -6,6 +6,9 @@
     document.querySelectorAll('img[data-person-portrait]').forEach(img => {
         if (img.complete && !img.naturalWidth) img.hidden = true;
     });
+    document.querySelectorAll('.detail-backdrop img').forEach(img => {
+        if (img.complete && !img.naturalWidth) img.closest('.detail-backdrop').hidden = true;
+    });
     const libraryScope = document.querySelector('meta[name="library-scope"]').content;
     window.MovieListHTTP = Object.freeze({
         fetch(url, options = {}) {
@@ -523,6 +526,11 @@
                 event.target.hidden = true;
                 return;
             }
+            const backdrop = event.target.closest('.detail-backdrop');
+            if (backdrop) {
+                backdrop.hidden = true;
+                return;
+            }
             const placeholder = document.createElement('span');
             placeholder.className = 'poster-placeholder';
             placeholder.textContent = '◈';
@@ -530,4 +538,34 @@
             event.target.replaceWith(placeholder);
         }
     }, true);
+    const updateBanner = document.getElementById('update-banner');
+    if (updateBanner) {
+        window.MovieListHTTP.fetch('/api/update-check', {headers: {'Accept': 'application/json'}})
+            .then(r => (r.ok ? r.json() : null))
+            .then(data => {
+                if (!data?.available || !data.latest || !data.url) return;
+                let dismissed = null;
+                try { dismissed = sessionStorage.getItem('mml-update-dismissed'); } catch (_) {}
+                if (dismissed === data.latest) return;
+                const text = document.createElement('span');
+                text.textContent = t('New version available: {version}', {version: 'v' + data.latest});
+                const link = document.createElement('a');
+                link.href = data.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = t('Download update');
+                const dismiss = document.createElement('button');
+                dismiss.type = 'button';
+                dismiss.className = 'update-banner-close';
+                dismiss.setAttribute('aria-label', t('Dismiss update notice'));
+                dismiss.textContent = '×';
+                dismiss.addEventListener('click', () => {
+                    updateBanner.hidden = true;
+                    try { sessionStorage.setItem('mml-update-dismissed', data.latest); } catch (_) {}
+                });
+                updateBanner.replaceChildren(text, link, dismiss);
+                updateBanner.hidden = false;
+            })
+            .catch(() => {});
+    }
 })();

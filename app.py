@@ -2,16 +2,18 @@
 
 import json
 import os
+import re
 import secrets
 import sys
 import tempfile
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from itertools import zip_longest
 from pathlib import Path
 from threading import Lock
 from urllib.parse import urlencode, urlsplit
-from urllib.request import urlopen
+from urllib.request import Request as UrlRequest, urlopen
 
 from dotenv import load_dotenv
 from flask import (
@@ -28,9 +30,21 @@ from flask import (
 )
 
 from catalog import display_summary
+from cinema_stats import compute_cinema_stats
+from external_import import (
+    MAX_UPLOAD_BYTES,
+    import_external_library,
+    parse_external_upload,
+)
 from i18n import SUPPORTED_LANGUAGES, register_i18n
 from storage import Database
-from tmdb_client import TMDBClient, TMDBError, image_url, movie_summary
+from tmdb_client import (
+    TMDBClient,
+    TMDBError,
+    image_url,
+    movie_summary,
+    safe_backdrop_url,
+)
 from version import APP_VERSION
 
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -133,6 +147,8 @@ def create_app(config=None):
         cloud.bind()
         if request.path == "/account/import":
             request.max_content_length = 50 * 1024 * 1024
+        elif request.path == "/settings/import-external":
+            request.max_content_length = MAX_UPLOAD_BYTES
 
     def content_locale():
         return app.extensions["i18n"]["language"]()
@@ -665,6 +681,7 @@ def create_app(config=None):
     def catalog_movie(tmdb_id):
         details = catalog.present([catalog_details(tmdb_id)], content_locale())[0]
         details["library"] = db.membership([tmdb_id]).get(tmdb_id)
+        details["backdrop_url"] = safe_backdrop_url(details.get("backdrop_url"))
         return render_template("catalog_movie.html", movie=details, tmdb=details)
 
     @app.get("/movie/<int:movie_id>")
@@ -673,7 +690,13 @@ def create_app(config=None):
         if not row:
             abort(404, "This movie is not in your active library.")
         row, details = catalog.library_detail(row, content_locale())
+        details["backdrop_url"] = safe_backdrop_url(details.get("backdrop_url"))
         return render_template("movie.html", movie=row, tmdb=details)
+
+    @app.get("/stats")
+    def stats():
+        # `db` always resolves to the library bound for this request (account or guest).
+        return render_template("stats.html", stats=compute_cinema_stats(db))
 
     @app.post("/movie/<int:movie_id>/refresh")
     def refresh_movie(movie_id):
@@ -911,6 +934,76 @@ def create_app(config=None):
     def ui_language():
         return jsonify(language=app.extensions["i18n"]["language"]())
 
+    update_lock = Lock()
+    update_cache = {"expires": 0.0, "payload": None}
+    releases_fallback = "https://github.com/keremakcn/MyMovieList/releases/latest"
+
+    def parse_semver(value):
+        if not isinstance(value, str):
+            return None
+        match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", value.strip())
+        return tuple(int(part) for part in match.groups()) if match else None
+
+    @app.get("/api/update-check")
+    def update_check():
+        now = time.monotonic()
+        with update_lock:
+            if update_cache["payload"] is not None and now < update_cache["expires"]:
+                response = jsonify(update_cache["payload"])
+                response.headers["Cache-Control"] = "no-store"
+                return response
+
+        fetcher = app.config.get("UPDATE_CHECK_FETCHER")
+        payload = {
+            "available": False,
+            "current": APP_VERSION,
+            "latest": None,
+            "url": releases_fallback,
+        }
+        ttl = 900.0
+        if fetcher is not None or not app.config.get("TESTING"):
+            try:
+                if fetcher is not None:
+                    data = fetcher()
+                else:
+                    req = UrlRequest(
+                        "https://myshelf.cloud/api/releases",
+                        headers={
+                            "Accept": "application/json",
+                            "User-Agent": f"MyMovieList/{APP_VERSION}",
+                        },
+                    )
+                    with urlopen(req, timeout=3) as resp:
+                        data = json.loads(resp.read(65536).decode("utf-8"))
+                tag = data.get("tag") if isinstance(data, dict) else None
+                latest_tuple = parse_semver(tag)
+                current_tuple = parse_semver(APP_VERSION)
+                url = data.get("url") if isinstance(data, dict) else None
+                safe_url = (
+                    url
+                    if isinstance(url, str)
+                    and url.startswith("https://github.com/keremakcn/MyMovieList/releases")
+                    else releases_fallback
+                )
+                if latest_tuple and current_tuple:
+                    latest_str = ".".join(str(p) for p in latest_tuple)
+                    payload = {
+                        "available": latest_tuple > current_tuple,
+                        "current": APP_VERSION,
+                        "latest": latest_str,
+                        "url": safe_url,
+                    }
+                    ttl = 6 * 3600.0
+            except Exception:
+                pass
+
+        with update_lock:
+            update_cache["payload"] = payload
+            update_cache["expires"] = time.monotonic() + ttl
+        response = jsonify(payload)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
     @app.post("/settings/language")
     def change_language():
         choice = request.form.get("language")
@@ -926,6 +1019,46 @@ def create_app(config=None):
         g.ui_language = choice
         flash(t("Language saved."))
         return redirect(url_for("settings"), code=303)
+
+    @app.post("/settings/import-external")
+    def import_external():
+        try:
+            uploaded = request.files.get("import_file")
+            if not uploaded or not (uploaded.filename or "").strip():
+                raise ValueError(
+                    "Choose a Letterboxd (.zip or .csv) or IMDb (.csv) file."
+                )
+            source = request.form.get("source", "auto").strip().lower()
+            if source not in ("auto", "letterboxd", "imdb"):
+                source = "auto"
+            raw = uploaded.read(MAX_UPLOAD_BYTES + 1)
+            if len(raw) > MAX_UPLOAD_BYTES:
+                raise ValueError("Choose a file under 25 MB.")
+            parsed = parse_external_upload(raw, uploaded.filename, source=source)
+            summary = import_external_library(parsed, db, tmdb)
+        except ValueError as error:
+            return (
+                render_template(
+                    "settings.html",
+                    external_import_error=str(error),
+                ),
+                422,
+            )
+        if summary["skipped_non_films"]:
+            flash(
+                t(
+                    "{imported} films imported ({matched_tmdb} matched on TMDB, {added_custom} custom). {skipped_existing} existing kept, {skipped_non_films} non-films skipped.",
+                    **summary,
+                )
+            )
+        else:
+            flash(
+                t(
+                    "{imported} films imported ({matched_tmdb} matched on TMDB, {added_custom} custom). {skipped_existing} existing kept.",
+                    **summary,
+                )
+            )
+        return redirect(url_for("settings") + "#external-import", code=303)
 
     from recommendation_routes import register_recommendations
 

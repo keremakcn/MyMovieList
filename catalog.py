@@ -10,7 +10,12 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
 from storage import utcnow
-from tmdb_client import RECOMMENDATION_FEATURES_VERSION, TMDBError, movie_details
+from tmdb_client import (
+    RECOMMENDATION_FEATURES_VERSION,
+    TMDBError,
+    movie_details,
+    safe_backdrop_url,
+)
 
 
 def text(value):
@@ -305,6 +310,12 @@ class CatalogService:
         details = dict(
             display,
             poster_url=row.get("poster_path"),
+            backdrop_url=safe_backdrop_url(
+                (verified or {}).get("backdrop_url")
+                or (verified or {}).get("backdrop_path")
+                or row.get("backdrop_url")
+                or row.get("backdrop_path")
+            ),
             cast=(row.get("cast_list") or "").split(", "),
             entities=entities,
         )

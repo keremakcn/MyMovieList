@@ -1,18 +1,25 @@
 import * as store from './storage.mjs';
 import * as peopleStore from './people-storage.mjs';
+import {LIBRARY_PAGE_SIZE,LIBRARY_SORTS,sliceLibrary,libraryMetadataKeys} from './library-model.mjs';
 import {peopleState,peoplePending,personKey} from './people-model.mjs';
 import {equal,iso} from './sync-model.mjs';
 import {tr,en} from './strings.mjs';
 import {nameAllowed} from './name-policy.mjs';
 import {dailyPosters,posterDay,posterPicks} from './hero.mjs';
+import {createCommunityPages} from './community-pages.mjs';
+import {createStatsPage} from './stats-page.mjs';
+import {createImportUI} from './import-ui.mjs';
 
 const $=s=>document.querySelector(s), e=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={lang:localStorage.getItem('myshelf-language') || (navigator.language.toLowerCase().startsWith('tr') ? 'tr' : 'en'),user:null,owner:'guest',timed:false,syncing:false,error:null,view:0,query:'',discover:'trending',page:1,results:[],filter:'all',auth:{flow:'signin',step:'email',email:'',avatar:'cat-luna'},detail:null};
+const state={lang:localStorage.getItem('myshelf-language') || (navigator.language.toLowerCase().startsWith('tr') ? 'tr' : 'en'),user:null,owner:'guest',timed:false,syncing:false,error:null,view:0,query:'',discover:'trending',page:1,libraryPage:1,libraryQuery:'',librarySort:'default',results:[],filter:'all',auth:{flow:'signin',step:'email',email:'',avatar:'cat-luna'},detail:null};
 const avatarIds=['luna','cocoa','sunshine','sage','coral','cloud','midnight','peach','sky','mocha','lilac','mint','cherry','gold','ocean','silver'].map(s=>'cat-'+s);
 const t=key=>(state.lang==='tr' ? tr : en)[key] || key;
 const image=(path,size='w342')=>/^\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/.test(path || '') ? 'https://image.tmdb.org/t/p/'+size+path : '';
-let peopleRetryAt=0,peopleRole='actor',peoplePageNumber=1;
-let retryAt=0,failures=0,syncTimer,toastTimer;
+let peopleRetryAt=0,peopleRole='actor',peoplePageNumber=1,libraryScope='';
+let retryAt=0,failures=0,syncTimer,toastTimer,searchTimer;
+const community=createCommunityPages({state,store,api,t,e,image,card,render:()=>render(),navigate,errorText,toast});
+const statsPage=createStatsPage({state,store,t,e,image});
+const importUi=createImportUI({state,store,api,t,e,queueSync,render:()=>render(),toast,navigate});
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4500);}
 function errorText(error){return t(error?.code || error?.message)=== (error?.code || error?.message) ? t('genericError') : t(error.code || error.message);}
 async function api(path,body,owner=state.owner){
@@ -27,7 +34,8 @@ function header(){
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.pathname===location.pathname));
 }
 async function session(){
-  const response=await api('session');state.user=response.user;state.owner=state.user?.id || 'guest';
+  const response=await api('session');const nextOwner=response.user?.id || 'guest';
+  state.user=response.user;if(nextOwner!==state.owner){state.owner=nextOwner;state.libraryPage=1;}
   await store.pref('last-account',state.user);
   if(state.user){const adopt=await store.pref('pending-guest-adoption');if(adopt===state.owner){await store.copyGuest(state.owner);await store.pref('pending-guest-adoption',null);}}
   header();return response.user;
@@ -35,7 +43,8 @@ async function session(){
 function card(movie,work,extra=''){
   const id=movie.id,key='tmdb:'+id,entry=work.entries[key],saved=entry && !entry.data.deleted_at;
   const title=movie.title || movie.original_title || 'TMDB #'+id,poster=image(movie.poster_path);
-  return `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-movie="${id}" aria-label="${e(title)}">${poster ? `<img src="${poster}" alt="${e(title)}" loading="lazy">` : `<span class="poster-fallback">${e(title)}</span>`}</button>${extra ? `<span class="poster-label">${e(extra)}</span>` : ''}<button class="quick-add ${saved?'saved':''}" data-add="${id}" aria-label="${e((saved?t('saved'):t('add'))+' · '+title)}">${saved?'✓':'+'}</button></div><h3 class="card-title"><button class="plain-title" data-movie="${id}">${e(title)}</button></h3><div class="card-meta"><span>${e(movie.release_date?.slice(0,4) || '')}</span><span class="card-rating">${saved && entry.data.rating ? '★ '+entry.data.rating : movie.vote_average ? '★ '+Number(movie.vote_average).toFixed(1) : ''}</span></div></article>`;
+  const hasNote=saved && typeof entry.data.note==='string' && entry.data.note.trim().length>0;
+  return `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-movie="${id}" aria-label="${e(title)}">${poster ? `<img src="${poster}" alt="${e(title)}" loading="lazy">` : `<span class="poster-fallback">${e(title)}</span>`}</button>${extra ? `<span class="poster-label">${e(extra)}</span>` : ''}${hasNote ? `<span class="note-pill" title="${e(t('hasNote'))}" aria-label="${e(t('hasNote'))}">✎</span>` : ''}<button class="quick-add ${saved?'saved':''}" data-add="${id}" aria-label="${e((saved?t('saved'):t('add'))+' · '+title)}">${saved?'✓':'+'}</button></div><h3 class="card-title"><button class="plain-title" data-movie="${id}">${e(title)}</button></h3><div class="card-meta"><span>${e(movie.release_date?.slice(0,4) || '')}</span><span class="card-rating">${saved && entry.data.rating ? '★ '+entry.data.rating : movie.vote_average ? '★ '+Number(movie.vote_average).toFixed(1) : ''}</span></div></article>`;
 }
 async function catalog(id){
   const key=state.lang+':'+id,old=await store.metadata(key);
@@ -43,15 +52,36 @@ async function catalog(id){
   const value=await api(`catalog/movie/${id}?language=${state.lang==='tr'?'tr-TR':'en-US'}&append_to_response=credits`);
   if(value.id!==Number(id))throw Error('invalid_response');await store.cacheMetadata(key,value);return value;
 }
+async function renderLibraryCards(items,work,prefetched=null){
+  const lang=state.lang,fallback=lang==='tr'?'en':'tr';
+  const meta=prefetched || await store.metadataBatch(libraryMetadataKeys(items,lang));
+  return items.map(entry=>{
+    if(entry.data.custom){
+      const hasNote=typeof entry.data.note==='string' && entry.data.note.trim().length>0;
+      return `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-custom="${e(entry.key)}"><span class="poster-fallback">${e(entry.data.custom.title)}</span></button><span class="poster-label">${e(entry.data.status==='Watched'?t('watched'):t('watchlist'))}</span>${hasNote ? `<span class="note-pill" title="${e(t('hasNote'))}" aria-label="${e(t('hasNote'))}">✎</span>` : ''}</div><h3 class="card-title"><button class="plain-title" data-custom="${e(entry.key)}">${e(entry.data.custom.title)}</button></h3><div class="card-meta"><span>${e(entry.data.custom.year || '')}</span><span class="card-rating">${entry.data.rating ? '★ '+entry.data.rating : ''}</span></div></article>`;
+    }
+    const id=Number(entry.key.split(':')[1]);
+    const movie=meta[lang+':'+id] || meta[fallback+':'+id] || {id,title:'TMDB #'+id,release_date:''};
+    return card(movie,work,entry.data.status==='Watched'?t('watched'):t('watchlist'));
+  }).join('');
+}
+function libraryMoreMarkup(slice){
+  return slice.hasMore ? `<button class="button secondary" id="library-load-more">${t('loadMore')} <span class="load-more-count">${slice.shown} / ${slice.total}</span></button>` : '';
+}
+function libraryNeedsAllMeta(){
+  return Boolean(state.libraryQuery.trim()) || ['year_desc','year_asc','title_asc'].includes(state.librarySort);
+}
 async function gridLibrary(work){
-  const entries=Object.values(work.entries).filter(x=>!x.data.deleted_at).sort((a,b)=>a.data.order_key.localeCompare(b.data.order_key)).reverse();
-  const selected=entries.filter(x=>state.filter==='all' || state.filter==='favorites' && x.data.favorite || state.filter==='watched' && x.data.status==='Watched' || state.filter==='watchlist' && x.data.status==='Watchlist');
-  const list=await Promise.all(selected.map(async x=>{
-    if(x.data.custom)return {entry:x,custom:true};
-    const id=Number(x.key.split(':')[1]),known=await store.metadata(state.lang+':'+id) || await store.metadata((state.lang==='tr'?'en':'tr')+':'+id);
-    return {entry:x,movie:known || {id,title:'TMDB #'+id,release_date:''}};
-  }));
-  return list.map(({entry,movie,custom})=>custom ? `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-custom="${e(entry.key)}"><span class="poster-fallback">${e(entry.data.custom.title)}</span></button></div><h3 class="card-title">${e(entry.data.custom.title)}</h3><div class="card-meta">${e(entry.data.custom.year || '')}</div></article>` : card(movie,work,entry.data.status==='Watched'?t('watched'):t('watchlist'))).join('');
+  const scope=[state.owner,state.filter,state.libraryQuery.trim(),state.librarySort].join(':');
+  if(scope!==libraryScope){libraryScope=scope;state.libraryPage=1;}
+  let meta=null;
+  if(libraryNeedsAllMeta()){
+    const active=Object.values(work.entries || {}).filter(x=>x?.data && !x.data.deleted_at);
+    meta=await store.metadataBatch(libraryMetadataKeys(active,state.lang));
+  }
+  const slice=sliceLibrary(work.entries,{filter:state.filter,query:state.libraryQuery,sort:state.librarySort,meta:meta || {},lang:state.lang,page:state.libraryPage,pageSize:LIBRARY_PAGE_SIZE});
+  const cards=await renderLibraryCards(slice.items,work,meta);
+  return {...slice,cards,meta};
 }
 function syncLabel(work){if(state.owner==='guest')return t('guest');if(!navigator.onLine)return t('offline');if(state.syncing)return t('syncing');if(state.error==='sign_in_required')return t('signInAgain');if(!work.enabled)return t('paused');if(Object.values(work.entries).some(e=>e.conflict))return t('conflictStatus');return store.pending(work) || peoplePending(work) || work.share_outbox || work.profile_pending || state.error ? t('pending') : t('upToDate');}
 async function home(view){
@@ -132,16 +162,65 @@ async function loadDiscover(view=state.view){
   }catch(err){if(view===state.view)toast(errorText(err));}finally{if(button)button.disabled=false;}
 }
 async function library(view){
-  const work=await store.read(state.owner),count=Object.values(work.entries).filter(x=>!x.data.deleted_at).length;
-  const cards=await gridLibrary(work);if(view!==state.view)return;
-  $('#main').innerHTML=`<div class="page-head"><div class="eyebrow">${count} ${t('filmCount')}</div><h1>${t('libraryTitle')}</h1><p>${t('libraryp')}</p><a class="text-link" href="/people" data-route>♡ ${t('favoritePeople')} →</a><div class="status-line ${state.error || store.pending(work) ? 'attention':''}"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div></div>${state.owner==='guest' ? `<div class="info-banner">${t('guestBanner')} <button class="quiet red" data-auth="signup">${t('signup')} →</button></div>` : ''}<div class="toolbar"><div class="tabs">${['all','watchlist','watched','favorites'].map(k=>`<button class="tab ${state.filter===k?'selected':''}" data-filter="${k}">${t(k)}</button>`).join('')}</div><div class="actions"><button class="quiet" data-action="export">${t('export')} ↗</button><label class="quiet import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div></div>${cards ? `<div class="movie-grid">${cards}</div>` : `<div class="empty"><h2>${t('emptyLibrary')}</h2><p>${t('emptyLibraryp')}</p><a class="button" href="/discover" data-route>${t('browse')} →</a></div>`}<div class="section"></div>`;
-  hydrate(work,view);
+  const work=await store.read(state.owner),active=Object.values(work.entries).filter(x=>!x.data.deleted_at),count=active.length;
+  const watchedCount=active.filter(x=>x.data.status==='Watched').length;
+  const watchlistCount=active.filter(x=>x.data.status==='Watchlist').length;
+  const ratedEntries=active.filter(x=>Number.isInteger(x.data.rating));
+  const avgRating=ratedEntries.length ? (ratedEntries.reduce((sum,x)=>sum+x.data.rating,0)/ratedEntries.length).toFixed(1) : '—';
+  const grid=await gridLibrary(work);if(view!==state.view)return;
+  const hasFilters=state.filter!=='all' || Boolean(state.libraryQuery.trim());
+  const emptyBlock=count===0
+    ? `<div class="empty"><h2>${t('emptyLibrary')}</h2><p>${t('emptyLibraryp')}</p><div class="actions center-actions"><a class="button" href="/discover" data-route>${t('browse')} →</a><button class="button secondary" data-action="external-import">${t('importExternal')}</button></div></div>`
+    : `<div class="empty"><h2>${t('libraryNoMatch')}</h2><p>${t('libraryNoMatchP')}</p><div class="actions center-actions"><button class="button secondary" data-clear-library-filters>${t('clearFilters')}</button></div></div>`;
+  $('#main').innerHTML=
+    `<div class="page-head"><div class="eyebrow"><span class="dot"></span>${count} ${t('filmCount')}</div><h1>${t('libraryTitle')}</h1><p>${t('libraryp')}</p><div class="library-head-links"><a class="text-link" href="/stats" data-route>◔ ${t('stats')} →</a><a class="text-link" href="/people" data-route>♡ ${t('favoritePeople')} →</a></div><div class="status-line ${state.error || store.pending(work) ? 'attention':''}"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div></div>`+
+    (count>0 ? `<div class="library-kpis"><button class="kpi-chip ${state.filter==='watched'?'active':''}" data-filter="watched"><strong>${watchedCount}</strong><span>${t('statsWatched')}</span></button><button class="kpi-chip ${state.filter==='watchlist'?'active':''}" data-filter="watchlist"><strong>${watchlistCount}</strong><span>${t('statsWatchlist')}</span></button><div class="kpi-chip kpi-static"><strong class="gold-text">${avgRating==='—'?'—':'★ '+avgRating}</strong><span>${t('statsAvgRating')}</span></div><a class="kpi-chip kpi-link" href="/stats" data-route><strong>→</strong><span>${t('stats')}</span></a></div>` : '')+
+    `${state.owner==='guest' ? `<div class="info-banner">${t('guestBanner')} <button class="quiet red" data-auth="signup">${t('signup')} →</button></div>` : ''}`+
+    `<div class="toolbar library-toolbar">`+
+      `<div class="tabs">${['all','watchlist','watched','favorites'].map(k=>`<button class="tab ${state.filter===k?'selected':''}" data-filter="${k}">${t(k)}</button>`).join('')}</div>`+
+      `<div class="library-controls">`+
+        `<div class="search-box library-search-box"><input id="library-search" type="search" placeholder="${e(t('librarySearch'))}" aria-label="${e(t('librarySearch'))}" value="${e(state.libraryQuery)}" maxlength="120"></div>`+
+        `<select id="library-sort" class="library-sort" aria-label="${e(t('librarySort'))}">${LIBRARY_SORTS.map(s=>`<option value="${s}" ${state.librarySort===s?'selected':''}>${e(t('sort_'+s))}</option>`).join('')}</select>`+
+      `</div>`+
+      `<div class="actions library-io-actions"><button class="quiet accent-link" data-action="external-import">${t('importExternal')}</button><button class="quiet" data-action="export">${t('export')} ↗</button><label class="quiet import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div>`+
+    `</div>`+
+    `<div id="library-results">${grid.cards ? `<div class="movie-grid" id="library-grid">${grid.cards}</div><div class="load-more" id="library-more">${libraryMoreMarkup(grid)}</div>` : emptyBlock}</div><div class="section"></div>`;
+  hydrate(work,view,grid.items);
 }
-async function hydrate(work,view){
-  const targets=Object.values(work.entries).filter(e=>e.key.startsWith('tmdb:') && !e.data.deleted_at).slice(-24);
-  for(const entry of targets){if(!navigator.onLine || view!==state.view)return;const id=Number(entry.key.split(':')[1]);if((await store.metadata(state.lang+':'+id))?.credits)continue;try{await catalog(id);}catch{return;}}
-  if(view===state.view && targets.length && location.pathname==='/library'){
-    const markup=await gridLibrary(await store.read(state.owner));const grid=$('#main .movie-grid');if(grid)grid.innerHTML=markup;
+async function refreshLibraryResults(){
+  const container=$('#library-results');
+  if(!container || location.pathname!=='/library')return;
+  const view=state.view,owner=state.owner;
+  const work=await store.read(owner);
+  const activeCount=Object.values(work.entries).filter(x=>!x.data.deleted_at).length;
+  const grid=await gridLibrary(work);
+  if(view!==state.view || owner!==state.owner || location.pathname!=='/library')return;
+  if(grid.cards){
+    container.innerHTML=`<div class="movie-grid" id="library-grid">${grid.cards}</div><div class="load-more" id="library-more">${libraryMoreMarkup(grid)}</div>`;
+    hydrate(work,view,grid.items);
+  }else{
+    container.innerHTML=activeCount===0
+      ? `<div class="empty"><h2>${t('emptyLibrary')}</h2><p>${t('emptyLibraryp')}</p><div class="actions center-actions"><a class="button" href="/discover" data-route>${t('browse')} →</a><button class="button secondary" data-action="external-import">${t('importExternal')}</button></div></div>`
+      : `<div class="empty"><h2>${t('libraryNoMatch')}</h2><p>${t('libraryNoMatchP')}</p><div class="actions center-actions"><button class="button secondary" data-clear-library-filters>${t('clearFilters')}</button></div></div>`;
+  }
+}
+async function hydrate(work,view,items){
+  const source=items || Object.values(work.entries).filter(e=>!e.data.deleted_at);
+  const targets=source.filter(e=>e.key.startsWith('tmdb:') && !e.data.deleted_at).slice(0,24);
+  if(!targets.length || !navigator.onLine)return;
+  const cached=await store.metadataBatch(targets.map(entry=>state.lang+':'+Number(entry.key.split(':')[1])));
+  let updated=false;
+  for(const entry of targets){
+    if(!navigator.onLine || view!==state.view)return;
+    const id=Number(entry.key.split(':')[1]);
+    if(cached[state.lang+':'+id]?.credits)continue;
+    try{await catalog(id);updated=true;}catch{return;}
+  }
+  if(updated && view===state.view && location.pathname==='/library'){
+    const nextGrid=await gridLibrary(await store.read(state.owner));
+    if(view!==state.view)return;
+    const grid=$('#library-grid');if(grid)grid.innerHTML=nextGrid.cards;
+    const more=$('#library-more');if(more)more.innerHTML=libraryMoreMarkup(nextGrid);
   }
 }
 function personalSummary(data){
@@ -157,16 +236,18 @@ async function profilePage(view){
   }catch{}
   if(view!==state.view)return;
   draft ||= {tmdb_ids:[],show_ratings:false,show_stats:false};
-  const picks=await Promise.all(active.filter(e=>e.key.startsWith('tmdb:')).map(async entry=>{const id=Number(entry.key.split(':')[1]),m=await store.metadata(state.lang+':'+id);return `<button class="showcase-pick ${draft.tmdb_ids.includes(id)?'selected':''}" data-pick="${id}" aria-label="${e(m?.title || 'TMDB #'+id)}" aria-pressed="${draft.tmdb_ids.includes(id)}">${image(m?.poster_path) ? `<img src="${image(m.poster_path)}" alt="${e(m.title)}" loading="lazy">` : `<span class="poster-fallback">${id}</span>`}${draft.tmdb_ids.includes(id) ? `<span>${draft.tmdb_ids.indexOf(id)+1}</span>` : ''}</button>`;}));
-  $('#main').innerHTML=`<div class="profile-header"><img src="/assets/avatars/${e(p.avatar_id)}.svg" alt=""><div><h1>${e(p.display_name || state.user.username || t('yourProfile'))}</h1><div class="handle">${state.user.username?'@'+e(state.user.username):''}</div></div><button class="button secondary small" data-action="edit-profile">${t('editProfile')}</button></div><div class="stat-row">${[[active.length,'all'],[active.filter(e=>e.data.status==='Watched').length,'watched'],[active.filter(e=>e.data.favorite).length,'favorites']].map(([n,k])=>`<div class="stat"><strong>${n}</strong><span>${t(k)}</span></div>`).join('')}</div><div class="status-line"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div><section class="settings-panel"><h2>${t('favoritePeople')}</h2><p>${t('peoplePrivate')}</p><a class="button secondary small" href="/people" data-route>♡ ${t('viewPeople')} →</a></section><section class="settings-panel"><h2>${t('showcase')}</h2><p>${t('showcaseP')}</p>${share?.owner_settings || draft.tmdb_ids.length || state.timed ? `<div class="showcase-picks">${picks.join('')}</div><label class="check-row"><input type="checkbox" id="share-public" ${share?.is_public?'checked':''}>${t('publicShowcase')}</label><label class="check-row"><input type="checkbox" id="share-ratings" ${draft.show_ratings?'checked':''}>${t('shareRatings')}</label><label class="check-row"><input type="checkbox" id="share-stats" ${draft.show_stats?'checked':''}>${t('shareStats')}</label><div class="actions"><button class="button small" data-action="save-showcase">${t('saveShowcase')}</button>${state.user.username?`<a class="quiet" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}</div>` : `<p>${t('showcaseApp')}</p>${state.user.username?`<a class="text-link" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}`}<p class="form-hint">${t('privateNotice')}</p></section><section class="settings-panel"><h2>${t('backupTitle')}</h2><p>${t('backupP')}</p><div class="actions"><button class="button secondary small" data-action="export">${t('export')}</button><label class="button secondary small import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div><div class="actions"><button class="quiet red" data-action="copy-guest">${t('guestCopy')}</button></div><p class="form-hint">${t('copyP')}</p><label class="check-row"><input type="checkbox" id="sync-enabled" ${work.enabled?'checked':''}>${t('enableSync')}</label></section>${conflicts.length?`<section class="settings-panel"><h2>${t('conflicts')}</h2><p>${t('conflictsP')}</p>${conflicts.map(c=>`<div class="conflict"><div class="conflict-cols"><div><strong>${t('localVersion')}</strong><pre>${personalSummary(c.data)}</pre><button class="button secondary small" data-resolve="local" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepLocal')}</button></div><div><strong>${t('cloudVersion')}</strong><pre>${personalSummary(c.conflict.remote)}</pre><button class="button secondary small" data-resolve="remote" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepRemote')}</button></div></div></div>`).join('')}<p>${t('historyNotice')}</p></section>`:''}<div class="actions"><button class="quiet red" data-action="signout">${t('signout')}</button></div><div class="section"></div>`;
+  const tmdbActive=active.filter(e=>e.key.startsWith('tmdb:'));
+  const pickMeta=await store.metadataBatch(tmdbActive.map(entry=>state.lang+':'+Number(entry.key.split(':')[1])));
+  const picks=tmdbActive.map(entry=>{const id=Number(entry.key.split(':')[1]),m=pickMeta[state.lang+':'+id];return `<button class="showcase-pick ${draft.tmdb_ids.includes(id)?'selected':''}" data-pick="${id}" aria-label="${e(m?.title || 'TMDB #'+id)}" aria-pressed="${draft.tmdb_ids.includes(id)}">${image(m?.poster_path) ? `<img src="${image(m.poster_path)}" alt="${e(m.title)}" loading="lazy">` : `<span class="poster-fallback">${id}</span>`}${draft.tmdb_ids.includes(id) ? `<span>${draft.tmdb_ids.indexOf(id)+1}</span>` : ''}</button>`;});
+  $('#main').innerHTML=`<div class="profile-header"><img src="/assets/avatars/${e(p.avatar_id)}.svg" alt=""><div><h1>${e(p.display_name || state.user.username || t('yourProfile'))}</h1><div class="handle">${state.user.username?'@'+e(state.user.username):''}</div></div><button class="button secondary small" data-action="edit-profile">${t('editProfile')}</button></div><div class="stat-row">${[[active.length,'all'],[active.filter(e=>e.data.status==='Watched').length,'watched'],[active.filter(e=>e.data.favorite).length,'favorites']].map(([n,k])=>`<div class="stat"><strong>${n}</strong><span>${t(k)}</span></div>`).join('')}</div><div class="status-line"><span class="dot"></span><span id="sync-label">${syncLabel(work)}</span></div><section class="settings-panel"><h2>${t('favoritePeople')}</h2><p>${t('peoplePrivate')}</p><div class="actions"><a class="button secondary small" href="/people" data-route>♡ ${t('viewPeople')} →</a><a class="button secondary small" href="/stats" data-route>◔ ${t('stats')} →</a></div></section><section class="settings-panel"><h2>${t('showcase')}</h2><p>${t('showcaseP')}</p>${share?.owner_settings || draft.tmdb_ids.length || state.timed ? `<div class="showcase-picks">${picks.join('')}</div><label class="check-row"><input type="checkbox" id="share-public" ${share?.is_public?'checked':''}>${t('publicShowcase')}</label><label class="check-row"><input type="checkbox" id="share-ratings" ${draft.show_ratings?'checked':''}>${t('shareRatings')}</label><label class="check-row"><input type="checkbox" id="share-stats" ${draft.show_stats?'checked':''}>${t('shareStats')}</label><div class="actions"><button class="button small" data-action="save-showcase">${t('saveShowcase')}</button>${state.user.username?`<a class="quiet" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}</div>` : `<p>${t('showcaseApp')}</p>${state.user.username?`<a class="text-link" href="/u/${e(state.user.username)}" target="_blank" rel="noopener">${t('viewShowcase')}</a>`:''}`}<p class="form-hint">${t('privateNotice')}</p></section><section class="settings-panel"><h2>${t('backupTitle')}</h2><p>${t('backupP')}</p><div class="actions"><button class="button small" data-action="external-import">${t('importExternal')}</button><button class="button secondary small" data-action="export">${t('export')}</button><label class="button secondary small import-label">${t('import')}<input type="file" id="import-file" accept="application/json,.json" hidden></label></div><div class="actions"><button class="quiet red" data-action="copy-guest">${t('guestCopy')}</button></div><p class="form-hint">${t('copyP')}</p><label class="check-row"><input type="checkbox" id="sync-enabled" ${work.enabled?'checked':''}>${t('enableSync')}</label></section>${conflicts.length?`<section class="settings-panel"><h2>${t('conflicts')}</h2><p>${t('conflictsP')}</p>${conflicts.map(c=>`<div class="conflict"><div class="conflict-cols"><div><strong>${t('localVersion')}</strong><pre>${personalSummary(c.data)}</pre><button class="button secondary small" data-resolve="local" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepLocal')}</button></div><div><strong>${t('cloudVersion')}</strong><pre>${personalSummary(c.conflict.remote)}</pre><button class="button secondary small" data-resolve="remote" data-key="${e(c.key)}" data-revision="${c.conflict.revision}">${t('keepRemote')}</button></div></div></div>`).join('')}<p>${t('historyNotice')}</p></section>`:''}<div class="actions"><button class="quiet red" data-action="signout">${t('signout')}</button></div><div class="section"></div>`;
 }
 async function updates(view){
-  $('#main').innerHTML=`<div class="page-head"><h1>${t('updatesTitle')}</h1><p>${t('updatesP')}</p></div><div class="updates-list"><section class="update-entry"><div class="eyebrow">${t('latestRelease')}</div><h2 id="release-tag">MyMovieList</h2><div class="actions"><a class="button secondary small" href="https://github.com/keremakcn/MyMovieList/releases/latest" target="_blank" rel="noopener">${t('releaseLink')}</a></div></section><section class="update-entry"><span class="updates-status">${t('webBeta')}</span><h2>${t('webUpdate')}</h2><p>${t('webUpdateP')}</p></section><section class="update-entry"><span class="updates-status">${t('development')}</span><h2>${t('recommendUpdate')}</h2><ul>${['recommend1','recommend2','recommend3'].map(k=>`<li>${t(k)}</li>`).join('')}</ul><p class="form-hint">${t('developmentNote')}</p></section></div><div class="section"></div>`;
+  $('#main').innerHTML=`<div class="page-head"><h1>${t('updatesTitle')}</h1><p>${t('updatesP')}</p></div><div class="updates-list"><section class="update-entry"><div class="eyebrow">${t('latestRelease')}</div><h2 id="release-tag">MyMovieList</h2><div class="actions"><a class="button secondary small" href="https://github.com/keremakcn/MyMovieList/releases/latest" target="_blank" rel="noopener">${t('releaseLink')}</a></div></section><section class="update-entry"><span class="updates-status">${t('webBeta')}</span><h2>${t('webUpdate')}</h2><p>${t('webUpdateP')}</p></section><section class="update-entry"><span class="updates-status">${t('webActive')}</span><h2>${t('recommendUpdate')}</h2><ul>${['recommend1','recommend2','recommend3'].map(k=>`<li>${t(k)}</li>`).join('')}</ul><p class="form-hint">${t('developmentNote')}</p><div class="actions"><a class="text-link" href="/recommendations" data-route>${t('forYou')} →</a><a class="text-link" href="/social" data-route>${t('social')} →</a></div></section></div><div class="section"></div>`;
   try{const r=await api('releases');if(view===state.view && r.tag)$('#release-tag').textContent='MyMovieList '+r.tag;}catch{}
 }
 async function render(){
-  const view=++state.view;const personRoute=/^\/person\/([1-9]\d{0,9})\/?$/.exec(location.pathname);const filmRoute=/^\/movie\/([1-9]\d{0,9})\/?$/.exec(location.pathname);header();document.title=(location.pathname==='/library'?t('library'):location.pathname==='/profile'?t('profile'):location.pathname==='/discover'?t('discover'):location.pathname==='/people'?t('favoritePeople'):'MyMovieList')+' · MyShelf';
-  try{if(location.pathname==='/discover')await discover(view);else if(location.pathname==='/library')await library(view);else if(location.pathname==='/profile' || location.pathname==='/account')await profilePage(view);else if(location.pathname==='/updates')await updates(view);else if(personRoute)await personPage(Number(personRoute[1]),view);else if(location.pathname==='/people')await favoritePeople(view);else if(filmRoute)await moviePage(Number(filmRoute[1]),view);else await home(view);}catch(err){if(view===state.view)$('#main').innerHTML=`<div class="empty"><h2>MyMovieList</h2><p>${e(errorText(err))}</p><a class="button" href="/" data-route>${t('browse')}</a></div>`;}
+  const view=++state.view;const personRoute=/^\/person\/([1-9]\d{0,9})\/?$/.exec(location.pathname);const filmRoute=/^\/movie\/([1-9]\d{0,9})\/?$/.exec(location.pathname);header();document.title=(location.pathname==='/library'?t('library'):location.pathname==='/stats'?t('stats'):location.pathname==='/profile'?t('profile'):location.pathname==='/discover'?t('discover'):location.pathname==='/people'?t('favoritePeople'):location.pathname==='/recommendations'?t('forYou'):location.pathname==='/social'?t('social'):'MyMovieList')+' · MyShelf';
+  try{if(location.pathname==='/discover')await discover(view);else if(location.pathname==='/library')await library(view);else if(location.pathname==='/stats')await statsPage(view);else if(location.pathname==='/profile' || location.pathname==='/account')await profilePage(view);else if(location.pathname==='/updates')await updates(view);else if(personRoute)await personPage(Number(personRoute[1]),view);else if(location.pathname==='/people')await favoritePeople(view);else if(location.pathname==='/recommendations')await community.recommendations(view);else if(location.pathname==='/social')await community.social(view);else if(filmRoute)await moviePage(Number(filmRoute[1]),view);else await home(view);}catch(err){if(view===state.view)$('#main').innerHTML=`<div class="empty"><h2>MyMovieList</h2><p>${e(errorText(err))}</p><a class="button" href="/" data-route>${t('browse')}</a></div>`;}
 }
 function navigate(path){history.pushState({},'',path);window.scrollTo(0,0);render();}
 function avatars(selected){return `<div class="avatar-grid">${avatarIds.map(id=>`<button type="button" class="avatar-option ${id===selected?'selected':''}" data-avatar="${id}" aria-label="${e(id.replace('cat-',''))}" aria-pressed="${id===selected}"><img src="/assets/avatars/${id}.svg" alt=""></button>`).join('')}</div>`;}
@@ -213,7 +294,9 @@ async function movie(id,key=null,{container=$('#movie-content'),modal=true,view}
   state.detail={id:m.id,key,owner,movie:m,initial:entry ? structuredClone(entry.data) : null};
   const d=entry && !entry.data.deleted_at ? entry.data : null;
   const people=(m.credits?.cast || []).slice(0,12),directors=(m.credits?.crew || []).filter(p=>p.job==='Director');
-  container.innerHTML=`<div class="movie-detail"><div class="detail-side">${image(m.poster_path)?`<img class="detail-poster" src="${image(m.poster_path,'w500')}" alt="${e(m.title)}">`:`<div class="detail-poster poster-fallback">${e(m.title)}</div>`}${!d?`<button class="button" data-add="${Number(id)}">${t('add')} +</button>`:''}</div><div><h1 id="movie-title">${e(m.title)}</h1><div class="detail-meta"><span>${e(m.release_date?.slice(0,4) || '')}</span>${m.runtime?`<span>${m.runtime} ${t('minutes')}</span>`:''}${m.vote_average?`<span class="card-rating">★ ${Number(m.vote_average).toFixed(1)}</span>`:''}</div><div class="genre-tags">${(m.genres || []).map(g=>`<span class="genre-tag">${e(g.name)}</span>`).join('')}</div><p class="overview">${e(m.overview || t('noOverview'))}</p>${directors.length?`<h2 class="subheading">${t('director')}</h2><div class="people-row">${directors.map(p=>personCard(p,'director',work)).join('')}</div>`:''}${people.length?`<h2 class="subheading">${t('cast')}</h2><div class="people-row">${people.map(p=>personCard(p,'actor',work)).join('')}</div>`:''}${d?`<form id="detail-form" class="detail-form"><div class="detail-row"><label class="field">${t('status')}<select name="status"><option value="Watchlist" ${d.status==='Watchlist'?'selected':''}>${t('watchlist')}</option><option value="Watched" ${d.status==='Watched'?'selected':''}>${t('watched')}</option></select></label><label class="field">${t('rating')}<select name="rating"><option value="">${t('unrated')}</option>${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${d.rating===i+1?'selected':''}>${i+1}/10</option>`).join('')}</select></label></div><label class="field">${t('watchedDate')}<input type="date" name="watched_date" value="${e(d.watched_date || '')}"></label><label class="field">${t('note')}<textarea name="note" maxlength="20000" placeholder="${t('notePlaceholder')}">${e(d.note || '')}</textarea></label><label class="check-row"><input type="checkbox" name="favorite" ${d.favorite?'checked':''}>${t('favorite')}</label><div class="actions"><button class="button small" type="submit">${t('save')}</button><button type="button" class="quiet" data-action="remove">${t('remove')}</button></div><p class="form-hint">${t('privateNotice')}</p></form>`:''}</div></div>`;
+  const backdrop=image(m.backdrop_path,'w1280');
+  const quickRatings=d ? `<div class="rating-strip" role="group" aria-label="${e(t('quickRate'))}">${Array.from({length:10},(_,i)=>`<button type="button" class="rate-pill ${d.rating===i+1?'selected':''}" data-quick-rate="${i+1}" aria-pressed="${d.rating===i+1}">${i+1}</button>`).join('')}${d.rating?`<button type="button" class="rate-pill rate-clear" data-quick-rate="" aria-label="${e(t('clearRating'))}">×</button>`:''}</div>` : '';
+  container.innerHTML=`<div class="detail-stage ${backdrop?'has-backdrop':''}">${backdrop?`<div class="detail-backdrop"><img src="${backdrop}" alt="" loading="eager"></div>`:''}<div class="movie-detail"><div class="detail-side">${image(m.poster_path)?`<img class="detail-poster" src="${image(m.poster_path,'w500')}" alt="${e(m.title)}">`:`<div class="detail-poster poster-fallback">${e(m.title)}</div>`}${!d?`<button class="button" data-add="${Number(id)}">${t('add')} +</button>`:''}</div><div><h1 id="movie-title">${e(m.title)}</h1><div class="detail-meta"><span>${e(m.release_date?.slice(0,4) || '')}</span>${m.runtime?`<span>${m.runtime} ${t('minutes')}</span>`:''}${m.vote_average?`<span class="card-rating">★ ${Number(m.vote_average).toFixed(1)}</span>`:''}</div><div class="genre-tags">${(m.genres || []).map(g=>`<span class="genre-tag">${e(g.name)}</span>`).join('')}</div><p class="overview">${e(m.overview || t('noOverview'))}</p>${directors.length?`<h2 class="subheading">${t('director')}</h2><div class="people-row">${directors.map(p=>personCard(p,'director',work)).join('')}</div>`:''}${people.length?`<h2 class="subheading">${t('cast')}</h2><div class="people-row">${people.map(p=>personCard(p,'actor',work)).join('')}</div>`:''}${d?`<form id="detail-form" class="detail-form"><div class="field"><span class="field-label">${t('quickRate')}</span>${quickRatings}</div><div class="detail-row"><label class="field">${t('status')}<select name="status"><option value="Watchlist" ${d.status==='Watchlist'?'selected':''}>${t('watchlist')}</option><option value="Watched" ${d.status==='Watched'?'selected':''}>${t('watched')}</option></select></label><label class="field">${t('rating')}<select name="rating"><option value="">${t('unrated')}</option>${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${d.rating===i+1?'selected':''}>${i+1}/10</option>`).join('')}</select></label></div><label class="field">${t('watchedDate')}<input type="date" name="watched_date" value="${e(d.watched_date || '')}"></label><label class="field">${t('note')}<textarea name="note" maxlength="20000" placeholder="${t('notePlaceholder')}">${e(d.note || '')}</textarea></label><label class="check-row"><input type="checkbox" name="favorite" ${d.favorite?'checked':''}>${t('favorite')}</label><div class="actions"><button class="button small" type="submit">${t('save')}</button><button type="button" class="quiet" data-action="remove">${t('remove')}</button></div><p class="form-hint">${t('privateNotice')}</p></form>`:''}</div></div></div>`;
   await Promise.all([...people,...directors].filter(p=>Number.isSafeInteger(p.id)).map(p=>store.cacheMetadata('person:'+p.id,{id:p.id,name:p.name,profile_path:p.profile_path})));
   if(modal && !$('#movie-dialog').open)$('#movie-dialog').showModal();
 }
@@ -240,7 +323,8 @@ async function favoritePeople(view){
   const list=entries.filter(x=>x.data.role===peopleRole).sort((a,b)=>b.data.edited_at.localeCompare(a.data.edited_at) || a.data.person_id-b.data.person_id);
   const pages=Math.max(1,Math.ceil(list.length/24));peoplePageNumber=Math.min(peoplePageNumber,pages);
   const selected=list.slice((peoplePageNumber-1)*24,peoplePageNumber*24);
-  const known=await Promise.all(selected.map(async x=>await store.metadata('person:'+state.lang+':'+x.data.person_id) || await store.metadata('person:'+x.data.person_id) || {id:x.data.person_id,name:'TMDB #'+x.data.person_id}));
+  const personMeta=await store.metadataBatch(selected.flatMap(x=>['person:'+state.lang+':'+x.data.person_id,'person:'+x.data.person_id]));
+  const known=selected.map(x=>personMeta['person:'+state.lang+':'+x.data.person_id] || personMeta['person:'+x.data.person_id] || {id:x.data.person_id,name:'TMDB #'+x.data.person_id});
   if(view!==state.view || owner!==state.owner)return;
   $('#main').innerHTML=`<div class="page-head"><div class="eyebrow">${t('profile')}</div><h1>${t('favoritePeople')}</h1><p>${t('peopleIntro')}</p><a class="text-link" href="${state.user?'/profile':'/library'}" data-route>← ${t(state.user?'profile':'library')}</a></div><div class="toolbar"><div class="tabs">${['actor','director'].map(role=>`<button class="tab ${peopleRole===role?'selected':''}" data-people-role="${role}">${t(role==='actor'?'favoriteActors':'favoriteDirectors')} <span>${counts[role]}</span></button>`).join('')}</div></div><p class="form-hint">${t('peoplePrivate')}</p>${Date.now()<peopleRetryAt?`<p class="form-hint">${t('peopleSyncWaiting')}</p>`:''}<div class="favorite-people-grid">${known.map(p=>personCard(p,peopleRole,work)).join('')}</div>${!known.length?`<div class="empty"><p>${t('peopleEmpty')}</p><a class="button secondary" href="/discover" data-route>${t('browse')}</a></div>`:''}${pages>1?`<div class="actions people-pagination">${peoplePageNumber>1?`<button class="button secondary small" data-people-page="${peoplePageNumber-1}">${t('previousPage')}</button>`:''}<span>${peoplePageNumber} / ${pages}</span>${peoplePageNumber<pages?`<button class="button secondary small" data-people-page="${peoplePageNumber+1}">${t('nextPage')}</button>`:''}</div>`:''}<div class="section"></div>`;
   // Hydrate just the visible page; no unbounded background catalog downloads.
@@ -333,7 +417,7 @@ async function runSync(){
         if(reply.status==='conflict')toast(t('privacyChanged'));
       }
       state.error=null;failures=0;retryAt=0;
-      if(owner===state.owner && ['/library','/profile','/people'].includes(location.pathname))await render();
+      if(owner===state.owner && (['/library','/profile','/people'].includes(location.pathname) || location.pathname==='/recommendations' && !equal(work.entries,(await store.read(owner)).entries)))await render();
       if(store.pending(await store.read(owner)) || Date.now()>=peopleRetryAt && peoplePending(await store.read(owner)))queueSync();
     }catch(err){state.error=err.code || err.message;failures++;retryAt=Date.now()+Math.min(1800000,30000*2**Math.min(failures-1,5));}
     finally{state.syncing=false;await updateStatus();}
@@ -342,9 +426,17 @@ async function runSync(){
 }
 async function click(event){
   const button=event.target.closest('button,a,label');if(!button)return;
-  if(button.dataset.route!==undefined && button.origin===location.origin){if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;event.preventDefault();for(const d of document.querySelectorAll('dialog[open]'))d.close();navigate(button.pathname);return;}
+  if(button.dataset.route!==undefined && button.origin===location.origin){if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;event.preventDefault();for(const d of document.querySelectorAll('dialog[open]'))d.close();navigate(button.pathname+button.search+button.hash);return;}
   if(button.dataset.auth){if($('#auth-dialog').open)$('#auth-dialog').close();auth(button.dataset.auth);return;}
   if(button.dataset.close){$('#'+button.dataset.close).close();return;}
+  if(await community.handleClick(button))return;
+  if(importUi.handleClick(button))return;
+  if(button.dataset.clearLibraryFilters!==undefined){state.filter='all';state.libraryQuery='';state.librarySort='default';state.libraryPage=1;await render();return;}
+  if(button.dataset.quickRate!==undefined){
+    const val=button.dataset.quickRate,form=$('#detail-form'),select=form?.querySelector('select[name="rating"]');
+    if(select){select.value=val;form.querySelectorAll('[data-quick-rate]').forEach(b=>{const active=b.dataset.quickRate===val && val!=='';b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});}
+    return;
+  }
   if(button.dataset.personFavorite){
     const owner=state.owner,id=Number(button.dataset.personFavorite),role=button.dataset.personRole;
     if(button.dataset.owner!==owner)throw Error('account_changed');
@@ -366,7 +458,7 @@ async function click(event){
     const id=Number(button.dataset.add),owner=state.owner;button.disabled=true;
     try{await store.add(owner,id);catalog(id).catch(()=>{});toast(t('added'));queueSync();if($('#movie-dialog').open && state.detail?.id===id)await movie(id);else await render();}finally{button.disabled=false;}return;
   }
-  if(button.dataset.filter){state.filter=button.dataset.filter;await render();return;}
+  if(button.dataset.filter){state.filter=button.dataset.filter;state.libraryPage=1;await render();return;}
   if(button.dataset.discover){state.discover=button.dataset.discover;state.query='';state.page=1;await render();return;}
   if(button.dataset.avatar){const id=button.dataset.avatar;if(!avatarIds.includes(id))return;if(button.closest('#profile-dialog'))state.profileAvatar=id;else state.auth.avatar=id;button.parentElement.querySelectorAll('button').forEach(b=>{b.classList.toggle('selected',b.dataset.avatar===id);b.setAttribute('aria-pressed',b.dataset.avatar===id);});return;}
   if(button.dataset.pick){
@@ -377,13 +469,45 @@ async function click(event){
   }
   if(button.dataset.resolve){await store.resolve(state.owner,button.dataset.key,button.dataset.resolve,Number(button.dataset.revision));queueSync();await render();return;}
   if(button.id==='load-more'){state.page++;await loadDiscover();return;}
+  if(button.id==='library-load-more'){
+    button.disabled=true;
+    try{
+      const owner=state.owner,filter=state.filter,query=state.libraryQuery,sort=state.librarySort,view=state.view,prevShown=state.libraryPage*LIBRARY_PAGE_SIZE;
+      state.libraryPage++;
+      const work=await store.read(owner);
+      if(view!==state.view || owner!==state.owner || filter!==state.filter || query!==state.libraryQuery || sort!==state.librarySort)return;
+      let meta=null;
+      if(libraryNeedsAllMeta()){
+        const active=Object.values(work.entries || {}).filter(x=>x?.data && !x.data.deleted_at);
+        meta=await store.metadataBatch(libraryMetadataKeys(active,state.lang));
+      }
+      const slice=sliceLibrary(work.entries,{filter,query,sort,meta:meta || {},lang:state.lang,page:state.libraryPage,pageSize:LIBRARY_PAGE_SIZE});
+      const grid=$('#library-grid');
+      if(grid){
+        if(grid.children.length===prevShown){
+          const addedItems=slice.items.slice(prevShown);
+          const moreCards=await renderLibraryCards(addedItems,work,meta);
+          if(view!==state.view || owner!==state.owner || filter!==state.filter || query!==state.libraryQuery || sort!==state.librarySort)return;
+          grid.insertAdjacentHTML('beforeend',moreCards);
+          hydrate(work,view,addedItems);
+        }else{
+          const fullCards=await renderLibraryCards(slice.items,work,meta);
+          if(view!==state.view || owner!==state.owner || filter!==state.filter || query!==state.libraryQuery || sort!==state.librarySort)return;
+          grid.innerHTML=fullCards;
+          hydrate(work,view,slice.items);
+        }
+      }
+      const more=$('#library-more');if(more)more.innerHTML=libraryMoreMarkup(slice);
+    }finally{if(button.isConnected)button.disabled=false;}
+    return;
+  }
   if(button.id==='language'){state.lang=state.lang==='tr'?'en':'tr';localStorage.setItem('myshelf-language',state.lang);translateShell();await render();if($('#movie-dialog').open)await movie(state.detail.id,state.detail.key);return;}
   const action=button.dataset.action;
   if(action==='profile'){navigate('/profile');}
   else if(action==='edit-profile')editProfile();
   else if(action==='resend'){button.disabled=true;try{await api('auth/begin-'+(state.auth.flow==='signup'?'signup':'recovery'),{email:state.auth.email});toast(t('sendCode'));}finally{button.disabled=false;}}
   else if(action==='signout'){
-    await api('auth/signout',{});state.user=null;state.owner='guest';state.error=null;await store.pref('last-account',null);navigate('/');header();
+    await api('auth/signout',{});state.user=null;state.owner='guest';state.libraryPage=1;state.error=null;await store.pref('last-account',null);navigate('/');header();
   }else if(action==='export'){
     const doc=await store.exportLibrary(state.owner),url=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='MyMovieList-library.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast(t('exported'));
   }else if(action==='copy-guest'){await store.copyGuest(state.owner);toast(t('copied'));queueSync();await render();}
@@ -400,6 +524,7 @@ document.addEventListener('click',event=>click(event).catch(err=>toast(errorText
 document.addEventListener('submit',async event=>{
   const form=event.target;event.preventDefault();
   try{
+    if(await community.handleSubmit(form))return;
     if(form.id==='auth-form'){await submitAuth(form);return;}
     if(form.id==='search-form'){state.query=new FormData(form).get('query').trim();state.page=1;await loadDiscover();return;}
     if(form.id==='detail-form'){
@@ -416,11 +541,34 @@ document.addEventListener('submit',async event=>{
   }catch(err){toast(errorText(err));}
 });
 document.addEventListener('change',async event=>{
-  try{if(event.target.id==='import-file'){
-    const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024)throw Error('invalid_import');const doc=JSON.parse(await file.text());await store.importLibrary(state.owner,doc);queueSync();await render();toast(t('imported'));
-  }else if(event.target.id==='sync-enabled'){await store.mutate(state.owner,w=>w.enabled=event.target.checked);retryAt=0;queueSync();await updateStatus();}}catch(err){toast(errorText(err));}
+  try{
+    if(importUi.handleChange(event.target))return;
+    if(event.target.id==='library-sort'){state.librarySort=event.target.value;state.libraryPage=1;await refreshLibraryResults();return;}
+    if(event.target.matches('#detail-form select[name="rating"]')){
+      const val=event.target.value;
+      event.target.form?.querySelectorAll('[data-quick-rate]').forEach(b=>{const active=b.dataset.quickRate===val && val!=='';b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});
+      return;
+    }
+    if(event.target.id==='import-file'){
+      const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024)throw Error('invalid_import');const doc=JSON.parse(await file.text());await store.importLibrary(state.owner,doc);queueSync();await render();toast(t('imported'));
+    }else if(event.target.id==='sync-enabled'){await store.mutate(state.owner,w=>w.enabled=event.target.checked);retryAt=0;queueSync();await updateStatus();}
+  }catch(err){toast(errorText(err));}
 });
-document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement){const img=event.target;if(img.closest('.poster-open')){img.replaceWith(Object.assign(document.createElement('span'),{className:'poster-fallback',textContent:img.alt}));}else if(img.closest('.hero-poster')){img.replaceWith(Object.assign(document.createElement('span'),{className:'hero-poster-fallback',textContent:img.alt}));}else if(img.closest('.person')){img.replaceWith(Object.assign(document.createElement('span'),{className:'person-placeholder',textContent:img.alt[0] || '?'}));}}},true);
+document.addEventListener('input',event=>{
+  if(event.target.id!=='library-search')return;
+  state.libraryQuery=event.target.value;state.libraryPage=1;
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>refreshLibraryResults().catch(err=>toast(errorText(err))),140);
+});
+document.addEventListener('keydown',event=>{
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase()==='k'){
+    event.preventDefault();
+    const input=$('#library-search') || $('#search-form input[name="query"]');
+    if(input){input.focus();input.select();}
+    else{navigate('/discover');setTimeout(()=>$('#search-form input[name="query"]')?.focus(),120);}
+  }
+});
+document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement){const img=event.target;if(img.closest('.detail-backdrop')){img.closest('.detail-backdrop').remove();return;}if(img.closest('.poster-open')){img.replaceWith(Object.assign(document.createElement('span'),{className:'poster-fallback',textContent:img.alt}));}else if(img.closest('.hero-poster')){img.replaceWith(Object.assign(document.createElement('span'),{className:'hero-poster-fallback',textContent:img.alt}));}else if(img.closest('.person')){img.replaceWith(Object.assign(document.createElement('span'),{className:'person-placeholder',textContent:img.alt[0] || '?'}));}}},true);
 window.addEventListener('popstate',()=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();render();});window.addEventListener('online',()=>{retryAt=0;queueSync();updateStatus();});window.addEventListener('offline',updateStatus);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){queueSync();refreshHero().catch(()=>{});}});
 setInterval(()=>{if(document.visibilityState==='visible')runSync();},30000);
@@ -429,8 +577,8 @@ translateShell();
 try{
   await session();
 }catch(err){
-  if(err.status===401){state.user=null;state.owner='guest';await store.pref('last-account',null);}
-  else{const last=await store.pref('last-account');if(last){state.user=last;state.owner=last.id;}state.error=err.code || 'cloud_unavailable';}
+  if(err.status===401){state.user=null;state.owner='guest';state.libraryPage=1;await store.pref('last-account',null);}
+  else{const last=await store.pref('last-account');if(last){state.user=last;state.owner=last.id;state.libraryPage=1;}state.error=err.code || 'cloud_unavailable';}
 }
-translateShell();await render();queueSync();
+translateShell();queueSync();await render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});

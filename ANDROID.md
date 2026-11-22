@@ -1,6 +1,6 @@
 # Android — MyMovieList 3.7.0 beta.1
 
-The app runs its library on the phone itself and works without a desktop computer. The 3.7.0 source targets `3.7.0-android-beta.1` / versionCode 11, with the same bilingual discovery, recommendations, optional accounts, profiles, Social and automatic library sync as Windows. It also includes private favorite actors and directors. A new APK/AAB build is still required.
+The app runs its library on the phone itself and works without a desktop computer. The 3.7.0 source targets `3.7.0-android-beta.1` / versionCode 11, with the same bilingual discovery, recommendations, optional accounts, profiles, Social and automatic library sync as Windows. It also includes private favorite actors and directors. Clean signed APK/AAB builds are complete; physical-device installation and lifecycle QA remain separate.
 
 ## Library and accounts
 
@@ -61,14 +61,19 @@ Apply Supabase migrations 001–007 to enable accounts, Social, time-aware sync 
 
 Android remains a beta until the actual APK is tested for installation/update, keyboard/insets, navigation, rotation, process restart, Keystore session restoration and cross-device sync. An AAB build does not publish or approve the application on Google Play; store setup, privacy disclosures and review are separate steps.
 
-## Current source — 3.7.0 beta.1, October 12, 2026
+## Current build — 3.7.0 beta.1, October 12, 2026
 
 The shared source includes favorite actors/directors, private paginated collections,
 person filmography and automatic preference sync. Android includes both new
 person modules in its packaging allowlist. Migration 007 is installed and its
 hosted protocol probe succeeds. The target version is `3.7.0-android-beta.1`,
-versionCode 11; no new APK/AAB has been compiled yet. Existing 3.6.0 packages
-retain their original metadata and do not include person favorites.
+versionCode 11. Clean signed APK/AAB builds match all 30 shared/bridge modules
+and 71 UI assets in main source. Archive integrity, 16 KB ELF/ZIP alignment,
+signatures, metadata and bundle checks passed. Lint has zero errors and four
+existing warnings. The previous upgrade signing certificate is retained.
+Packages are collected in `dist/releases/v3.7.0/` and copied to the Desktop.
+Existing 3.6.0 packages retain their original metadata. Physical-device
+installation and lifecycle testing remain separate.
 
 ## Earlier build — 3.6.0 beta.1, October 10, 2026
 

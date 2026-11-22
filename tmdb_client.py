@@ -126,6 +126,23 @@ class TMDBClient:
             raise result
         return result
 
+    def search_movies(self, query, *, year=None, language="en-US", page=1):
+        params = {
+            "query": query,
+            "language": language,
+            "include_adult": "false",
+            "page": page,
+        }
+        if year is not None:
+            params["year"] = str(year)
+        data = self.get("search/movie", **params)
+        results = data.get("results") if isinstance(data, dict) else []
+        return [
+            movie_summary(item)
+            for item in (results if isinstance(results, list) else [])
+            if isinstance(item, dict) and type(item.get("id")) is int and item["id"] > 0
+        ]
+
     def _request(self, path, params):
         if (
             not path
@@ -190,13 +207,28 @@ class TMDBClient:
             ) from error
 
 
+BACKDROP_PATH_RE = re.compile(r"^/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)$")
+BACKDROP_URL_RE = re.compile(
+    r"^https://image\.tmdb\.org/t/p/w1280/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)$"
+)
+
+
 def image_url(path, size="w342"):
     return (
         f"https://image.tmdb.org/t/p/{size}{path}"
-        if isinstance(path, str)
-        and re.fullmatch(r"/[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)", path)
+        if isinstance(path, str) and BACKDROP_PATH_RE.fullmatch(path)
         else None
     )
+
+
+def safe_backdrop_url(value):
+    if not isinstance(value, str):
+        return None
+    if BACKDROP_PATH_RE.fullmatch(value):
+        return f"https://image.tmdb.org/t/p/w1280{value}"
+    if BACKDROP_URL_RE.fullmatch(value):
+        return value
+    return None
 
 
 def person_metadata(person):
@@ -222,6 +254,9 @@ def movie_summary(data):
         "original_language": data.get("original_language") or "",
         "year": int(release[:4]) if release[:4].isdigit() else None,
         "poster_url": image_url(data.get("poster_path")),
+        "backdrop_url": safe_backdrop_url(
+            data.get("backdrop_path") or data.get("backdrop_url")
+        ),
         "overview": data.get("overview") or "",
         "genre_ids": list(
             dict.fromkeys(gid for gid in genres if type(gid) is int and gid > 0)

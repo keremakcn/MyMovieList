@@ -3,16 +3,29 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#111114">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyMovieList">
   <meta name="description" content="MyMovieList ile filmlerini, puanlarını ve notlarını tek bir kişisel kütüphanede sakla. Web'de başla, uygulamada devam et.">
+  <meta property="og:site_name" content="MyMovieList · MyShelf">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MyMovieList · MyShelf">
+  <meta property="og:description" content="Your films. Your thoughts. Your space. Personal movie library, discovery and private journal.">
+  <meta property="og:image" content="https://myshelf.cloud/assets/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MyMovieList · MyShelf">
+  <meta name="twitter:description" content="Your films. Your thoughts. Your space. Personal movie library, discovery and private journal.">
+  <meta name="twitter:image" content="https://myshelf.cloud/assets/logo.png">
   <title>MyMovieList · MyShelf</title>
-  <link rel="icon" href="/assets/logo.png"><link rel="stylesheet" href="/style.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/logo.png"><link rel="apple-touch-icon" href="/assets/logo.png"><link rel="stylesheet" href="/style.css">
   <script type="module" src="/app.mjs"></script>
 </head>
 <body>
   <a class="skip" href="#main">İçeriğe geç / Skip to content</a>
   <header class="header">
     <a href="/" data-route class="brand"><img src="/assets/logo.png" alt="" width="34" height="34"><span>MyMovieList<small>ON MYSHELF</small></span></a>
-    <nav aria-label="Main navigation"><a href="/discover" data-route data-i18n="discover">Keşfet</a><a href="/library" data-route data-i18n="library">Kütüphanem</a><a href="/updates" data-route data-i18n="updates">Yenilikler</a></nav>
+    <nav aria-label="Main navigation"><a href="/discover" data-route data-i18n="discover">Keşfet</a><a href="/library" data-route data-i18n="library">Kütüphanem</a><a href="/stats" data-route data-i18n="stats">İstatistikler</a><a href="/recommendations" data-route data-i18n="forYou">Sana özel</a><a href="/social" data-route data-i18n="social">Sosyal</a><a href="/updates" data-route data-i18n="updates">Yenilikler</a></nav>
     <div class="header-actions"><button id="language" class="quiet" aria-label="Change language">EN</button><div id="account-actions"></div><a href="https://github.com/keremakcn/MyMovieList/releases/latest" class="button small download" target="_blank" rel="noopener" data-i18n="download">Uygulamayı indir ↗</a></div>
   </header>
   <main id="main" tabindex="-1"><div class="initial"><span class="spinner"></span> MyMovieList</div></main>
@@ -20,6 +33,7 @@
   <dialog id="auth-dialog" aria-labelledby="auth-title"><div class="auth-top"><a class="brand" href="/" data-route><img src="/assets/logo.png" alt="" width="32" height="32"><span>MyMovieList</span></a><button class="icon" data-close="auth-dialog" aria-label="Close">×</button></div><div id="auth-content"></div></dialog>
   <dialog id="movie-dialog" aria-labelledby="movie-title"><button class="icon dialog-close" data-close="movie-dialog" aria-label="Close">×</button><div id="movie-content"></div></dialog>
   <dialog id="profile-dialog" aria-labelledby="profile-title"><button class="icon dialog-close" data-close="profile-dialog" aria-label="Close">×</button><div id="profile-content"></div></dialog>
+  <dialog id="external-import-dialog" aria-labelledby="external-import-title"><button class="icon dialog-close" data-close="external-import-dialog" aria-label="Close">×</button><div id="external-import-content"></div></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <noscript><p>MyMovieList web sürümünü kullanmak için JavaScript'i etkinleştir. / Enable JavaScript to use MyMovieList on the web.</p></noscript>
 </body>

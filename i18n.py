@@ -80,6 +80,9 @@ CLIENT_MESSAGES = frozenset(
         "✓ Already in your library — Click to edit",
         "✓ In your library",
         "✓ In your library.",
+        "New version available: {version}",
+        "Download update",
+        "Dismiss update notice",
     )
 )
 

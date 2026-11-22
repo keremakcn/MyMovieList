@@ -16,6 +16,30 @@ The hero uses daily TMDB trends, cached per UTC date and language in the browser
 an open page checks the date every minute and on return to the tab. A failed
 refresh keeps the last usable selection. The weekly grid below is unchanged.
 
+## Recommendations and Social
+
+`/recommendations` runs the native v3 ranking model in the browser, with Close
+to my taste, A little discovery and Surprise me modes. Saved ratings and movie
+favorites supply evidence; genre tags, acclaimed-classic highlights, diversity
+and recent-repeat rules match the desktop model. Translated titles retain the
+same numeric movie identities. With little evidence, the page explains that its
+selection is a starting point. Hide/restore choices and selection history stay
+local to each browser account; they are not synced to native devices.
+
+Discovery uses fixed public catalog queries and a 12-hour public candidate cache.
+Private notes and personal scores never enter catalog requests. Public feature
+metadata is cached separately from personal library records. Existing selections
+survive a failed refresh; previously cached films remain available offline.
+
+`/social` lists opted-in public members and supports name/username search.
+The This week tab shows only their chosen showcase films with a watched date in
+the current UTC week. Ratings appear only when their owner enabled sharing them.
+Profile links use the existing `/u/<username>` pages. The directory and feed use
+the anonymous, strict public projection from migration 005; private notes,
+emails and the rest of a user's library cannot enter these responses. Public
+feed responses are not cached, so privacy changes are checked on each visit.
+No additional SQL migration is needed for this web port.
+
 ## Using the web app
 
 - Search and save films without creating an account. Browser records persist in
@@ -57,8 +81,9 @@ Legacy native releases still use protocol 1. Migration 006 retains their RPCs
 and existing receipt hashes; their changed fields have unknown edit times.
 The 3.7.0 native source is shared across platforms, including the Android
 packaging allowlist. It includes time-aware conflict handling and private person
-favorites. Windows, Android and Mac 3.7.0 packages need fresh builds; existing
-downloads retain the features of their original version.
+favorites. Windows EXE and signed Android APK/AAB 3.7.0 packages are built
+from this source; Mac packages require a fresh native workflow. GitHub downloads
+change after the new release is published.
 
 ## Cloudflare deployment
 
@@ -91,9 +116,11 @@ session secret. The production configuration never enables this mode.
 
 ## Checks
 
-Run `node --test cloudflare/myshelf-web/tests/worker.mjs
-cloudflare/myshelf-web/tests/sync-model.mjs cloudflare/myshelf-web/tests/hero.mjs
-cloudflare/myshelf-web/tests/people.mjs` from the repository root. Python
+Run `node --test cloudflare/myshelf-web/tests/*.mjs` from the repository root.
+Recommendation fixtures compare the browser model with the native model across
+42 scenarios, including three modes and cold, positive and negative evidence.
+Regenerate them with `python cloudflare/myshelf-web/tests/build_recommendation_fixtures.py`
+after changing the native algorithm. Python
 regression tests include native field clocks, frozen retries, portable export,
 legacy compatibility and recoverable conflict handling. Full verification is
 recorded in [QA_RESULTS.md](QA_RESULTS.md).
@@ -116,8 +143,9 @@ payloads contain person ID, role, boolean and edit time, with no photographs,
 names or biographies. Removals retain tombstones, retries keep operation IDs,
 and newer edits win. Missing 007 retains choices locally and retries without
 interrupting movie sync. Portable exports and new-account guest adoption
-include these preferences. Existing native downloads need rebuilding; the
-Android shared-source list includes the modules. Public showcases are unchanged.
+include these preferences. Current 3.7.0 Windows and Android packages include
+these preferences; macOS requires a fresh workflow build. The Android shared-source
+list includes the modules. Public showcases are unchanged.
 
 Run `node --test cloudflare/myshelf-web/tests/people.mjs` and
 `python -m pytest tests/test_people_favorites.py` alongside the existing checks.

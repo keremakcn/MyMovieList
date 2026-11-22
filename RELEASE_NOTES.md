@@ -22,7 +22,8 @@
 
 ## Updating
 
-Native 3.7.0 packages are pending build and publication. Expected filenames:
+Windows and signed Android 3.7.0 packages are built. macOS packages require
+a fresh native workflow. Release filenames:
 
 - **Windows:** `MyMovieList-v3.7.0-windows.zip`, containing
   `MyMovieList-v3.7.0.exe`. Close the previous app before replacing it.
@@ -54,4 +55,5 @@ in [QA_RESULTS.md](QA_RESULTS.md).
 - Film sayfasından ayrılmadan kişileri favorileyebilirsin. Web'de yazmakta
   olduğun film notu kalbe bastığında korunur.
 
-3.7.0 kaynak kodu hazır; EXE, APK/AAB ve DMG dosyaları henüz yeniden derlenmedi.
+Windows EXE ve imzalı Android APK/AAB güncel 3.7.0 koduyla derlendi. macOS
+DMG dosyaları için güncel kodla yeni macOS iş akışı çalıştırılmalı.

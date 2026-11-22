@@ -2,11 +2,79 @@ import {validatePerson} from './public/people-model.mjs';
 import {upstreamURL} from '../watchlist-api/worker.js';
 import {validateRecord, versions} from './public/sync-model.mjs';
 import {nameAllowed} from './public/name-policy.mjs';
+import {socialQuery,decodeSocialCursor,socialPage} from './public/social-model.mjs';
 
 const RELEASES='https://github.com/keremakcn/MyMovieList/releases/latest';
 const encoder=new TextEncoder(), decoder=new TextDecoder();
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const imagePath=/^\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/;
 const avatars=new Set(['luna','cocoa','sunshine','sage','coral','cloud','midnight','peach','sky','mocha','lilac','mint','cherry','gold','ocean','silver'].map(s=>'cat-'+s));
+const escHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function clip(text,max=190){const clean=String(text||'').replace(/\s+/g,' ').trim();return clean.length>max ? clean.slice(0,max-1).trimEnd()+'…' : clean;}
+export function injectMeta(html,meta){
+  if(!html.includes('</head>'))return html;
+  let out=html.replace(/<title>[\s\S]*?<\/title>/i,`<title>${escHtml(meta.title)}</title>`);
+  out=out.replace(/<meta\s+(?:property="og:(?:type|title|description|image|url)"|name="twitter:(?:card|title|description|image)")[^>]*>\s*/gi,'');
+  const tags=[
+    `<meta property="og:type" content="${escHtml(meta.type || 'website')}">`,
+    `<meta property="og:url" content="${escHtml(meta.url)}">`,
+    `<meta property="og:title" content="${escHtml(meta.title)}">`,
+    `<meta property="og:description" content="${escHtml(meta.description)}">`,
+    `<meta property="og:image" content="${escHtml(meta.image)}">`,
+    `<meta name="twitter:card" content="${escHtml(meta.card || 'summary')}">`,
+    `<meta name="twitter:title" content="${escHtml(meta.title)}">`,
+    `<meta name="twitter:description" content="${escHtml(meta.description)}">`,
+    `<meta name="twitter:image" content="${escHtml(meta.image)}">`,
+  ].join('\n  ');
+  return out.replace('</head>',`  ${tags}\n</head>`);
+}
+async function enrichEntityHtml(request,url,result){
+  if(request.method!=='GET')return result;
+  const match=url.pathname.match(/^\/(movie|person)\/([1-9]\d{0,9})\/?$/);
+  if(!match)return result;
+  const [,kind,id]=match;
+  const acceptLang=(request.headers.get('Accept-Language') || '').toLowerCase();
+  const lang=acceptLang.startsWith('tr') ? 'tr-TR' : 'en-US';
+  try{
+    const upstreamRes=await fetch(`https://api.myshelf.cloud/3/${kind}/${id}?language=${lang}`,{
+      redirect:'manual',signal:AbortSignal.timeout(2500),
+      headers:{Accept:'application/json'},cf:{cacheTtl:3600,cacheEverything:true},
+    });
+    if(!upstreamRes.ok)return result;
+    const item=await upstreamRes.json();
+    if(Number(item?.id)!==Number(id))return result;
+    const html=await result.text();
+    const canonical=`https://myshelf.cloud/${kind}/${id}`;
+    let meta;
+    if(kind==='movie'){
+      const name=clip(item.title || item.original_title || '',120);
+      if(!name)return new Response(html,result);
+      const year=/^\d{4}-/.test(item.release_date || '') ? item.release_date.slice(0,4) : '';
+      const hasPoster=imagePath.test(item.poster_path || '');
+      meta={
+        type:'video.movie',url:canonical,
+        title:`${name}${year ? ` (${year})` : ''} · MyMovieList`,
+        description:clip(item.overview) || (lang==='tr-TR' ? 'MyMovieList üzerinde filmi keşfet ve kişisel kütüphanene ekle.' : 'Discover and track this film in your private library on MyMovieList.'),
+        image:hasPoster ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://myshelf.cloud/assets/logo.png',
+        card:hasPoster ? 'summary_large_image' : 'summary',
+      };
+    } else {
+      const name=clip(item.name || '',120);
+      if(!name)return new Response(html,result);
+      const hasProfile=imagePath.test(item.profile_path || '');
+      meta={
+        type:'profile',url:canonical,
+        title:`${name} · MyMovieList`,
+        description:clip(item.biography) || (lang==='tr-TR' ? 'MyMovieList üzerinde filmografisini keşfet.' : 'Explore filmography and credits on MyMovieList.'),
+        image:hasProfile ? `https://image.tmdb.org/t/p/w500${item.profile_path}` : 'https://myshelf.cloud/assets/logo.png',
+        card:hasProfile ? 'summary_large_image' : 'summary',
+      };
+    }
+    const headers=new Headers(result.headers);
+    headers.delete('Content-Length');
+    return new Response(injectMeta(html,meta),{status:result.status,statusText:result.statusText,headers});
+  }catch{return result;}
+}
 class Failure extends Error {constructor(code,status=400){super(code);this.code=code;this.status=status;}}
 const security={
   'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin',
@@ -107,10 +175,21 @@ async function limit(request,env,auth) {
 async function api(request,env,url,cookies) {
   const path=url.pathname.slice(5);
   if(!['GET','POST'].includes(request.method)) throw new Failure('method_not_allowed',405);
-  const readPath=path==='session' || path==='status' || path==='releases' || path.startsWith('catalog/');
+  const readPath=path==='session' || path==='status' || path==='releases' || path==='social' || path.startsWith('catalog/');
   if(request.method!==(readPath ? 'GET' : 'POST'))throw new Failure('method_not_allowed',405);
   if(request.method==='POST' && (request.headers.get('Origin')!==url.origin || request.headers.get('X-MyShelf-Client')!=='web-v1')) throw new Failure('invalid_origin',403);
   await limit(request,env,path.startsWith('auth/'));
+  if(path==='social'){
+    let view,query,cursor;
+    try{
+      for(const key of url.searchParams.keys())if(!['view','q','cursor'].includes(key)||url.searchParams.getAll(key).length!==1)throw Error();
+      view=url.searchParams.get('view') || 'people';if(!['people','week'].includes(view))throw Error();
+      query=socialQuery(url.searchParams.get('q') || '');cursor=decodeSocialCursor(url.searchParams.get('cursor'),view,query);
+    }catch{throw new Failure('invalid_request',400);}
+    // Public opt-in projection only. Never forward a visitor's JWT, even while signed in.
+    const raw=await upstream(env,'/rest/v1/rpc/mml_social_page',{p_view:view,p_query:query,p_cursor:cursor});
+    try{return json(socialPage(raw,view));}catch{throw new Failure('invalid_response',502);}
+  }
   if(path==='status' && request.method==='GET') {
     let timing=null;
     try{timing=await upstream(env,'/rest/v1/rpc/mml_time_sync_status',{});}catch(e){if(e.code!=='setup_required')throw e;}
@@ -223,10 +302,11 @@ export default {
       if(url.pathname.startsWith('/api/'))return await api(request,env,url,cookies);
       if(request.method!=='GET' && request.method!=='HEAD')throw new Failure('method_not_allowed',405);
       if(url.pathname.startsWith('/u/'))return fetch(new Request('https://profiles.myshelf.cloud'+url.pathname+url.search,{method:request.method}));
-      const appRoute=/^\/(?:discover|library|account|updates|profile|people|(?:movie|person)\/[1-9]\d{0,9})?\/?$/.test(url.pathname);
+      const appRoute=/^\/(?:discover|library|stats|account|updates|profile|people|recommendations|social|(?:movie|person)\/[1-9]\d{0,9})?\/?$/.test(url.pathname);
       const target=new URL(request.url);if(appRoute)target.pathname='/index.html';if(url.pathname==='/credits')target.pathname='/credits.html';
       const result=await env.ASSETS.fetch(new Request(target,{method:request.method}));
-      const response=new Response(result.body,result);
+      const enriched=appRoute ? await enrichEntityHtml(request,url,result) : result;
+      const response=new Response(enriched.body,enriched);
       for(const [k,v] of Object.entries(security))response.headers.set(k,v);
       response.headers.set('Cache-Control',/\.(html|mjs|js|css)$/.test(target.pathname) ? 'no-cache' : 'public, max-age=3600');
       return response;

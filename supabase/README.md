@@ -13,7 +13,8 @@ directory and weekly-view setup probes passed. The earlier Windows 3.6.0 and sig
 Android 3.6.0 beta.1 builds include registration, profiles, library sync and Social.
 Migration 006 was applied on October 10; 007 was applied and its hosted
 protocol-1 probe verified on October 12. No further SQL is needed for the current
-hosted setup. New 3.7.0 native packages still need building and device QA.
+hosted setup. Windows EXE and signed Android APK/AAB 3.7.0 packages are built;
+Mac packages require a fresh native workflow and Android device QA remains separate.
 
 ## Apply the database setup
 
@@ -296,8 +297,9 @@ you control after setup. Automated tests use synthetic accounts only.
 
 Current source is 3.7.0 across Windows, Android and Mac, including the new
 person-favorite modules. Android targets 3.7.0-android-beta.1 / versionCode 11.
-No 3.7.0 native packages have been compiled yet. Existing packages retain their
-original metadata. Package checks are recorded in [QA results](../QA_RESULTS.md).
+Windows EXE and signed Android APK/AAB 3.7.0 packages are built from the
+current source. Mac packages require a fresh native workflow. Existing packages
+retain their original metadata. Package checks are recorded in [QA results](../QA_RESULTS.md).
 
 ## Enable in-app Social discovery
 
