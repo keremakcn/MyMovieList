@@ -1,5 +1,6 @@
 param([string]$Python = '')
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $root = Split-Path -Parent $PSScriptRoot
 if (!$Python) { $Python = Join-Path $root '.venv\Scripts\python.exe' }
 Push-Location -LiteralPath $root

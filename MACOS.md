@@ -2,18 +2,19 @@
 
 The main repository now includes macOS data paths, native UI-language detection,
 Keychain sessions and a manual GitHub Actions workflow for separate Apple Silicon
-and Intel DMGs. The shared version is **3.7.0**. Social and private favorite actors/directors
+and Intel DMGs. The shared version is **3.8.0**. Social, private favorite actors/directors,
+Letterboxd/IMDb import, personal Cinema Statistics (`/stats`) and cinematic movie backdrops
 are included in the shared modules, templates and translations used by the Mac build.
-Supabase migrations 001–007 are installed on the hosted service. Windows and Android
+Supabase migrations 001–008 are installed on the hosted service. Windows and Android
 packages are rebuilt separately.
 
-**Status — 3.7.0, October 12, 2026:** the shared source and native workflow
-include time-aware cloud sync, recommendation genre tags, actor/director portraits,
-fixed profile username controls, private person favorites and the Mac HTTPS certificate fix.
-Package verification also checks the two new person modules.
-Push the updated source and start a **fresh** macOS workflow to obtain 3.7.0
-DMGs. Rerunning an older workflow retains its old commit. No 3.7.0 DMG has been
-built on this Windows machine; native package and real-Mac validation are required.
+**Status — 3.8.0:** the shared source and native workflow
+include Letterboxd/IMDb import, Cinema Statistics, cinematic backdrops, time-aware cloud sync,
+recommendation genre tags, actor/director portraits, fixed profile username controls,
+private person favorites and the Mac HTTPS certificate fix.
+Package verification also checks the new shared modules.
+Push the updated source and start a **fresh** macOS workflow to obtain 3.8.0
+DMGs. Rerunning an older workflow retains its old commit.
 
 The first beta from
 [hosted run 37852453775](https://github.com/keremakcn/MyMovieList/actions/runs/37852453775),
@@ -48,8 +49,8 @@ ad-hoc signed and not notarized by Apple.
 
 Expected names:
 
-- `MyMovieList-v3.7.0-macos-arm64-beta.dmg`
-- `MyMovieList-v3.7.0-macos-x86_64-beta.dmg`
+- `MyMovieList-v3.8.0-macos-arm64-beta.dmg`
+- `MyMovieList-v3.8.0-macos-x86_64-beta.dmg`
 
 The workflow only uploads build artifacts. It does not publish a release or need
 Apple credentials, repository write access, or a Supabase service-role key.
@@ -71,7 +72,7 @@ script rejects a mismatched interpreter architecture. It uses macOS's `sips`,
 `iconutil`, `codesign`, `hdiutil`, `ditto` and `lipo` tools. A one-folder `.app`
 bundle preserves native libraries and symlinks; no one-file unpacking is needed.
 
-Outputs go to `dist/macos/v3.7.0/`. Build intermediates stay under
+Outputs go to `dist/macos/v3.8.0/`. Build intermediates stay under
 `build/macos/<architecture>/`. Both directories are ignored by Git.
 
 ## Install and update

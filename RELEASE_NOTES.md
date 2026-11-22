@@ -1,59 +1,62 @@
-# MyMovieList v3.7.0 — Favorite People
+# MyMovieList v3.8.0 — Cinema Stats, Letterboxd & IMDb Import, Unified UI
 
 ## What's new
 
-- **Favorite actors and directors:** use the heart on a person card to keep
-  separate private collections. Open Favorite people from your profile or
-  the sidebar; the same person can be a favorite in both roles.
-- **Person filmography:** open an actor or director to browse their films,
-  portrait and available biography.
-- **Automatic preference sync:** favorites save locally first and sync with
-  your account when connected. New registration adopts guest choices, and
-  library exports include them. Newer changes win; an older offline choice
-  cannot bring back a person you removed later.
-- **Private collections:** favorite people stay separate from public showcases.
-  Only IDs, roles, choices and edit times sync; person photos and biographies
-  remain catalog data cached on the device.
-- **Web landing posters:** four daily trending-film posters expand on hover or
-  keyboard focus and open the matching film details. If a refresh fails, the
-  last usable selection stays visible.
-- **Smooth favoriting:** toggling a person heart keeps you on the film page and
-  preserves an unsaved film note in the web app.
+- **Letterboxd & IMDb import (Web & Desktop):** bring your existing film history
+  into your shelf in seconds from a Letterboxd export `.zip` / `.csv` or IMDb
+  `.csv`. Ratings (0.5–5.0 stars converted to 1–10), watched dates, watchlists
+  and reviews are merged automatically; existing records are never overwritten
+  and unmatched or offline titles are preserved as custom films.
+- **Personal Cinema Statistics (`/stats`):** private, on-device analytics with
+  pure CSP-safe SVG charts for your 1–10 rating distribution, monthly watch
+  cadence, top genres with average scores, decade breakdown, total watch time
+  and most-watched directors and actors.
+- **Unified editorial cinema UI & backdrops:** `myshelf.cloud` now shares the
+  desktop app's obsidian, lavender and cinema-gold aesthetic with editorial
+  serif headings, cinematic TMDB backdrop headers on film pages, an interactive
+  1–10 quick-rating strip, library search, 10 sort modes and 48-film pagination
+  backed by per-entry IndexedDB v2 storage.
+- **PWA, Open Graph cards & update banner:** install `myshelf.cloud` as a
+  standalone app, share `/movie/<id>` and `/person/<id>` links with rich poster
+  preview cards, and receive a quiet in-app notification on desktop when a new
+  GitHub release is available.
+- **Social scale indexes (migration 008):** `pg_trgm` trigram search and partial
+  `watched_date` indexes accelerate public directory search and weekly feeds.
+- **Favorite actors and directors (from 3.7):** keep separate private
+  collections with automatic account sync and person filmography pages.
 
 ## Updating
 
-Windows and signed Android 3.7.0 packages are built. macOS packages require
-a fresh native workflow. Release filenames:
+Release filenames for 3.8.0:
 
-- **Windows:** `MyMovieList-v3.7.0-windows.zip`, containing
-  `MyMovieList-v3.7.0.exe`. Close the previous app before replacing it.
-- **Android:** `MyMovieList-3.7.0-android-beta.1.apk`, versionCode 11.
+- **Windows:** `MyMovieList-v3.8.0-windows.zip`, containing
+  `MyMovieList-v3.8.0.exe`. Close the previous app before replacing it.
+- **Android:** `MyMovieList-3.8.0-android-beta.1.apk`, versionCode 12.
   Install the signed update over the previous app without uninstalling.
   The matching `.aab` is for Google Play submission.
-- **macOS:** `MyMovieList-v3.7.0-macos-arm64-beta.dmg` for Apple Silicon, or
-  `MyMovieList-v3.7.0-macos-x86_64-beta.dmg` for Intel. Build from the current
+- **macOS:** `MyMovieList-v3.8.0-macos-arm64-beta.dmg` for Apple Silicon, or
+  `MyMovieList-v3.8.0-macos-x86_64-beta.dmg` for Intel. Build from the current
   commit through the macOS workflow, then replace the app in Applications.
 
 Accounts remain optional. Saved libraries and account ownership keep their
-existing data paths. Hosted Supabase migrations 001–007 are installed;
-users need no API key or manual cloud setup. Mac betas remain ad-hoc signed
-and are not notarized by Apple. Source checks and build status are recorded
-in [QA_RESULTS.md](QA_RESULTS.md).
+existing data paths. Hosted Supabase migrations 001–008 are installed;
+users need no API key or manual cloud setup.
 
 ## Türkçe
 
-- Oyuncu ve yönetmenleri kalp düğmesiyle iki ayrı özel listede saklayabilirsin.
-  Profilinden veya sol menüdeki **Favori kişiler** bölümünden listelerine ulaş.
-- Kişinin fotoğrafına tıklayarak filmografisini ve mevcut biyografisini aç.
-- Favoriler önce cihazda kaydedilir, giriş yaptığında otomatik eşitlenir.
-  Yeni hesap açarken misafir tercihlerin de taşınır; dışa aktarmaya dahil edilir.
-  Daha yeni tercih korunur, eski cihazdaki kayıt çıkarılan kişiyi geri getirmez.
-- Favori kişiler herkese açık vitrininde görünmez. Fotoğraf ve biyografi gibi
-  katalog bilgileri kişisel eşitleme verisine eklenmez.
-- Web tanıtım sayfasındaki dört afiş günlük yenilenir, üzerine gelince veya
-  klavyeyle odaklanınca açılır; tıklanınca ilgili filmin detayına gider.
-- Film sayfasından ayrılmadan kişileri favorileyebilirsin. Web'de yazmakta
-  olduğun film notu kalbe bastığında korunur.
-
-Windows EXE ve imzalı Android APK/AAB güncel 3.7.0 koduyla derlendi. macOS
-DMG dosyaları için güncel kodla yeni macOS iş akışı çalıştırılmalı.
+- **Letterboxd ve IMDb içe aktarma (Web ve Masaüstü):** Letterboxd `.zip` /
+  `.csv` veya IMDb `.csv` dışa aktarma dosyalarını saniyeler içinde kütüphanene
+  taşı. Puanlar (0.5–5.0 yıldız → 1–10), izleme tarihleri, izlenecekler ve
+  inceleme notları birleştirilir; mevcut kayıtların üzerine yazılmaz.
+- **Kişisel Sinema İstatistikleri (`/stats`):** tamamen cihazda yerel hesaplanan
+  1–10 puan dağılımı, aylık izleme ritmi, öne çıkan türler ve ortalama puanlar,
+  on yıllara göre dağılım, toplam izleme süresi ve en çok izlenen
+  yönetmen/oyuncu grafikleri.
+- **Birleşik sinema arayüzü ve backdrop afişler:** `myshelf.cloud` artık
+  masaüstüyle aynı obsidiyen, lavanta ve altın sinema temasına, film detayında
+  sinematik arka plan (backdrop) görsellerine, tek tıkla 1–10 hızlı puan
+  şeridine, kütüphane içi Türkçe duyarlı aramaya, 10 sıralama moduna ve kayıt
+  bazlı IndexedDB v2 + 48'li sayfalamaya sahip.
+- **PWA, Open Graph paylaşım kartları ve sürüm bildirimi:** web sürümünü
+  uygulama olarak yükle, film/kişi bağlantılarını posterli zengin kartla paylaş
+  ve masaüstünde yeni sürüm çıktığında uygulama içi bildirim al.

@@ -1,7 +1,8 @@
 # MyMovieList cloud setup
 
-Status: MyMovieList 3.7.0 source prepared on October 12, 2026, with optional accounts,
-time-aware library sync and private person favorites. The hosted SQL
+Status: MyMovieList 3.8.0 source prepared with optional accounts,
+time-aware library sync, private person favorites, Social scale indexes (008),
+Letterboxd/IMDb import and personal Cinema Statistics. The hosted SQL
 001 was applied on October 7; optional sharing migration 002 was applied on
 October 8, followed by username migration 003. Registration/name-policy migration
 004 was applied by the user and its anonymous setup probe verified on October 8
@@ -12,9 +13,8 @@ Social migration 005 was applied by the user on October 8; both anonymous
 directory and weekly-view setup probes passed. The earlier Windows 3.6.0 and signed
 Android 3.6.0 beta.1 builds include registration, profiles, library sync and Social.
 Migration 006 was applied on October 10; 007 was applied and its hosted
-protocol-1 probe verified on October 12. No further SQL is needed for the current
-hosted setup. Windows EXE and signed Android APK/AAB 3.7.0 packages are built;
-Mac packages require a fresh native workflow and Android device QA remains separate.
+protocol-1 probe verified on October 12; migration 008 adds Social scale indexes. No further SQL is needed for the current
+hosted setup. Windows EXE 3.8.0 package is built; Android and Mac packages build from the shared 3.8.0 source.
 
 ## Apply the database setup
 

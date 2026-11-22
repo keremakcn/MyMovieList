@@ -1,6 +1,6 @@
-# Android — MyMovieList 3.7.0 beta.1
+# Android — MyMovieList 3.8.0 beta.1
 
-The app runs its library on the phone itself and works without a desktop computer. The 3.7.0 source targets `3.7.0-android-beta.1` / versionCode 11, with the same bilingual discovery, recommendations, optional accounts, profiles, Social and automatic library sync as Windows. It also includes private favorite actors and directors. Clean signed APK/AAB builds are complete; physical-device installation and lifecycle QA remain separate.
+The app runs its library on the phone itself and works without a desktop computer. The 3.8.0 source targets `3.8.0-android-beta.1` / versionCode 12, with the same bilingual discovery, recommendations, optional accounts, profiles, Social, automatic library sync, private favorite actors/directors, Letterboxd/IMDb import, personal Cinema Statistics (`/stats`) and cinematic movie backdrops as Windows. Clean signed APK/AAB builds derive from the shared source; physical-device installation and lifecycle QA remain separate.
 
 ## Library and accounts
 
@@ -43,13 +43,13 @@ From the repository root:
 
 Release signing must already be configured in `android/keystore.properties`. Use `scripts/create_android_signing.ps1` only for the initial setup; never replace the signing key for an update. Back up `.android-signing/release.jks` and `android/keystore.properties` privately.
 
-Artifacts are written to `dist/android/3.7.0-android-beta.1/`:
+Artifacts are written to `dist/android/3.8.0-android-beta.1/`:
 
-- `MyMovieList-3.7.0-android-beta.1.apk`: installable GitHub download.
-- `MyMovieList-3.7.0-android-beta.1.aab`: future Google Play submission.
+- `MyMovieList-3.8.0-android-beta.1.apk`: installable GitHub download.
+- `MyMovieList-3.8.0-android-beta.1.aab`: future Google Play submission.
 - `SHA256SUMS.txt`: package hashes.
 
-`version.py` supplies the shared 3.7.0 version. Android uses `versionCode=11` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
+`version.py` supplies the shared 3.8.0 version. Android uses `versionCode=12` and the beta suffix from `android/app/build.gradle`. Package filenames come from compiled APK metadata. The application ID and existing release signing certificate are retained.
 
 The **Android packages** GitHub Actions workflow also supports debug and release builds. Release mode needs the four Android signing secrets from the same existing key. It builds artifacts without publishing a GitHub Release.
 

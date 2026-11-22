@@ -63,8 +63,8 @@ No additional SQL migration is needed for this web port.
 
 ## Edit times and compatibility
 
-Apply SQL migrations 001–006 in order. On 10 October 2026, the owner applied
-006 and the hosted anonymous `mml_time_sync_status` probe was verified.
+Apply SQL migrations 001–008 in order. On 10 October 2026, the owner applied
+006 and the hosted anonymous `mml_time_sync_status` probe was verified; migration 008 adds Social scale indexes.
 
 Mutable personal fields carry separate UTC edit times. Independent changes
 merge; competing edits with trustworthy distinct times choose the newer edit,
@@ -79,10 +79,10 @@ addition/order keys and numeric film identities are preserved.
 
 Legacy native releases still use protocol 1. Migration 006 retains their RPCs
 and existing receipt hashes; their changed fields have unknown edit times.
-The 3.7.0 native source is shared across platforms, including the Android
-packaging allowlist. It includes time-aware conflict handling and private person
-favorites. Windows EXE and signed Android APK/AAB 3.7.0 packages are built
-from this source; Mac packages require a fresh native workflow. GitHub downloads
+The 3.8.0 native source is shared across platforms, including the Android
+packaging allowlist. It includes time-aware conflict handling, private person
+favorites, Letterboxd/IMDb import, personal Cinema Statistics (`/stats`) and cinematic movie backdrops.
+Windows EXE 3.8.0 packages are built from this source; Android and Mac packages build from the shared 3.8.0 source. GitHub downloads
 change after the new release is published.
 
 ## Cloudflare deployment
@@ -143,8 +143,7 @@ payloads contain person ID, role, boolean and edit time, with no photographs,
 names or biographies. Removals retain tombstones, retries keep operation IDs,
 and newer edits win. Missing 007 retains choices locally and retries without
 interrupting movie sync. Portable exports and new-account guest adoption
-include these preferences. Current 3.7.0 Windows and Android packages include
-these preferences; macOS requires a fresh workflow build. The Android shared-source
+include these preferences. Current 3.8.0 Windows, Android and macOS sources include these preferences, Letterboxd/IMDb import and `/stats`. The Android shared-source
 list includes the modules. Public showcases are unchanged.
 
 Run `node --test cloudflare/myshelf-web/tests/people.mjs` and

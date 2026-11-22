@@ -8,25 +8,25 @@
 
 **English** | [Türkçe](README.tr.md)
 
-**Version 3.7.0 — Favorite People:** private favorite actors and directors, separate collections and automatic account sync. Web landing posters also refresh daily, expand on hover and open film details. Windows EXE and signed Android APK/AAB packages are built from the current 3.7.0 source; macOS requires a fresh native workflow. GitHub downloads change after publication.
+**Version 3.8.0 — Cinema Stats, Letterboxd/IMDb Import & Unified UI:** bring your Letterboxd (`.zip`/`.csv`) or IMDb (`.csv`) history into web or desktop, explore private on-device Cinema Statistics (`/stats`), enjoy cinematic movie backdrops, unified obsidian/lavender/gold design, per-entry IndexedDB v2 storage, PWA support, dynamic Open Graph cards and Supabase migration 008 scale indexes. Windows EXE is built from the current 3.8.0 source; Android and macOS packages build from the same 3.8.0 source.
 
 ## Get started
 
-Windows and Android 3.7.0 packages are built locally and will appear in Assets after publication. Mac packages require a fresh native workflow.
+Windows 3.8.0 packages are built locally and will appear in Assets after publication. Mac and Android packages build from the shared 3.8.0 source.
 
-**Windows — v3.7.0**
+**Windows — v3.8.0**
 
-1. Download `MyMovieList-v3.7.0-windows.zip` from the release’s **Assets**.
-2. Extract it and open `MyMovieList-v3.7.0.exe`. No Python installation is needed.
+1. Download `MyMovieList-v3.8.0-windows.zip` from the release’s **Assets**.
+2. Extract it and open `MyMovieList-v3.8.0.exe`. No Python installation is needed.
 3. Search for a film and add it to your library. Discovery is ready without setup.
 
-**Android — 3.7.0 beta.1**
+**Android — 3.8.0 beta.1**
 
-Download `MyMovieList-3.7.0-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
+Download `MyMovieList-3.8.0-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
 
-**macOS — v3.7.0 beta**
+**macOS — v3.8.0 beta**
 
-Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.7.0 includes favorite actors/directors, time-aware sync, recommendation tags, portrait cards, fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; older DMGs do not include all current changes. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
+Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.8.0 includes Letterboxd/IMDb import, personal cinema statistics, cinematic backdrops, favorite actors/directors, time-aware sync, recommendation tags, portrait cards, fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; older DMGs do not include all current changes. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
 
 ## Web
 
@@ -40,8 +40,8 @@ Source and deployment details are in [WEB.md](WEB.md).
 The new source carries per-field edit times across web, Windows, Android and
 macOS. Newer trustworthy competing edits win; independent changes merge and
 unknown legacy times keep recoverable review. This behavior is shared by
-the 3.7.0 source for every platform. Existing packages remain compatible;
-current Windows and Android builds include the 3.7.0 features; Mac packages need a fresh native build.
+the 3.8.0 source for every platform. Existing packages remain compatible;
+current Windows builds include the 3.8.0 features; Android and Mac packages build from the shared 3.8.0 source.
 
 ## Features
 
