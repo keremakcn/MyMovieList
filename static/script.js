@@ -112,12 +112,64 @@
         }
         document.querySelector('.stats-grid')?.replaceWith(html.querySelector('.stats-grid'));
         const status = document.getElementById('library-update-status');
-        if (status) status.textContent = html.querySelector('.section-heading > span')?.textContent || t('Library updated.');
+        if (status) status.textContent = html.querySelector('.section-heading-meta > span, .section-heading > span')?.textContent || t('Library updated.');
+        applyLibraryView();
         hydrateMetadata();
         return true;
     }
 
     let metadataEpoch = 0;
+
+    function applyLibraryView(mode) {
+        let active = mode;
+        if (!active) {
+            try { active = localStorage.getItem('mml-library-view') || 'cards'; } catch (_) { active = 'cards'; }
+        }
+        if (active !== 'posters' && active !== 'cards') active = 'cards';
+        const list = document.getElementById('movie-list');
+        if (list) list.classList.toggle('view-posters', active === 'posters');
+        document.querySelectorAll('[data-library-view]').forEach(btn => {
+            btn.setAttribute('aria-pressed', String(btn.dataset.libraryView === active));
+        });
+    }
+    applyLibraryView();
+
+    document.addEventListener('click', event => {
+        const viewBtn = event.target.closest('[data-library-view]');
+        if (viewBtn) {
+            const next = viewBtn.dataset.libraryView === 'posters' ? 'posters' : 'cards';
+            try { localStorage.setItem('mml-library-view', next); } catch (_) {}
+            applyLibraryView(next);
+            return;
+        }
+        const editRateBtn = event.target.closest('[data-edit-rate]');
+        if (editRateBtn) {
+            const input = document.getElementById('rating');
+            if (!input) return;
+            const val = editRateBtn.dataset.editRate;
+            input.value = val;
+            const strip = editRateBtn.closest('[data-edit-rating-strip]');
+            strip?.querySelectorAll('[data-edit-rate]').forEach(btn => {
+                const selected = val !== '' && btn.dataset.editRate === val;
+                btn.classList.toggle('selected', selected);
+                btn.setAttribute('aria-pressed', String(selected));
+            });
+            input.dispatchEvent(new Event('change', {bubbles: true}));
+        }
+    });
+
+    const editRatingInput = document.getElementById('rating');
+    const editRatingStrip = document.querySelector('[data-edit-rating-strip]');
+    if (editRatingInput && editRatingStrip) {
+        editRatingInput.addEventListener('input', () => {
+            const val = editRatingInput.value.trim();
+            editRatingStrip.querySelectorAll('[data-edit-rate]').forEach(btn => {
+                const selected = val !== '' && btn.dataset.editRate === val;
+                btn.classList.toggle('selected', selected);
+                btn.setAttribute('aria-pressed', String(selected));
+            });
+        });
+    }
     let metadataController;
     let metadataTimer;
     function hydrateMetadata() {
@@ -200,6 +252,41 @@
             finally { button.disabled = false; pendingForms.delete(form); }
             return;
         }
+        if (form.matches('[data-quick-rate-form]')) {
+            event.preventDefault();
+            if (pendingForms.has(form)) return;
+            const submitter = event.submitter instanceof HTMLButtonElement ? event.submitter : null;
+            if (!submitter) return;
+            pendingForms.add(form);
+            const data = new FormData(form);
+            data.set('value', submitter.value);
+            const buttons = [...form.querySelectorAll('button')];
+            buttons.forEach(button => button.disabled = true);
+            form.setAttribute('aria-busy', 'true');
+            try {
+                const result = await post(form.action, data);
+                const rated = result.rating;
+                const readout = document.querySelector('[data-rating-readout]');
+                if (readout) readout.textContent = rated ? `★ ${rated}/10` : t('No rating yet');
+                form.querySelectorAll('button[name="value"]').forEach(btn => {
+                    if (btn.classList.contains('rate-clear')) {
+                        btn.hidden = !rated;
+                    } else {
+                        const active = rated !== null && rated !== undefined && String(rated) === btn.value;
+                        btn.classList.toggle('selected', active);
+                        btn.setAttribute('aria-pressed', String(active));
+                    }
+                });
+                toast(rated ? t('Rating saved.') : t('Rating cleared.'));
+            } catch (error) {
+                toast(error.message || t('Could not complete the request. Please try again.'), null, '', true);
+            } finally {
+                pendingForms.delete(form);
+                buttons.forEach(button => button.disabled = false);
+                form.removeAttribute('aria-busy');
+            }
+            return;
+        }
         if (!form.matches('[data-add-movie], [data-delete], [data-quick-action]')) return;
         event.preventDefault();
         if (pendingForms.has(form)) return;
@@ -261,7 +348,12 @@
                 }
             } else {
                 if (document.getElementById('library-results')) {
-                    const cardId = form.closest('.movie-card')?.dataset.movieId;
+                    const cardEl = form.closest('.movie-card');
+                    const cardId = cardEl?.dataset.movieId;
+                    if (form.action.includes('/favorite/')) {
+                        const heartPill = cardEl?.querySelector('[data-poster-favorite]');
+                        if (heartPill) heartPill.hidden = !result.favorite;
+                    }
                     const action = form.action.includes('/favorite/') ? 'favorite' : 'status';
                     await refreshLibrary();
                     if (restoreFocus) {
@@ -528,6 +620,7 @@
             }
             const backdrop = event.target.closest('.detail-backdrop');
             if (backdrop) {
+                backdrop.closest('.movie-detail-card')?.classList.remove('has-backdrop');
                 backdrop.hidden = true;
                 return;
             }

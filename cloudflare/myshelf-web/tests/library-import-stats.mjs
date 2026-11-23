@@ -23,6 +23,7 @@ import {
   parseLetterboxdZip,
 } from '../public/external-import.mjs';
 import {computeCinemaStats} from '../public/stats-model.mjs';
+import {formatDecadeLabel,renderStatsCardCanvas} from '../public/stats-card.mjs';
 import {iso,newRecord} from '../public/sync-model.mjs';
 
 // ---------- minimal ZIP builder for stored (0) and deflate-raw (8) archives ----------
@@ -602,4 +603,164 @@ test('computeCinemaStats handles empty libraries and computes ratings, minutes, 
   const watchlistOnly=computeCinemaStats({[m4.key]:m4},metadataMap,{lang:'en',year:2026});
   assert.equal(watchlistOnly.topGenres.length,1);
   assert.equal(watchlistOnly.topGenres[0].name,'Horror');
+});
+
+test('computeCinemaStats computes availableYears, overview ring/criticDelta/streak/median, records, weekdays, runtimeBuckets, topStudios, and Cinema Passport canvas',()=>{
+  const empty=computeCinemaStats({},{},{lang:'en',year:2026});
+  assert.ok(empty.availableYears.includes(2026));
+  assert.equal(empty.overview.completionPct,0);
+  assert.equal(empty.overview.completionRingDash,0);
+  assert.equal(empty.overview.ringCircumference,251);
+  assert.equal(empty.overview.medianRating,null);
+  assert.equal(empty.overview.tmdbAvg,null);
+  assert.equal(empty.overview.criticDelta,null);
+  assert.equal(empty.overview.longestStreak,0);
+  assert.deepEqual(empty.records,{longest:null,shortest:null,oldest:null,newest:null});
+  assert.equal(empty.weekdays.length,7);
+  assert.deepEqual(empty.runtimeBuckets.map(b=>b.key),['short','feature','extended','epic']);
+  assert.deepEqual(empty.topStudios,[]);
+
+  const t0=Date.parse('2026-01-01T00:00:00Z');
+  const entries={};
+
+  // 3 consecutive watch days in March 2026: 2026-03-02 (Mon), 2026-03-03 (Tue), 2026-03-04 (Wed), plus 2024-07-14 (Sun)
+  const f1=newRecord(603,{now:t0+1000});
+  f1.data.status='Watched';
+  f1.data.rating=10;
+  f1.data.favorite=true;
+  f1.data.watched_date='2026-03-02'; // Monday (day=0)
+  entries[f1.key]=f1;
+
+  const f2=newRecord(27205,{now:t0+2000});
+  f2.data.status='Watched';
+  f2.data.rating=9;
+  f2.data.favorite=false;
+  f2.data.watched_date='2026-03-03'; // Tuesday (day=1)
+  entries[f2.key]=f2;
+
+  const f3=newRecord(157336,{now:t0+3000});
+  f3.data.status='Watched';
+  f3.data.rating=8;
+  f3.data.favorite=true;
+  f3.data.watched_date='2026-03-04'; // Wednesday (day=2)
+  entries[f3.key]=f3;
+
+  const f4=newRecord(777,{now:t0+4000});
+  f4.data.status='Watched';
+  f4.data.rating=7;
+  f4.data.favorite=false;
+  f4.data.watched_date='2024-07-14'; // Sunday (day=6)
+  entries[f4.key]=f4;
+
+  const f5=newRecord(999,{now:t0+5000});
+  f5.data.status='Watchlist';
+  f5.data.rating=null;
+  entries[f5.key]=f5;
+
+  const meta={
+    'en:603':{
+      id:603,title:'The Matrix',release_date:'1999-03-31',runtime:136,vote_average:8.2,
+      genres:[{id:878,name:'Sci-Fi'}],
+      production_companies:[{id:79,name:'Village Roadshow Pictures'},{id:174,name:'Warner Bros. Pictures'}],
+    },
+    'en:27205':{
+      id:27205,title:'Inception',release_date:'2010-07-16',runtime:148,vote_average:8.4,
+      genres:[{id:878,name:'Sci-Fi'}],
+      production_companies:[{id:174,name:'Warner Bros. Pictures'},{id:9996,name:'Syncopy'}],
+    },
+    'en:157336':{
+      id:157336,title:'Interstellar',release_date:'2014-11-05',runtime:169,vote_average:8.4,
+      genres:[{id:878,name:'Sci-Fi'}],
+      production_companies:[{id:174,name:'Warner Bros. Pictures'},{id:9996,name:'Syncopy'}],
+    },
+    'en:777':{
+      id:777,title:'Sherlock Jr.',release_date:'1924-04-21',runtime:45,vote_average:8.0,
+      genres:[{id:35,name:'Comedy'}],
+      production_companies:[{id:55,name:'Buster Keaton Productions'}],
+    },
+    'en:999':{
+      id:999,title:'Upcoming Odyssey',release_date:'2026-10-01',runtime:112,
+      genres:[{id:18,name:'Drama'}],
+    },
+  };
+
+  const stats=computeCinemaStats(entries,meta,{lang:'en',year:2026});
+
+  // availableYears descending includes 2026 and 2024
+  assert.equal(stats.availableYears[0],Math.max(2026,new Date().getFullYear()));
+  assert.ok(stats.availableYears.includes(2026));
+  assert.ok(stats.availableYears.includes(2024));
+
+  // overview metrics: 4 watched of 5 total = 80%, ring dash = round(251 * 0.8) = 201
+  assert.equal(stats.overview.completionPct,80);
+  assert.equal(stats.overview.completionRingDash,201);
+  assert.equal(stats.overview.ringCircumference,251);
+  assert.equal(stats.overview.favoriteRate,50); // 2 favorites / 4 watched = 50%
+  assert.equal(stats.overview.avgRuntime,Math.round((136+148+169+45)/4)); // 125
+  assert.equal(stats.overview.totalDays,0.3); // 498 / 1440 = 0.345 -> 0.3
+  assert.equal(stats.overview.medianRating,8.5); // [7, 8, 9, 10] -> 8.5
+  assert.equal(stats.overview.tenCount,1);
+  assert.equal(stats.overview.peakMonth,3);
+  assert.equal(stats.overview.peakMonthCount,3);
+  assert.equal(stats.overview.longestStreak,3); // Mar 2, 3, 4
+  // Paired ratings: user avg = (10+9+8+7)/4 = 8.5, tmdb avg = (8.2+8.4+8.4+8.0)/4 = 8.25 -> 8.3, delta = +0.3
+  assert.equal(stats.overview.tmdbAvg,8.3);
+  assert.equal(stats.overview.criticDelta,0.3);
+  assert.equal(stats.overview.topGenreName,'Sci-Fi');
+  assert.equal(stats.overview.topDecade,'2010s');
+
+  // records: longest=Interstellar(169m), shortest=Sherlock Jr.(45m), oldest=Sherlock Jr.(1924), newest=Upcoming Odyssey(2026)
+  assert.equal(stats.records.longest.title,'Interstellar');
+  assert.equal(stats.records.longest.runtime,169);
+  assert.equal(stats.records.shortest.title,'Sherlock Jr.');
+  assert.equal(stats.records.shortest.runtime,45);
+  assert.equal(stats.records.oldest.title,'Sherlock Jr.');
+  assert.equal(stats.records.oldest.year,1924);
+  assert.equal(stats.records.newest.title,'Upcoming Odyssey');
+  assert.equal(stats.records.newest.year,2026);
+
+  // weekdays: Mon(0)=1, Tue(1)=1, Wed(2)=1, Sun(6)=1, others=0
+  assert.deepEqual(stats.weekdays.map(w=>w.count),[1,1,1,0,0,0,1]);
+  assert.equal(stats.weekdays[0].share,1);
+  assert.equal(stats.weekdays[3].share,0);
+
+  // runtimeBuckets: short(<90)=1 (45m), feature(90-119)=0, extended(120-149)=2 (136m, 148m), epic(150+)=1 (169m)
+  assert.deepEqual(stats.runtimeBuckets,[
+    {key:'short',count:1,share:0.5},
+    {key:'feature',count:0,share:0},
+    {key:'extended',count:2,share:1},
+    {key:'epic',count:1,share:0.5},
+  ]);
+
+  // topStudios: Warner Bros. Pictures (3 films, avgRating 9.0), Syncopy (2 films, avgRating 8.5)
+  assert.equal(stats.topStudios[0].id,174);
+  assert.equal(stats.topStudios[0].name,'Warner Bros. Pictures');
+  assert.equal(stats.topStudios[0].count,3);
+  assert.equal(stats.topStudios[0].avgRating,9);
+  assert.equal(stats.topStudios[1].name,'Syncopy');
+  assert.equal(stats.topStudios[1].count,2);
+  assert.equal(stats.topStudios[1].avgRating,8.5);
+
+  // Turkish decade formatting & Canvas rendering smoke test
+  assert.equal(formatDecadeLabel('1990s','tr'),"1990'lar");
+  assert.equal(formatDecadeLabel('2020s','tr'),"2020'ler");
+  assert.equal(formatDecadeLabel('2010s','en'),'2010s');
+
+  const drawOps=[];
+  const mockCtx={
+    fillStyle:'',strokeStyle:'',lineWidth:1,lineCap:'',font:'',textAlign:'',textBaseline:'',
+    createLinearGradient:()=>({addColorStop:()=>{}}),
+    createRadialGradient:()=>({addColorStop:()=>{}}),
+    fillRect:(...a)=>drawOps.push(['fillRect',...a]),
+    beginPath:()=>{},moveTo:()=>{},lineTo:()=>{},arc:()=>{},arcTo:()=>{},closePath:()=>{},
+    fill:()=>{},stroke:()=>{},save:()=>{},restore:()=>{},setLineDash:()=>{},
+    measureText:s=>({width:String(s).length*9}),
+    fillText:(text,x,y)=>drawOps.push(['fillText',String(text),x,y]),
+  };
+  const mockCanvas={width:0,height:0,getContext:type=>type==='2d'?mockCtx:null};
+  renderStatsCardCanvas(mockCanvas,stats,{t:k=>k,lang:'en',user:{username:'cinephile',profile:{display_name:'Deniz'}}});
+  assert.equal(mockCanvas.width,1080);
+  assert.equal(mockCanvas.height,1350);
+  assert.ok(drawOps.some(op=>op[0]==='fillText' && op[1].includes('myshelf.cloud')));
+  assert.ok(drawOps.some(op=>op[0]==='fillText' && op[1].includes('@cinephile')));
 });

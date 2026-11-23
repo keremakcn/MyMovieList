@@ -4,12 +4,14 @@
 {% endblock %}
 {% block content %}
     <a class="back-link" href="{{ back_url }}">{{ t("← Back to explore") }}</a>
-    <section class="movie-detail-card">
+    <section class="movie-detail-card {{ 'has-backdrop' if tmdb.backdrop_url }}">
         {% if tmdb.backdrop_url %}
             <div class="detail-backdrop"><img src="{{ tmdb.backdrop_url }}" alt="" loading="eager"></div>
         {% endif %}
-        <p class="eyebrow">{{ t("MOVIE DETAILS") }}</p>
-        <h1>{{ movie.title }}</h1>
+        <div class="detail-hero-head">
+            <p class="eyebrow">{{ t("MOVIE DETAILS") }}</p>
+            <h1>{{ movie.title }}</h1>
+        </div>
         <div class="movie-header">
             {% if tmdb.poster_url %}
                 <img class="movie-poster detail-poster"

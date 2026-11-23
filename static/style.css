@@ -952,3 +952,925 @@ a.stats-person-card:hover,a.stats-person-card:focus-visible{border-color:var(--p
     .stats-bar-count{font-size:.62rem}
     .stats-people-grid{grid-template-columns:1fr}
 }
+
+/* ==========================================================================
+   v3.8 Obsidian Cinema UI Refresh (Desktop & Android Shared Interface)
+   ========================================================================== */
+:root {
+    --bg: #0e0f15;
+    --surface: #161720;
+    --surface-light: #20212e;
+    --gold: #e5c787;
+    --rose: #f18799;
+}
+body {
+    background: radial-gradient(ellipse 75% 40% at 58% -6%, #c4b1ff0b, transparent 62%), var(--bg);
+}
+.sidebar {
+    background: linear-gradient(180deg, #13141d 0%, #101118 100%);
+    border-right-color: #ffffff10;
+}
+.app-nav a {
+    transition: background .16s, color .16s, transform .14s;
+}
+.app-nav a[aria-current=page] {
+    color: var(--primary);
+    background: linear-gradient(100deg, #c4b1ff22, #c4b1ff0a);
+    box-shadow: inset 2px 0 var(--primary), 0 4px 16px #0003;
+}
+.workspace-topbar {
+    background: #0e0f15cc;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+.add-movie-link, button {
+    box-shadow: 0 3px 14px #c4b1ff18;
+}
+.secondary-button, .edit-link, .delete-button {
+    box-shadow: none;
+}
+
+/* Clickable Library KPI cards */
+.stats-grid {
+    overflow: hidden;
+    background: linear-gradient(120deg, #1a1b26, #14151d);
+    box-shadow: inset 0 1px 0 #ffffff0a, 0 8px 26px #0003;
+}
+a.stat-card {
+    color: var(--text);
+    text-decoration: none;
+    transition: background .16s, box-shadow .16s;
+}
+a.stat-card:hover {
+    color: var(--text);
+    background: #c4b1ff0d;
+}
+a.stat-card.stat-card-active {
+    background: linear-gradient(135deg, #c4b1ff1c, #c4b1ff08);
+    box-shadow: inset 0 -2px 0 var(--primary);
+}
+a.stat-card.stat-card-active .stat-symbol,
+a.stat-card.stat-card-active strong {
+    color: var(--primary);
+}
+a.stat-card.stat-card-gold .stat-symbol,
+a.stat-card.stat-card-gold strong {
+    color: var(--gold);
+}
+
+/* Section heading meta & Card/Poster Grid View Switcher */
+.section-heading-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.section-heading-meta > span {
+    font-size: .72rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.view-switcher {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #14151d;
+}
+.view-toggle {
+    min-height: 30px;
+    min-width: 32px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    box-shadow: none;
+}
+.view-toggle:hover {
+    background: #ffffff0a;
+    color: var(--text);
+    box-shadow: none;
+}
+.view-toggle[aria-pressed="true"] {
+    background: #c4b1ff1e;
+    color: var(--primary);
+    border-color: #c4b1ff35;
+}
+
+/* Elevated Library Cards + Poster Link */
+.movie-card {
+    background: linear-gradient(145deg, #1b1c26, #15161e);
+    box-shadow: inset 0 1px 0 #ffffff0a;
+    transition: border-color .18s, box-shadow .2s, transform .2s cubic-bezier(.2,.8,.2,1);
+}
+.movie-card:hover {
+    border-color: #c4b1ff4c;
+    box-shadow: inset 0 1px 0 #ffffff10, 0 14px 34px #0005;
+    transform: translateY(-2px);
+}
+.poster-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 7px;
+    overflow: hidden;
+}
+.movie-card-poster {
+    display: block;
+    transition: transform .25s cubic-bezier(.2,.8,.2,1);
+}
+.movie-card:hover .movie-card-poster {
+    transform: scale(1.03);
+}
+.movie-rating {
+    color: var(--gold);
+    font-weight: 550;
+}
+.poster-rating-pill,
+.poster-note-pill {
+    display: none;
+}
+
+/* Cinematic Poster Grid Mode (#movie-list.view-posters) */
+.movie-list.view-posters {
+    grid-template-columns: repeat(auto-fill, minmax(174px, 1fr));
+    gap: 18px;
+}
+.movie-list.view-posters .movie-card {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+}
+.movie-list.view-posters .movie-card-main {
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+}
+.movie-list.view-posters .movie-card-poster-wrapper {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    flex: none;
+}
+.movie-list.view-posters .poster-link,
+.movie-list.view-posters .movie-card-poster,
+.movie-list.view-posters .poster-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 9px;
+}
+.movie-list.view-posters .tmdb-score {
+    left: 7px;
+    top: 7px;
+    box-shadow: 0 2px 8px #0007;
+}
+.movie-list.view-posters .poster-rating-pill {
+    display: inline-flex;
+    align-items: center;
+    position: absolute;
+    left: 7px;
+    bottom: 7px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background: #13110ce8;
+    border: 1px solid #e5c7874a;
+    color: var(--gold);
+    font-size: .68rem;
+    font-weight: 650;
+    backdrop-filter: blur(8px);
+}
+.movie-list.view-posters .poster-note-pill {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #14151ee6;
+    border: 1px solid #c4b1ff4a;
+    color: var(--primary);
+    font-size: .68rem;
+    backdrop-filter: blur(8px);
+}
+.movie-list.view-posters .movie-card-body h2 {
+    font-size: .83rem;
+    height: 2.75em;
+    margin: 0 0 3px;
+}
+.movie-list.view-posters .card-year {
+    font-size: .7rem;
+    margin-bottom: 5px;
+}
+.movie-list.view-posters .card-genre,
+.movie-list.view-posters .movie-rating,
+.movie-list.view-posters .card-note,
+.movie-list.view-posters .card-note-placeholder {
+    display: none;
+}
+.movie-list.view-posters .movie-card-actions {
+    margin-top: auto;
+    padding-top: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+}
+.movie-list.view-posters .movie-card-actions button,
+.movie-list.view-posters .movie-card-actions .edit-link {
+    min-height: 32px;
+    padding: 5px 6px;
+    font-size: .65rem;
+}
+
+/* Elevated secondary surfaces (Explore, Recommendations, Forms) */
+.catalog-card,
+.recommendation-item,
+.form-card {
+    background: linear-gradient(145deg, #1b1c26, #15161e);
+    box-shadow: inset 0 1px 0 #ffffff09;
+    transition: border-color .18s, transform .18s, box-shadow .18s;
+}
+.catalog-card:hover,
+.discovery-card:hover,
+.discovery-paths > a:hover {
+    border-color: #c4b1ff52;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px #0005;
+}
+
+/* Seamless Cinematic Backdrop Hero on Movie & Catalog Detail Pages */
+.movie-detail-card {
+    background: linear-gradient(155deg, #1e1f2c, #15161e 58%);
+    box-shadow: inset 0 1px 0 #ffffff0c, 0 20px 60px #0005;
+}
+.movie-detail-card.has-backdrop .detail-backdrop {
+    height: 280px;
+    margin: -36px -36px 0;
+    border-bottom: 0;
+}
+.movie-detail-card.has-backdrop .detail-backdrop img {
+    opacity: .56;
+    filter: saturate(1.06) contrast(1.04);
+}
+.movie-detail-card.has-backdrop .detail-backdrop::after {
+    background: linear-gradient(180deg, #0e0f1518 0%, #171822a8 56%, #1a1b26 100%);
+}
+.movie-detail-card.has-backdrop .detail-hero-head {
+    position: relative;
+    z-index: 2;
+    margin-top: -112px;
+}
+.movie-detail-card.has-backdrop .movie-header {
+    position: relative;
+    z-index: 2;
+    margin-top: 20px;
+}
+.detail-poster {
+    border: 1px solid #ffffff1c;
+    box-shadow: 0 22px 54px #000a;
+}
+.detail-rating-readout {
+    color: var(--gold);
+    font-weight: 600;
+    font-size: .95rem;
+}
+
+/* Interactive 1-10 Golden Quick-Rating Strip */
+.quick-rate-form {
+    margin: 2px 0;
+}
+.rating-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 8px;
+}
+.rate-pill {
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: var(--surface-light);
+    border: 1px solid #ffffff18;
+    color: var(--muted);
+    font-size: .76rem;
+    font-weight: 600;
+    box-shadow: none;
+    transition: background .14s, color .14s, border-color .14s, transform .14s;
+}
+.rate-pill:hover {
+    background: #e5c7871a;
+    border-color: #e5c78775;
+    color: var(--gold);
+    box-shadow: none;
+    transform: translateY(-1px);
+}
+.rate-pill.selected {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #1c1608;
+    font-weight: 700;
+    box-shadow: 0 4px 14px #e5c78735;
+}
+.rate-pill.selected:hover {
+    background: #f0d79e;
+    color: #1c1608;
+}
+.rate-pill.rate-clear {
+    color: var(--rose);
+    border-color: #f1879938;
+}
+.rate-pill.rate-clear:hover {
+    background: #f187991c;
+    border-color: #f1879980;
+    color: var(--rose);
+}
+
+/* Android & Mobile Polish (zero cramped bottom bar + 2-col poster grid) */
+@media (max-width: 600px) {
+    .sidebar {
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+        background: #13141df5;
+        border-top: 1px solid #ffffff1a;
+    }
+    .app-nav {
+        gap: 2px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        justify-content: flex-start;
+    }
+    .app-nav::-webkit-scrollbar {
+        display: none;
+    }
+    .app-nav a {
+        flex: 1 0 58px;
+        border-radius: 10px;
+        padding: 7px 4px;
+        font-size: .59rem;
+    }
+    .movie-list.view-posters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    .movie-list.view-posters .movie-card {
+        padding: 8px;
+    }
+    .movie-list.view-posters .movie-card-actions button,
+    .movie-list.view-posters .movie-card-actions .edit-link {
+        min-height: 36px;
+        min-width: 0;
+        padding: 6px 4px;
+        font-size: .64rem;
+    }
+    .view-toggle {
+        min-height: 38px;
+        min-width: 40px;
+    }
+    .movie-detail-card.has-backdrop .detail-backdrop {
+        height: 180px;
+        margin: -22px -22px 0;
+    }
+    .movie-detail-card.has-backdrop .detail-hero-head {
+        margin-top: -78px;
+    }
+    .rate-pill {
+        min-width: 38px;
+        min-height: 38px;
+    }
+}
+
+/* ==========================================================================
+   v3.8.1 Screening-Room Atmosphere, Poster Heart Badge & Deep Cinema Stats
+   ========================================================================== */
+
+/* Multi-layered atmospheric cinema screening-room backdrop */
+body {
+    position: relative;
+    background-color: #0b0c12;
+    background-image:
+        radial-gradient(ellipse 66% 38% at 56% -6%, #c4b1ff18 0%, transparent 64%),
+        radial-gradient(ellipse 40% 34% at 96% 14%, #e5c78710 0%, transparent 62%),
+        radial-gradient(ellipse 48% 44% at 10% 88%, #7357b814 0%, transparent 68%),
+        linear-gradient(180deg, #0d0e15 0%, #0b0c12 45%, #090a10 100%);
+    background-attachment: fixed;
+}
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: radial-gradient(#ffffff09 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: radial-gradient(ellipse 85% 65% at 55% 18%, #000 0%, transparent 82%);
+    -webkit-mask-image: radial-gradient(ellipse 85% 65% at 55% 18%, #000 0%, transparent 82%);
+}
+.sidebar,
+.workspace {
+    position: relative;
+    z-index: 1;
+}
+
+/* Editorial spotlight header & refined obsidian chrome */
+.sidebar {
+    background: linear-gradient(180deg, #131420ee 0%, #0e0f17f5 100%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 1px 0 0 #ffffff0d, 14px 0 40px #0004;
+}
+.brand-logo {
+    filter: drop-shadow(0 4px 14px #c4b1ff26);
+}
+.workspace-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    margin: 0 calc(clamp(24px, 3.3vw, 52px) * -1);
+    padding: 0 clamp(24px, 3.3vw, 52px);
+    background: #0c0d14d4;
+    border-bottom: 1px solid #ffffff11;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+.app-header {
+    padding: 22px 26px;
+    margin-bottom: 22px;
+    border-radius: 18px;
+    border: 1px solid #ffffff11;
+    background:
+        radial-gradient(ellipse 60% 100% at 100% 0%, #c4b1ff12, transparent 70%),
+        radial-gradient(ellipse 45% 90% at 0% 100%, #e5c78709, transparent 70%),
+        linear-gradient(140deg, #171824cc, #12131ccc);
+    box-shadow: inset 0 1px 0 #ffffff0d, 0 14px 36px #0004;
+}
+.heading-dot {
+    color: var(--gold);
+}
+.filter-bar {
+    padding: 16px 20px 18px;
+    border: 1px solid #ffffff10;
+    border-radius: 16px;
+    background: #13141dc4;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 #ffffff09;
+}
+.filter-group {
+    border-bottom-color: #ffffff10;
+}
+.filter-group .active-filter {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    text-shadow: 0 0 16px #c4b1ff45;
+}
+.library-search input:focus,
+.library-toolbar select:focus {
+    box-shadow: 0 0 0 3px #c4b1ff22;
+}
+
+/* Tactile Velvet Library Cards + Rose Favorite Button Glow */
+.movie-card {
+    background: linear-gradient(150deg, #1c1d2ae8 0%, #14151fe8 58%, #11121ae8 100%);
+    border-color: #ffffff13;
+    box-shadow: inset 0 1px 0 #ffffff0f, 0 6px 20px #0003;
+}
+.movie-card:hover {
+    border-color: #c4b1ff58;
+    box-shadow: inset 0 1px 0 #ffffff16, 0 18px 42px #0006, 0 0 0 1px #c4b1ff1a;
+}
+.movie-card-actions button[aria-pressed="true"] {
+    color: #ff7a96;
+    background: #361724;
+    border-color: #ff7a9660;
+}
+.movie-card-actions button[aria-pressed="true"]:hover {
+    background: #471d2f;
+    color: #ff9cb0;
+}
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 3px 9px;
+    border: 1px solid transparent;
+}
+.status-badge::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.status-badge.watched {
+    border-color: #a1d8b530;
+    background: #a1d8b514;
+}
+.status-badge.watchlist {
+    border-color: #dfc39430;
+    background: #dfb87514;
+}
+
+/* Poster Grid: Glowing Ruby-Rose Favorite Heart Badge + 4-Corner Zero-Overlap Layout */
+.poster-favorite-pill {
+    display: none;
+}
+.movie-list.view-posters .poster-favorite-pill:not([hidden]) {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #3a1424f0, #240d17f0);
+    border: 1px solid #ff7a9685;
+    color: #ff7a96;
+    font-size: .84rem;
+    line-height: 1;
+    box-shadow: 0 4px 14px #0009, 0 0 16px #ff5c8248;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    pointer-events: none;
+    animation: heart-pop .24s cubic-bezier(.2,1.3,.4,1);
+}
+.movie-list.view-posters .poster-note-pill {
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+}
+.movie-list.view-posters .movie-card-poster-wrapper::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 44%;
+    border-radius: 0 0 9px 9px;
+    background: linear-gradient(180deg, transparent 0%, #0b0c12c8 100%);
+    pointer-events: none;
+}
+.movie-list.view-posters .poster-rating-pill,
+.movie-list.view-posters .poster-note-pill,
+.movie-list.view-posters .poster-favorite-pill,
+.movie-list.view-posters .tmdb-score {
+    z-index: 2;
+}
+@keyframes heart-pop {
+    0% { transform: scale(.6); opacity: .4; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Deep Cinema Statistics Editorial Extensions */
+.stats-year-switcher {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 11px;
+    border: 1px solid #ffffff12;
+    background: #11121a;
+}
+.stats-year-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    transition: background .15s, color .15s;
+}
+.stats-year-pill:hover {
+    color: var(--text);
+    background: #ffffff0a;
+}
+.stats-year-pill.is-active {
+    background: var(--primary);
+    color: #191229;
+}
+.stats-hero-banner {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding: 26px 30px;
+    margin-bottom: 22px;
+    border-radius: 18px;
+    border: 1px solid #c4b1ff2a;
+    background:
+        radial-gradient(ellipse 55% 110% at 0% 50%, #c4b1ff18, transparent 70%),
+        radial-gradient(ellipse 45% 90% at 100% 0%, #e5c78714, transparent 72%),
+        linear-gradient(140deg, #1b1c29, #13141d);
+    box-shadow: inset 0 1px 0 #ffffff12, 0 16px 42px #0005;
+}
+.stats-ring-wrap {
+    position: relative;
+    width: 108px;
+    height: 108px;
+    flex: 0 0 108px;
+}
+.stats-ring-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.stats-ring-track {
+    stroke: #ffffff14;
+}
+.stats-ring-fill {
+    stroke: var(--primary);
+    filter: drop-shadow(0 0 8px #c4b1ff55);
+}
+.stats-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.stats-ring-center strong {
+    font-size: 1.35rem;
+    font-weight: 650;
+    color: var(--text);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.stats-ring-center span {
+    font-size: .64rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+.stats-hero-copy {
+    min-width: 0;
+    flex: 1;
+}
+.stats-hero-copy .eyebrow {
+    margin-bottom: 6px;
+}
+.stats-hero-copy h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    letter-spacing: -.02em;
+    margin: 0 0 14px;
+    color: var(--text);
+}
+.stats-insight-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.stats-insight-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: .73rem;
+    color: #d9d4e8;
+    background: #ffffff09;
+    border: 1px solid #ffffff16;
+}
+.stats-chip-gold {
+    color: var(--gold);
+    background: #e5c78714;
+    border-color: #e5c7873a;
+}
+.stats-kpi-rose {
+    border-color: #ff7a9630;
+    background: linear-gradient(145deg, #271a24, #17161f);
+}
+.stats-kpi-rose .stats-kpi-label svg,
+.stats-kpi-rose .stats-kpi-value {
+    color: #ff8aa4;
+}
+.stats-records-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+.stats-record-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 18px;
+    border-radius: var(--radius);
+    border: 1px solid #ffffff12;
+    background: linear-gradient(150deg, #1b1c28, #14151d);
+    color: var(--text);
+    min-width: 0;
+    box-shadow: inset 0 1px 0 #ffffff0a;
+    transition: border-color .16s, transform .16s, box-shadow .16s;
+}
+.stats-record-card:hover {
+    color: var(--text);
+    border-color: #c4b1ff55;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px #0005;
+}
+.stats-record-label {
+    font-size: .64rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--primary);
+    font-weight: 650;
+}
+.stats-record-card strong {
+    font-size: .9rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.stats-record-meta {
+    font-size: .74rem;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+}
+.stats-vchart-week {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.stats-full-panel {
+    margin-top: 18px;
+}
+.stats-studios-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.stats-film-heart {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #331322eb;
+    border: 1px solid #ff7a9675;
+    color: #ff7a96;
+    font-size: .76rem;
+    box-shadow: 0 3px 10px #0008;
+}
+@media (max-width: 1100px) {
+    .stats-records-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stats-studios-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+    .workspace-topbar {
+        margin: 0 -18px;
+        padding: 0 18px;
+    }
+    .app-header {
+        padding: 18px;
+    }
+    .filter-bar {
+        padding: 14px;
+    }
+    .stats-hero-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+        gap: 18px;
+    }
+    .stats-ring-wrap {
+        width: 88px;
+        height: 88px;
+        flex-basis: 88px;
+    }
+    .stats-records-grid,
+    .stats-studios-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   Shareable 1080x1350 Cinema Passport PNG Card Modal
+   ========================================================================== */
+.stats-header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.stats-share-btn {
+    white-space: nowrap;
+}
+.stats-card-dialog {
+    padding: 0;
+    border: 1px solid #c4b1ff38;
+    border-radius: 20px;
+    background: linear-gradient(155deg, #191a28f7, #11121cf7);
+    color: var(--text);
+    max-width: min(560px, 94vw);
+    width: 100%;
+    box-shadow: 0 32px 80px #000c, inset 0 1px 0 #ffffff14;
+}
+.stats-card-dialog::backdrop {
+    background: #06070bcc;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.stats-card-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px 24px 24px;
+}
+.stats-card-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+.stats-card-modal-header .eyebrow {
+    margin-bottom: 4px;
+}
+.stats-card-modal-header h2 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 1.35rem;
+    color: var(--text);
+}
+.stats-card-close {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #ffffff1a;
+    background: #ffffff0a;
+    color: var(--muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    box-shadow: none;
+}
+.stats-card-close:hover {
+    background: #ffffff16;
+    color: var(--text);
+    box-shadow: none;
+}
+.stats-card-privacy {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    font-size: .75rem;
+    color: var(--muted);
+}
+.stats-card-privacy svg {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+.stats-card-preview-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+    border-radius: 16px;
+    background: #0b0c12;
+    border: 1px solid #ffffff10;
+}
+.stats-card-canvas {
+    display: block;
+    max-height: 62vh;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px #000a;
+}
+.stats-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.stats-card-actions button {
+    flex: 1 1 160px;
+    justify-content: center;
+}
+.stats-card-status {
+    margin: 0;
+    font-size: .78rem;
+    color: var(--gold);
+    text-align: center;
+}
+@media (max-width: 600px) {
+    .stats-header-actions {
+        width: 100%;
+    }
+    .stats-share-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .stats-card-modal {
+        padding: 18px 16px 20px;
+    }
+    .stats-card-canvas {
+        max-height: 54vh;
+    }
+}

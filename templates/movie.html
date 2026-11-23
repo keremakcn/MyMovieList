@@ -4,12 +4,14 @@
 {% endblock %}
 {% block content %}
     <a class="back-link" href="{{ request.args.get('back')|safe_back }}">{{ t("← Back to library") }}</a>
-    <section class="movie-detail-card" data-detail-id="{{ movie.id }}">
+    <section class="movie-detail-card {{ 'has-backdrop' if tmdb.backdrop_url }}" data-detail-id="{{ movie.id }}">
         {% if tmdb.backdrop_url %}
             <div class="detail-backdrop"><img src="{{ tmdb.backdrop_url }}" alt="" loading="eager"></div>
         {% endif %}
-        <p class="eyebrow">{{ t("IN YOUR LIBRARY") }}</p>
-        <h1>{{ movie.title }}</h1>
+        <div class="detail-hero-head">
+            <p class="eyebrow">{{ t("IN YOUR LIBRARY") }}</p>
+            <h1>{{ movie.title }}</h1>
+        </div>
         <div class="movie-header">
             {% if tmdb.poster_url %}
                 <img class="movie-poster detail-poster"
@@ -21,7 +23,30 @@
             <div class="movie-header-badges">
                 {% include "_info_badges.html" %}
                 <span class="status-badge {{ movie.status|lower }}">{{ t('Want to watch' if movie.status=='Watchlist' else 'Watched') }}</span>
-                <p>{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("No rating yet") }}</p>
+                <p class="detail-rating-readout" data-rating-readout>{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("No rating yet") }}</p>
+                <form class="quick-rate-form"
+                      action="{{ url_for('rate_movie', movie_id=movie.id) }}"
+                      method="post"
+                      data-quick-rate-form>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="next" value="{{ current_url }}">
+                    <div class="rating-strip" role="group" aria-label="{{ t('Quick rating') }}">
+                        {% for score in range(1, 11) %}
+                            <button type="submit"
+                                    name="value"
+                                    value="{{ score }}"
+                                    class="rate-pill {{ 'selected' if movie.rating == score }}"
+                                    aria-pressed="{{ 'true' if movie.rating == score else 'false' }}">{{ score }}</button>
+                        {% endfor %}
+                        <button type="submit"
+                                name="value"
+                                value=""
+                                class="rate-pill rate-clear"
+                                {{ 'hidden' if not movie.rating }}
+                                aria-label="{{ t('Clear rating') }}"
+                                title="{{ t('Clear rating') }}">×</button>
+                    </div>
+                </form>
                 <p data-watched-date {{ "hidden" if not movie.watched_date }}>{{ t("Watched {date}", date=movie.watched_date or "") }}</p>
             </div>
         </div>

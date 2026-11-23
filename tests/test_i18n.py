@@ -111,7 +111,7 @@ def test_translation_placeholders_and_client_catalog_are_complete():
             re.findall(pattern, translated)
         ), original
     static = Path(__file__).resolve().parents[1] / "static"
-    for name in ("script.js", "recommendations.js", "discovery.js"):
+    for name in ("script.js", "recommendations.js", "discovery.js", "stats_card.js"):
         source = (static / name).read_text(encoding="utf-8")
         ui_keys = {
             match[2]

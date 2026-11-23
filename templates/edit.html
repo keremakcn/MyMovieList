@@ -16,6 +16,19 @@
                   method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label for="rating">{{ t("Your rating (1–10)") }}</label>
+                <div class="rating-strip" role="group" aria-label="{{ t('Quick rating') }}" data-edit-rating-strip>
+                    {% for score in range(1, 11) %}
+                        <button type="button"
+                                class="rate-pill {{ 'selected' if movie.rating == score }}"
+                                data-edit-rate="{{ score }}"
+                                aria-pressed="{{ 'true' if movie.rating == score else 'false' }}">{{ score }}</button>
+                    {% endfor %}
+                    <button type="button"
+                            class="rate-pill rate-clear"
+                            data-edit-rate=""
+                            aria-label="{{ t('Clear rating') }}"
+                            title="{{ t('Clear rating') }}">×</button>
+                </div>
                 <input id="rating"
                        name="rating"
                        type="number"

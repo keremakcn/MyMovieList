@@ -18,7 +18,7 @@ const image=(path,size='w342')=>/^\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/.test(p
 let peopleRetryAt=0,peopleRole='actor',peoplePageNumber=1,libraryScope='';
 let retryAt=0,failures=0,syncTimer,toastTimer,searchTimer;
 const community=createCommunityPages({state,store,api,t,e,image,card,render:()=>render(),navigate,errorText,toast});
-const statsPage=createStatsPage({state,store,t,e,image});
+const statsPage=createStatsPage({state,store,t,e,image,toast});
 const importUi=createImportUI({state,store,api,t,e,queueSync,render:()=>render(),toast,navigate});
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4500);}
 function errorText(error){return t(error?.code || error?.message)=== (error?.code || error?.message) ? t('genericError') : t(error.code || error.message);}
@@ -44,7 +44,8 @@ function card(movie,work,extra=''){
   const id=movie.id,key='tmdb:'+id,entry=work.entries[key],saved=entry && !entry.data.deleted_at;
   const title=movie.title || movie.original_title || 'TMDB #'+id,poster=image(movie.poster_path);
   const hasNote=saved && typeof entry.data.note==='string' && entry.data.note.trim().length>0;
-  return `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-movie="${id}" aria-label="${e(title)}">${poster ? `<img src="${poster}" alt="${e(title)}" loading="lazy">` : `<span class="poster-fallback">${e(title)}</span>`}</button>${extra ? `<span class="poster-label">${e(extra)}</span>` : ''}${hasNote ? `<span class="note-pill" title="${e(t('hasNote'))}" aria-label="${e(t('hasNote'))}">✎</span>` : ''}<button class="quick-add ${saved?'saved':''}" data-add="${id}" aria-label="${e((saved?t('saved'):t('add'))+' · '+title)}">${saved?'✓':'+'}</button></div><h3 class="card-title"><button class="plain-title" data-movie="${id}">${e(title)}</button></h3><div class="card-meta"><span>${e(movie.release_date?.slice(0,4) || '')}</span><span class="card-rating">${saved && entry.data.rating ? '★ '+entry.data.rating : movie.vote_average ? '★ '+Number(movie.vote_average).toFixed(1) : ''}</span></div></article>`;
+  const isFav=Boolean(saved && entry.data.favorite);
+  return `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-movie="${id}" aria-label="${e(title)}">${poster ? `<img src="${poster}" alt="${e(title)}" loading="lazy">` : `<span class="poster-fallback">${e(title)}</span>`}</button>${extra ? `<span class="poster-label">${e(extra)}</span>` : ''}${isFav ? `<span class="favorite-pill" aria-hidden="true">♥</span>` : ''}${hasNote ? `<span class="note-pill" title="${e(t('hasNote'))}" aria-label="${e(t('hasNote'))}">✎</span>` : ''}<button class="quick-add ${saved?'saved':''}" data-add="${id}" aria-label="${e((saved?t('saved'):t('add'))+' · '+title)}">${saved?'✓':'+'}</button></div><h3 class="card-title"><button class="plain-title" data-movie="${id}">${e(title)}</button></h3><div class="card-meta"><span>${e(movie.release_date?.slice(0,4) || '')}</span><span class="card-rating">${saved && entry.data.rating ? '★ '+entry.data.rating : movie.vote_average ? '★ '+Number(movie.vote_average).toFixed(1) : ''}</span></div></article>`;
 }
 async function catalog(id){
   const key=state.lang+':'+id,old=await store.metadata(key);
@@ -58,7 +59,8 @@ async function renderLibraryCards(items,work,prefetched=null){
   return items.map(entry=>{
     if(entry.data.custom){
       const hasNote=typeof entry.data.note==='string' && entry.data.note.trim().length>0;
-      return `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-custom="${e(entry.key)}"><span class="poster-fallback">${e(entry.data.custom.title)}</span></button><span class="poster-label">${e(entry.data.status==='Watched'?t('watched'):t('watchlist'))}</span>${hasNote ? `<span class="note-pill" title="${e(t('hasNote'))}" aria-label="${e(t('hasNote'))}">✎</span>` : ''}</div><h3 class="card-title"><button class="plain-title" data-custom="${e(entry.key)}">${e(entry.data.custom.title)}</button></h3><div class="card-meta"><span>${e(entry.data.custom.year || '')}</span><span class="card-rating">${entry.data.rating ? '★ '+entry.data.rating : ''}</span></div></article>`;
+      const isFav=Boolean(entry.data.favorite);
+      return `<article class="movie-card"><div class="poster-button"><button class="poster-open" data-custom="${e(entry.key)}"><span class="poster-fallback">${e(entry.data.custom.title)}</span></button><span class="poster-label">${e(entry.data.status==='Watched'?t('watched'):t('watchlist'))}</span>${isFav ? `<span class="favorite-pill" aria-hidden="true">♥</span>` : ''}${hasNote ? `<span class="note-pill" title="${e(t('hasNote'))}" aria-label="${e(t('hasNote'))}">✎</span>` : ''}</div><h3 class="card-title"><button class="plain-title" data-custom="${e(entry.key)}">${e(entry.data.custom.title)}</button></h3><div class="card-meta"><span>${e(entry.data.custom.year || '')}</span><span class="card-rating">${entry.data.rating ? '★ '+entry.data.rating : ''}</span></div></article>`;
     }
     const id=Number(entry.key.split(':')[1]);
     const movie=meta[lang+':'+id] || meta[fallback+':'+id] || {id,title:'TMDB #'+id,release_date:''};
@@ -431,6 +433,7 @@ async function click(event){
   if(button.dataset.close){$('#'+button.dataset.close).close();return;}
   if(await community.handleClick(button))return;
   if(importUi.handleClick(button))return;
+  if(await statsPage.handleClick(button))return;
   if(button.dataset.clearLibraryFilters!==undefined){state.filter='all';state.libraryQuery='';state.librarySort='default';state.libraryPage=1;await render();return;}
   if(button.dataset.quickRate!==undefined){
     const val=button.dataset.quickRate,form=$('#detail-form'),select=form?.querySelector('select[name="rating"]');

@@ -211,6 +211,9 @@ def create_app(config=None):
                     (BASE_DIR / "static/i18n.js").stat().st_mtime_ns,
                     (BASE_DIR / "static/account.js").stat().st_mtime_ns,
                     (BASE_DIR / "static/showcase.js").stat().st_mtime_ns,
+                    (BASE_DIR / "static/stats_card.js").stat().st_mtime_ns
+                    if (BASE_DIR / "static/stats_card.js").exists()
+                    else 0,
                     (BASE_DIR / "static/locales/tr.json").stat().st_mtime_ns,
                 )
             ),
@@ -696,7 +699,13 @@ def create_app(config=None):
     @app.get("/stats")
     def stats():
         # `db` always resolves to the library bound for this request (account or guest).
-        return render_template("stats.html", stats=compute_cinema_stats(db))
+        raw_year = (request.args.get("year") or "").strip()
+        selected_year = None
+        if raw_year.isdigit():
+            parsed = int(raw_year)
+            if 1800 <= parsed <= 2200:
+                selected_year = parsed
+        return render_template("stats.html", stats=compute_cinema_stats(db, year=selected_year))
 
     @app.post("/movie/<int:movie_id>/refresh")
     def refresh_movie(movie_id):
@@ -874,8 +883,27 @@ def create_app(config=None):
                 status=row["status"],
                 favorite=row["favorite"],
                 watched_date=row["watched_date"],
+                rating=row["rating"],
             )
         return redirect(safe_path(request.form.get("next")))
+
+    @app.post("/rate/<int:movie_id>")
+    def rate_movie(movie_id):
+        row = db.movie(movie_id)
+        if not row:
+            abort(404)
+        raw = (request.form.get("value") or "").strip()
+        if raw == "":
+            rating = None
+        else:
+            try:
+                rating = int(raw)
+            except ValueError:
+                abort(400, "Rating must be a whole number from 1 to 10.")
+            if not 1 <= rating <= 10:
+                abort(400, "Rating must be between 1 and 10.")
+        db.update_personal(movie_id, {"rating": rating})
+        return mutation_result(movie_id)
 
     @app.post("/favorite/<int:movie_id>")
     def favorite(movie_id):
