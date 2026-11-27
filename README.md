@@ -3,125 +3,119 @@
 </p>
 <h1 align="center">MyMovieList</h1>
 <p align="center"><strong>Your films. Your thoughts. Your space.</strong></p>
-<p align="center">A personal movie library with discovery, recommendations and a private journal. No account or API key required.</p>
+<p align="center">A personal movie library with discovery, personal recommendations, interactive cinema statistics and a private journal. No account or API key required.</p>
 <p align="center"><a href="https://github.com/keremakcn/MyMovieList/releases/latest"><strong>Download</strong></a> · <a href="https://github.com/keremakcn/MyMovieList/releases">All releases</a></p>
 
 **English** | [Türkçe](README.tr.md)
 
-**Version 3.8.0 — Cinema Stats, Letterboxd/IMDb Import & Unified UI:** bring your Letterboxd (`.zip`/`.csv`) or IMDb (`.csv`) history into web or desktop, explore private on-device Cinema Statistics (`/stats`), enjoy cinematic movie backdrops, unified obsidian/lavender/gold design, per-entry IndexedDB v2 storage, PWA support, dynamic Open Graph cards and Supabase migration 008 scale indexes. Windows EXE is built from the current 3.8.0 source; Android and macOS packages build from the same 3.8.0 source.
+**Version 4.0.0 — Obsidian Screening Room:** a full-bleed cinematic redesign across Windows, Android and Web featuring three library views (**Editorial**, **3D Spatial Shelf**, **Poster Wall**), rotating living backdrops from your favorited or `8+` rated films, interactive **Cinema Stats** (`/stats`) with clickable poster drilldowns, monthly wave charts, crystal genre radar, director/actor portraits and cached studio logos, curatorial **For You** screening cards, frameless **Explore** posters, edge-to-edge movie detail pages, and automatic **>40-character note auto-save**.
 
 ## Get started
 
-Windows 3.8.0 packages are built locally and will appear in Assets after publication. Mac and Android packages build from the shared 3.8.0 source.
+Windows and Android `4.0.0` release packages build directly from this source. macOS packages build from the same shared `4.0.0` source.
 
-**Windows — v3.8.0**
+**Windows — v4.0.0**
 
-1. Download `MyMovieList-v3.8.0-windows.zip` from the release’s **Assets**.
-2. Extract it and open `MyMovieList-v3.8.0.exe`. No Python installation is needed.
+1. Download `MyMovieList-v4.0.0-windows.zip` from the release’s **Assets**.
+2. Extract it and open `MyMovieList-v4.0.0.exe`. No Python installation is needed.
 3. Search for a film and add it to your library. Discovery is ready without setup.
 
-**Android — 3.8.0 beta.1**
+**Android — 4.0.0 beta.1**
 
-Download `MyMovieList-3.8.0-android-beta.1.apk` from the release’s **Assets** and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows when you sign in. Accounts remain optional. This is a beta: physical-device testing is still required. See [Android details](ANDROID.md).
+Download `MyMovieList-4.0.0-android-beta.1.apk` from the release’s **Assets** (or upload the matching `.aab` to Google Play) and open it on your phone. Android 7.0 or newer, a 64-bit ARM device and a current Android System WebView are required. The Android app runs independently, keeps your library on the phone and can sync your account library with Windows and Web when you sign in. Accounts remain optional. See [Android details](ANDROID.md).
 
-**macOS — v3.8.0 beta**
+**macOS — v4.0.0 beta**
 
-Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version 3.8.0 includes Letterboxd/IMDb import, personal cinema statistics, cinematic backdrops, favorite actors/directors, time-aware sync, recommendation tags, portrait cards, fixed username controls and packaged HTTPS certificates. Its DMGs require a fresh native build through the macOS workflow after the updated source is pushed; older DMGs do not include all current changes. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
+Requires macOS 15 or later. Choose the `arm64` DMG for Apple Silicon (M-series) or `x86_64` for Intel, open it and drag MyMovieList to **Applications**. Version `4.0.0` includes the full Obsidian Screening Room UI, interactive Cinema Stats, Letterboxd/IMDb import, automatic note auto-save, favorite actors/directors, time-aware sync and packaged HTTPS certificates. Its DMGs build through the macOS workflow from this release source. These betas are not notarized by Apple. See [Mac build and installation details](MACOS.md).
 
 ## Web
 
-[Use on the web](https://myshelf.cloud) — web beta.
+[Use on the web](https://myshelf.cloud) — web PWA.
 
-The MyShelf web app supports the same account and private library as the native
-apps: browser storage, automatic sync, email-first signup, profile avatars and
-selected showcases. It also links to the latest published GitHub release.
-Source and deployment details are in [WEB.md](WEB.md).
+The MyShelf web app supports the same account and private library as the native apps: per-entry IndexedDB storage, offline PWA support, automatic sync, email-first signup, profile avatars, selected showcases, dynamic Open Graph cards and automatic long-note saving. Source and deployment details are in [WEB.md](WEB.md).
 
-The new source carries per-field edit times across web, Windows, Android and
-macOS. Newer trustworthy competing edits win; independent changes merge and
-unknown legacy times keep recoverable review. This behavior is shared by
-the 3.8.0 source for every platform. Existing packages remain compatible;
-current Windows builds include the 3.8.0 features; Android and Mac packages build from the shared 3.8.0 source.
+Per-field edit timestamps travel across web, Windows, Android and macOS so newer competing edits win, independent changes merge cleanly, and legacy conflicts stay recoverable.
 
 ## Features
 
-- **Social:** find public profiles by name or username, open chosen showcases inside the app, and browse this week’s dated watches from selected showcase films. Private notes and the rest of each library stay private. Public sharing is optional; accounts remain private until their owners choose to share.
-- **English and Turkish interface:** first launch follows your device's UI language (Turkish or English fallback), then remembers your choice locally. Change it in **Settings → Language**. Turkish-original films show their Turkish names, and synopses use available Turkish translations with English fallback. Movie identity and personal notes stay unchanged.
-- **Automatic movie details:** cast, directors, writers, producers and studios are saved with each addition. Older entries fill missing details automatically as you browse online; saved details and bilingual synopses remain available offline.
-- Track **Want to watch** and **Watched**, with ratings, favorites and private notes.
-- Add films directly from search without losing your results.
-- Browse **Trending films** by day or week, **Highest rated**, **New releases** and **Genres** in Explore. Open full lists, hide library films and add directly from a poster card.
-- Explore actors and directors through photo cards, then discover their films. Missing photos use a silhouette; names and links stay available. You can also explore production companies.
-- Keep favorite actors and directors in separate private collections. Use the heart on a person card, then open **Favorite people** from your profile or the sidebar. Favorites work locally without an account and sync automatically when signed in; they never appear in your public showcase.
-- Get personal recommendations from your ratings and favorites, using genres, available themes, directors and lead cast. The three discovery modes balance familiar films with new interests; refresh for new picks with fewer recent repeats.
-- Recommendation cards show genre tags. Well-received, recognizable classics that fit your taste get more weight; recent films can receive a small bonus for notable lead cast. Smaller interests and diversity remain part of the selection. The public movie pool includes popular films, classics and rotating international selections and is cached on your device.
-- Choose films you enjoyed to help personalize recommendations.
-- Filter and sort your library. Undo removal without losing notes, ratings or the original added order.
-- Compact cards with a one-line note preview; open the detail page to read or edit.
-- Keyboard-friendly search, suggestions and navigation. Press **Ctrl+K** (**⌘K** on Mac) to search.
+- **Three cinema-grade library modes (`Editorial → 3D Shelf → Posters`):** browse your collection as full-bleed widescreen cinema scenes (**Editorial**), physical hardcover poster spines that unfold into full-bleed spreads (**3D Shelf**), or a frameless 2:3 gallery wall (**Poster Wall**).
+- **Living Library Backdrop:** every visit illuminates your library and stats pages with a rotating full-screen scene drawn from your own favorited (`♥`) or `8+` rated films.
+- **Interactive Cinema Stats (`/stats`):** explore your year in film with a clickable 53-week watch heatmap (with live day-title preview), smooth monthly wave chart, weekday equalizer meters, a 6-axis luminous crystal genre radar, a 10-tier rating ladder, 35mm decade filmstrips with real mini posters, 2×2 runtime cards, TMDB director/actor portraits, cached studio logos, a frosted-glass **Screening Inspector** poster modal for every chart element, and an on-device **1080×1350 Shareable Cinema Passport PNG** (zero private notes included).
+- **Full-Bleed Movie Details & Automatic Note Auto-Save:** unified edge-to-edge film backdrops with frosted navigation chrome, inline 1–10 quick rating, side-by-side **Private Critic Vault** & **Synopsis**, and silent automatic saving for personal notes longer than 40 characters.
+- **Letterboxd & IMDb Import:** bring `.zip` or `.csv` exports from Letterboxd or IMDb into your local vault in **Settings** while preserving existing ratings and personal notes.
+- **Explore & Curatorial For You Recommendations:** browse trending, top-rated, new releases and genre portals as frameless poster walls, and dial between three personal discovery frequencies (**Close to my taste**, **A little discovery**, **Surprise me**) displayed as ranked festival screening cards.
+- **Filmmaker & Studio Discovery + Favorite People:** explore actors, directors and production companies through portrait cards and career timelines, and keep private collections of favorite actors and directors.
+- **Social:** find public profiles by name or username, open chosen showcases inside the app, and browse this week’s dated watches from selected showcase films. Private notes and the rest of your library stay private.
+- **English and Turkish interface:** first launch follows your device's UI language (Turkish or English fallback), then remembers your choice locally (**Settings → Language**).
+- **Instant Command Palette:** press **Ctrl+K** (**⌘K** on Mac) anywhere to search films, switch library modes or jump between views.
 
 ## Screenshots
 
-Screenshots show the library and account flows using a demo account and public catalog snapshots. They were captured before this release; current profile controls include the fixed username. [View the Turkish interface](README.tr.md#ekran-görüntüleri).
+Screenshots were captured directly from **v4.0.0** using a demo library and live public catalog data. [View the Turkish interface](README.tr.md#ekran-görüntüleri).
 
-### Your films, kept close
+### Your library — Editorial, 3D Shelf & Poster Wall
 
-![MyMovieList library with watched films, ratings, favorites and private note previews](screenshots/en/library.png)
-
-### Your profile, your showcase
-
-Choose the films that represent you. Your personal overview and the rest of your library stay separate from your public showcase.
-
-![MyMovieList profile with a cat avatar, unique username and six chosen showcase films](screenshots/en/profile.png)
-
-### Discover film lovers
-
-Find public showcases inside the app. This week shows only selected films
-with a watch date; private notes stay private. The members shown here are
-fictional demo accounts.
-
-![MyMovieList Social with this week's selected showcase films](screenshots/en/social.png)
-
-### Find your next favorite
-
-![MyMovieList Explore page with trending and highly rated films](screenshots/en/explore.png)
+![MyMovieList v4.0.0 Editorial library with living ambient backdrop, frosted bento counters and full-bleed scene cards](screenshots/en/library.png)
 
 <details>
-<summary>Recommendations, movie details and filmmaker discovery</summary>
+<summary>3D Spatial Shelf and frameless Poster Wall modes</summary>
 
-![Personal recommendations with three discovery modes](screenshots/en/recommendations.png)
+![MyMovieList 3D Spatial Shelf with poster spines and unfolded cinema spread](screenshots/en/library-shelf.png)
 
-![Film details with a private note, synopsis and saved cast and crew](screenshots/en/movie-details.png)
-
-![Christopher Nolan's profile and filmography](screenshots/en/director.png)
+![MyMovieList frameless 2:3 Poster Wall gallery](screenshots/en/library-posters.png)
 
 </details>
 
+### Interactive Cinema Stats
+
+Every day on the heatmap, every wave node, radar vertex, rating tier, decade filmstrip and runtime card opens a poster-grid Screening Inspector — calculated locally with zero private notes exposed.
+
+![MyMovieList Cinema Stats overview with completion ring, KPIs, archive milestones and interactive watch heatmap](screenshots/en/stats.png)
+
 <details>
-<summary>Registration, sign-in and your personal overview</summary>
+<summary>Genre Constellation Radar, 10-tier Rating Ladder, Portraits & Studio Logos</summary>
 
-Register step by step: email → code → username → password. The registration screen explains how your saved local films come into the new account.
+![Luminous crystal Genre Constellation Radar, 10-tier Rating Ladder and 35mm decade filmstrips](screenshots/en/stats-constellation.png)
 
-![Email-first registration with verification steps and the local-library copy explanation](screenshots/en/registration.png)
+![Most watched directors and actors with TMDB portraits, plus top studios with logos and watched film stacks](screenshots/en/stats-podium.png)
+
+</details>
+
+### Full-bleed movie details & private critic vault
+
+![Full-bleed edge-to-edge movie detail page for Interstellar with inline rating, private note vault and synopsis](screenshots/en/movie-details.png)
+
+### Explore & personal recommendations
+
+![Explore page with Cinema Lobby spotlight and frameless 2:3 trending poster wall](screenshots/en/explore.png)
+
+![For You personal recommendations with 3-mode discovery frequency dial and festival screening cards](screenshots/en/recommendations.png)
+
+<details>
+<summary>Filmmaker profiles, Social and optional account flows</summary>
+
+![Christopher Nolan profile and chronological filmography](screenshots/en/director.png)
+
+![MyMovieList Social with public showcases](screenshots/en/social.png)
+
+![Email-first registration with verification steps and local-to-cloud copy diagram](screenshots/en/registration.png)
 
 ![Sign-in screen with email, password and account-free access](screenshots/en/sign-in.png)
 
-![Private personal overview with library counts and favorite films](screenshots/en/profile-personal.png)
-
 </details>
 
 <details>
-<summary>Phone layouts: library, discovery, profile and registration</summary>
+<summary>Phone layouts: library, explore, recommendations and stats</summary>
 
-Responsive views of the shared interface at phone size, captured from the source preview.
+Responsive views of the shared v4.0.0 interface at phone size (`390×844`) with the floating bottom dock.
 
 <p align="center">
   <img src="screenshots/en/mobile-library.png" alt="English library at phone size" width="44%">
-  <img src="screenshots/en/mobile-explore.png" alt="English discovery at phone size" width="44%">
+  <img src="screenshots/en/mobile-explore.png" alt="English explore at phone size" width="44%">
 </p>
 <p align="center">
-  <img src="screenshots/en/mobile-profile.png" alt="English profile and chosen showcase films at phone size" width="44%">
-  <img src="screenshots/en/mobile-registration.png" alt="English registration and local-library copy explanation at phone size" width="44%">
+  <img src="screenshots/en/mobile-recommendations.png" alt="English personal recommendations at phone size" width="44%">
+  <img src="screenshots/en/mobile-stats.png" alt="English cinema stats at phone size" width="44%">
 </p>
 
 </details>
@@ -134,23 +128,21 @@ Keep using MyMovieList without an account, or sign in to take your private libra
 - **Keep your films when registering:** creating a new account automatically copies the films already saved on this device, with their notes, ratings, favorites and added order. The registration screen explains this before you finish. Your original local copy stays on the device.
 - **Separate libraries:** signing in to an existing account opens that account's library. You can copy the original local library from account settings; existing account records keep their notes and ratings.
 - **Simple registration:** email → verification code → unique username → password. Normal sign-in uses email and password; password recovery verifies its code before asking for a new password.
-- **Your identity:** choose a display name and one of 16 bundled cat avatars. Display names may repeat. Your unique @username is visible on your profile, is chosen once and cannot currently be changed. Profile editing changes only the display name and avatar; older accounts without a username can choose one in Account & sync.
+- **Your identity:** choose a display name and one of 16 bundled cat avatars. Display names may repeat. Your unique `@username` is visible on your profile, is chosen once and cannot currently be changed.
 - **Your showcase:** select and order up to six films yourself. Sharing is off by default. When you enable it, your address is `myshelf.cloud/u/<username>`. Only your chosen films are shared; displaying ratings and library counts is also optional.
-- **Private notes:** film notes, email, custom films and the rest of your library never appear on public profile pages. The identity-name filter does not censor your personal movie notes.
-
-Profile access is in the sidebar and top bar. Import/export remains in **Settings** on desktop. Offline mode uses the data already saved on that device; changes from another device need a connection before they can appear.
+- **Private notes:** film notes, email, custom films and the rest of your library never appear on public profile pages or shareable stats cards.
 
 ## Your thoughts stay yours
 
-Not every reaction needs an audience. Write honestly without publishing your notes to a public profile. Your library, notes, ratings and favorites are saved on your device and are not uploaded to our discovery service or TMDB. If you use an optional account, your account library also syncs privately through Supabase. New registration brings your saved local films into the account, as explained on the registration screen. Signing in to an existing account leaves that library separate until you choose to copy it.
+Not every reaction needs an audience. Write honestly without publishing your notes to a public profile. Your library, notes, ratings and favorites are saved on your device and are not uploaded to our discovery service or TMDB. If you use an optional account, your account library also syncs privately through Supabase.
 
-Recommendations are ranked on your device. Private notes are not analyzed.
+Recommendations and cinema statistics are computed on your device. Private notes are never analyzed or exported into stats cards.
 
 Searches and catalog requests pass through `api.myshelf.cloud` to TMDB. Discovery and remote images need internet; saved library information and downloaded posters remain available offline. Local storage is not encrypted.
 
 **Mac updates preserve your library** in `~/Library/Application Support/MyMovieList`. Close the app before replacing it in Applications.
 
-**Updates preserve your Windows library.** Close the app before replacing the EXE. Existing data remains in `%APPDATA%\MovieWatchlist`; the original folder name is retained for compatibility. Android data stays in private app storage; uninstalling the app or clearing its storage deletes that library.
+**Updates preserve your Windows library.** Close the app before replacing the EXE. Existing data remains in `%APPDATA%\MovieWatchlist`; the original folder name is retained for compatibility. Android data stays in private app storage; installing the signed update over the existing app preserves your library.
 
 ## Run from source
 
@@ -162,10 +154,9 @@ python -m venv .venv
 .\.venv\Scripts\python run_desktop.py
 ```
 
-Build Windows with `.\scripts\build_release.ps1`. See [release notes](RELEASE_NOTES.md), [QA results](QA_RESULTS.md), [recommendation design](RECOMMENDATIONS_DESIGN.md), [discovery design](DISCOVERY_DESIGN.md), [Android build instructions](ANDROID.md) and [discovery service setup](cloudflare/watchlist-api/README.md) for development details.
+Build Windows with `.\scripts\build_release.ps1` and Android with `.\scripts\build_android.ps1 -Release`. See [release notes](RELEASE_NOTES.md), [QA results](QA_RESULTS.md), [recommendation design](RECOMMENDATIONS_DESIGN.md), [discovery design](DISCOVERY_DESIGN.md), [Android build instructions](ANDROID.md) and [discovery service setup](cloudflare/watchlist-api/README.md) for development details.
 
-Developers: see [cloud setup](supabase/README.md) and [data portability](CLOUD_SYNC_DESIGN.md). Database migrations 001–004 enable accounts; migration 005 adds Social. See [Social design and validation](SOCIAL_DESIGN.md).
-
+Developers: see [cloud setup](supabase/README.md) and [data portability](CLOUD_SYNC_DESIGN.md). Database migrations `001–008` enable accounts, Social and scale indexes. See [Social design and validation](SOCIAL_DESIGN.md).
 
 ## Credits
 

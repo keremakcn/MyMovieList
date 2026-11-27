@@ -3,120 +3,119 @@
 </p>
 <h1 align="center">MyMovieList</h1>
 <p align="center"><strong>Filmlerin, düşüncelerin, sana ait bir alan.</strong></p>
-<p align="center">İzlemek istediklerini biriktir, yeni filmler keşfet, aklında kalanları kendin için yaz. Hesap açman veya API anahtarı ayarlaman gerekmez.</p>
+<p align="center">İzlemek istediklerini biriktir, yeni filmler keşfet, interaktif sinema istatistiklerini incele ve aklında kalanları kendin için yaz. Hesap açman veya API anahtarı ayarlaman gerekmez.</p>
 <p align="center"><a href="https://github.com/keremakcn/MyMovieList/releases/latest"><strong>İndir</strong></a> · <a href="https://github.com/keremakcn/MyMovieList/releases">Tüm sürümler</a></p>
 
 [English](README.md) | **Türkçe**
 
-**3.8.0 — Sinema İstatistikleri, Letterboxd/IMDb İçe Aktarma ve Birleşik Arayüz:** Letterboxd (`.zip`/`.csv`) veya IMDb (`.csv`) geçmişini web veya masaüstüne aktar, cihazda yerel hesaplanan Sinema İstatistiklerini (`/stats`) keşfet; sinematik film backdrop afişleri, birleşik obsidiyen/lavanta/altın tasarım, kayıt bazlı IndexedDB v2, PWA kurulumu, dinamik Open Graph paylaşım kartları ve Supabase 008 ölçeklenme indeksleriyle kullan. Windows EXE güncel 3.8.0 koduyla derlendi; Android ve macOS paketleri aynı 3.8.0 kaynağını paylaşır.
+**Sürüm 4.0.0 — Obsidian Screening Room:** Windows, Android ve Web genelinde tam ekran sinematik tasarım yenilemesi — üç farklı kütüphane modu (**Günlük**, **3D Raf**, **Afişler**), favori veya `8+` puanlı filmlerinden dönen canlı ortam arka planları, tıklanabilir afiş inceleyicili **Sinema İstatistikleri** (`/stats`), aylık dalga grafiği, kristal tür radarı, 10 basamaklı puan merdiveni, yönetmen/oyuncu portreleri ve önbellekli stüdyo logoları, festival kartlı **Sana Özel** önerileri, çerçevesiz **Keşfet** duvarı, boydan boya film detay sayfaları ve **40+ karakter otomatik not kaydı**.
 
 ## Başlarken
 
-Windows 3.8.0 paketi hazır; sürüm yayımlandığında Assets bölümünde görünecek. Mac ve Android paketleri ortak 3.8.0 kaynak kodundan derlenir.
+Windows ve Android `4.0.0` sürüm paketleri doğrudan bu kaynaktan derlenir. macOS paketleri de aynı `4.0.0` kaynağını paylaşır.
 
-**Windows — v3.8.0**
+**Windows — v4.0.0**
 
-1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v3.8.0-windows.zip` dosyasını indir.
-2. Arşivi çıkar ve `MyMovieList-v3.8.0.exe` dosyasını aç. Python kurman gerekmez.
+1. Sürüm sayfasının **Assets** bölümünden `MyMovieList-v4.0.0-windows.zip` dosyasını indir.
+2. Arşivi çıkar ve `MyMovieList-v4.0.0.exe` dosyasını aç. Python kurman gerekmez.
 3. Bir film arayıp kütüphanene ekle. Keşif için ek ayar gerekmez.
 
-**Android — 3.8.0-android-beta.1**
+**Android — 4.0.0-android-beta.1**
 
-**Assets** bölümünden `MyMovieList-3.8.0-android-beta.1.apk` dosyasını indirip telefonunda aç. Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ile eşitleyebilir. Hesap açmak isteğe bağlıdır. Bu bir beta sürümüdür ve fiziksel cihaz testleri henüz tamamlanmamıştır. [Android ayrıntıları](ANDROID.md).
+**Assets** bölümünden `MyMovieList-4.0.0-android-beta.1.apk` dosyasını indirip telefonunda aç (Play Store için eşleşen `.aab` paketi de derlenir). Android 7.0 veya üzeri, 64 bit ARM cihaz ve güncel Android System WebView gerekir. Android uygulaması kendi başına çalışır, kütüphaneni telefonda saklar ve giriş yaparsan hesap kütüphaneni Windows ve Web ile eşitleyebilir. Hesap açmak isteğe bağlıdır. [Android ayrıntıları](ANDROID.md).
 
-**macOS — v3.8.0 beta**
+**macOS — v4.0.0 beta**
 
-macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. 3.8.0 kaynakları Letterboxd/IMDb içe aktarmayı, kişisel sinema istatistiklerini, sinematik backdrop afişlerini, favori oyuncu/yönetmenleri, değişiklik zamanlarına göre eşitlemeyi, öneri etiketlerini, fotoğraflı kişi kartlarını, sabit kullanıcı adı kontrollerini ve paketlenmiş HTTPS sertifikalarını içerir. Kodlar yüklendikten sonra macOS iş akışıyla yeni DMG'ler derlenmelidir; eski DMG dosyaları güncel değişikliklerin tamamını içermez. Bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
+macOS 15 veya üzeri gerekir. Apple Silicon (M serisi) için `arm64`, Intel için `x86_64` DMG'yi seç; açıp MyMovieList'i **Applications** klasörüne taşı. `4.0.0` kaynakları Obsidian Screening Room tasarımını, interaktif sinema istatistiklerini, Letterboxd/IMDb içe aktarmayı, otomatik not kaydını, favori oyuncu/yönetmenleri, alan bazlı zamanlı eşitlemeyi ve paketlenmiş HTTPS sertifikalarını içerir. DMG dosyaları bu sürümden macOS iş akışıyla derlenir; bu betalar Apple tarafından noterlenmemiştir. [Mac derleme ve kurulum ayrıntıları](MACOS.md).
 
 ## Web
 
-[Web’de kullan](https://myshelf.cloud) — web beta.
+[Web’de kullan](https://myshelf.cloud) — web PWA.
 
-MyShelf web sürümü uygulamayla aynı hesabı ve özel kütüphaneyi kullanır:
-tarayıcıda kalıcı kayıt, otomatik eşitleme, e-postayla başlayan kayıt akışı,
-profil avatarları ve seçilen filmlerden oluşan vitrin. İndirme bağlantısı
-GitHub'da yayımlanmış son sürüme gider. Kurulum ayrıntıları [WEB.md](WEB.md)'de.
+MyShelf web sürümü uygulamayla aynı hesabı ve özel kütüphaneyi kullanır: kayıt bazlı IndexedDB depolama, çevrimdışı PWA desteği, otomatik eşitleme, e-postayla başlayan kayıt akışı, profil avatarları, seçilen vitrinler, dinamik Open Graph kartları ve otomatik uzun not kaydı. Kurulum ayrıntıları [WEB.md](WEB.md)'de.
 
-Yeni kaynak kod web, Windows, Android ve macOS için alan bazında değişiklik
-zamanlarını taşır. Zamanı güvenilir olan çakışmalarda yeni değişiklik seçilir;
-farklı alanlar birleştirilir. Eski, zamanı bilinmeyen kayıtların iki sürümü de
-korunur. Bu davranış tüm platformların 3.8.0 kaynak kodunda bulunur. Mevcut
-paketler uyumludur. Güncel Windows derlemesi 3.8.0 özelliklerini
-içerir; Android ve Mac paketleri ortak 3.8.0 kaynak kodundan derlenir.
+Alan bazında değişiklik zamanları web, Windows, Android ve macOS arasında taşınır; güvenilir çakışmalarda güncel değişiklik seçilir, bağımsız düzenlemeler birleştirilir ve eski çakışmalar kurtarılabilir tutulur.
 
 ## Neler yapabilirsin?
 
-- **Oyuncu ve yönetmenlerini favorile.** Kişi kartındaki kalbe dokun; profilinden veya sol menüdeki **Favori kişiler** bölümünden iki ayrı listene ulaş. Hesapsız kullanımda cihazına kaydedilir, giriş yaptıysan otomatik eşitlenir. Favori kişiler herkese açık vitrinine eklenmez.
-- **Sosyal.** İsim veya kullanıcı adıyla açık profilleri bul, seçilmiş vitrinlere uygulama içinden ulaş. Bu hafta bölümünde yalnızca vitrindeki izleme tarihi girilmiş filmler görünür. Özel notlar ve kütüphanenin geri kalanı gizli kalır. Vitrinini paylaşmak isteğe bağlıdır; profil paylaşımını açana kadar hesabın gizli kalır.
-- **Türkçe veya İngilizce kullan.** İlk açılışta cihazının arayüz dili esas alınır; Türkçe dışındaki diller için İngilizce kullanılır. Tercihini **Ayarlar → Dil** bölümünden değiştirebilirsin. Türkçe filmler özgün Türkçe adlarıyla gösterilir; özetlerde mevcut Türkçe çeviri, bulunamazsa İngilizce metin kullanılır.
-- **Kendi film kütüphaneni oluştur.** İzlediklerini ve izlemek istediklerini takip et; puan, favori ve kişisel not ekle. Kütüphaneni filtrele, sırala ve yanlışlıkla sildiğin bir filmi bilgilerini kaybetmeden geri al.
-- **Film ayrıntılarını sakla.** Oyuncular, yönetmenler, senaristler, yapımcılar ve stüdyolar film eklenirken kaydedilir. Eski kayıtların eksik bilgileri çevrimiçi gezinirken tamamlanır; kaydedilen ayrıntılar ve iki dildeki mevcut özetler çevrimdışı da okunabilir.
-- **Keşfet.** Günlük veya haftalık trendler, en yüksek puanlı filmler, yeni çıkanlar ve türler arasında gezin. Kütüphanendeki filmleri gizle, afiş kartından doğrudan film ekle. Oyuncular ve yönetmenler fotoğraflı kartlarla gösterilir; fotoğrafı olmayanlarda siluet kullanılır. Kartlardan kişilerin diğer filmlerine ulaşabilirsin.
-- **Zevkine göre öneriler bul.** Kartlarda tür etiketlerini gör. Puanların, favorilerin, türler, mevcut temalar, yönetmenler ve başrol oyuncuları değerlendirilir. Zevkine uygun, çok oyla beğenilmiş tanınan klasiklere daha fazla ağırlık verilir; yeni filmlerde tanınan başrol oyuncuları sınırlı bir avantaj sağlayabilir. Üç keşif seçeneği tanıdık tercihlerle yeni ilgi alanlarını farklı oranlarda bir araya getirir; yakın zamanda gösterilen filmler ve benzer temalar daha az tekrarlanır.
-- **Aradığını hızlıca bul.** Arama sonuçlarından ayrılmadan film ekle. **Ctrl+K** (Mac'te **⌘K**) ile aramayı aç; önerilerde ve arayüzde klavyeyle gezinebilirsin.
+- **Üç sinematik kütüphane modu (`Günlük → 3D Raf → Afişler`):** koleksiyonunu geniş ekran film sahneleri (**Günlük**), tıklandığında tam sahneye açılan fiziksel 3D kitap sırtları (**3D Raf**) veya çerçevesiz 2:3 galeri duvarı (**Afişler**) olarak gez.
+- **Canlı Kütüphane Arkaplanı:** kütüphane ve istatistik sayfaları her açıldığında yalnızca favori (`♥`) veya `8+` puanlı filmlerinden birinin geniş ekran sahnesiyle aydınlanır.
+- **İnteraktif Sinema İstatistikleri (`/stats`):** 53 haftalık tıklanabilir izleme ısı haritası (üzerine gelince o gün izlenen filmleri anlık gösterir), ışıklı aylık dalga grafiği, haftanın günleri ekolayzır sütunları, altıgen kristal tür radarı, 10 basamaklı puan merdiveni, mini afişli 35mm on yıl şeritleri, 2×2 film süresi kartları, TMDB yönetmen/oyuncu portreleri, önbellekli stüdyo logoları + film afiş desteleri, her grafiğe tıklayınca açılan **Film İnceleyici** penceresi ve cihazda yerel üretilen **1080×1350 Sinema Pasaportu PNG** (kişisel notlar asla dahil edilmez).
+- **Boydan Boya Film Detayı ve Otomatik Not Kaydı:** tek bütün tam ekran film sahnesi, buzlu cam üst/yan menü, satır içi 1–10 hızlı puanlama, yan yana **Özel Eleştirmen Kasası (Notun) & Özet** düzeni ve 40 karakteri geçen kişisel notların sessizce otomatik kaydedilmesi.
+- **Letterboxd ve IMDb İçe Aktarma:** Letterboxd (`.zip`/`.csv`) veya IMDb (`.csv`) geçmişini **Ayarlar** üzerinden mevcut notlarını ve puanlarını bozmadan kütüphanene aktar.
+- **Keşfet ve Sana Özel Festival Kartları:** trendler, en yüksek puanlılar, yeni çıkanlar ve tür portallarını çerçevesiz afiş duvarı olarak gez; 3 modlu keşif frekans kadranıyla (**Zevkime yakın**, **Biraz keşif**, **Beni şaşırt**) sıralı gösterim kartları al.
+- **Sinemacılar, Stüdyolar ve Favori Kişiler:** oyuncular, yönetmenler ve yapım şirketlerini fotoğraflı kartlar ve kariyer zaman çizelgesiyle keşfet; beğendiğin oyuncu ve yönetmenleri gizli listende topla.
+- **Sosyal:** isim veya kullanıcı adıyla açık profilleri bul, seçilmiş vitrinlere uygulama içinden ulaş. Özel notların ve kütüphanenin geri kalanı daima gizli kalır.
+- **Türkçe ve İngilizce arayüz:** ilk açılışta cihazının dilini izler, tercihini **Ayarlar → Dil** altından istediğin an değiştirebilirsin.
+- **Hızlı Komut Paleti (`Ctrl+K` / `⌘K`):** her sayfadan anında film ara, görünüm modu değiştir veya bölümler arasında atla.
 
 ## Ekran görüntüleri
 
-Kütüphane ve hesap akışları örnek bir hesap ve herkese açık katalog verileriyle gösterilmiştir. Görüntüler bu sürümden önce alınmıştır; güncel profil kontrolleri sabit kullanıcı adını da gösterir. [İngilizce arayüze göz at](README.md#screenshots).
+Ekran görüntüleri doğrudan **v4.0.0** sürümünden, örnek bir demo kütüphanesi ve canlı katalog verileriyle alınmıştır. [İngilizce arayüze göz at](README.md#screenshots).
 
-### Filmlerin, sana ait bir alan
+### Kütüphanen — Günlük, 3D Raf ve Afişler
 
-![İzlenen filmler, puanlar, favoriler ve kişisel not önizlemeleriyle MyMovieList kütüphanesi](screenshots/tr/library.png)
-
-### Profilin ve seçtiğin filmler
-
-Seni anlatan filmleri kendin seç. Kişisel özetin ve kütüphanenin geri kalanı herkese açık vitrinden ayrı tutulur.
-
-![Kedi avatarı, benzersiz kullanıcı adı ve altı seçilmiş filmle MyMovieList profili](screenshots/tr/profile.png)
-
-### Filmseverlerle tanış
-
-Açık vitrinlere uygulama içinden ulaş. Bu hafta bölümünde yalnızca seçilmiş,
-izleme tarihi girilmiş filmler görünür; kişisel notlar gizli kalır.
-Görüntüdeki kullanıcılar örnek hesaplardan oluşur.
-
-![Seçilmiş vitrin filmleriyle MyMovieList Sosyal ve Bu hafta görünümü](screenshots/tr/social.png)
-
-### Yeni favorini keşfet
-
-![Trendler ve yüksek puanlı filmlerle MyMovieList Keşfet sayfası](screenshots/tr/explore.png)
+![Canlı ortam arka planı, buzlu cam sayaçlar ve tam genişlik film sahnesi kartlarıyla MyMovieList v4.0.0 Günlük kütüphanesi](screenshots/tr/library.png)
 
 <details>
-<summary>Öneriler, film ayrıntıları ve yönetmen keşfi</summary>
+<summary>3D Raf ve çerçevesiz Afişler görünümleri</summary>
 
-![Üç keşif seçeneğiyle kişisel film önerileri](screenshots/tr/recommendations.png)
+![Afiş sırtları ve tam ekran sahneye açılan filmiyle 3D Fiziksel Raf görünümü](screenshots/tr/library-shelf.png)
 
-![Kişisel not, film özeti ve kayıtlı oyuncu ve ekip bilgileri](screenshots/tr/movie-details.png)
-
-![Christopher Nolan'ın profili ve filmografisi](screenshots/tr/director.png)
+![Çerçevesiz 2:3 Afişler galeri duvarı](screenshots/tr/library-posters.png)
 
 </details>
 
+### İnteraktif Sinema İstatistikleri
+
+Isı haritasındaki her aktif gün, dalga noktaları, radar köşeleri, puan basamakları, on yıl şeritleri ve süre kartları tıklanabilir — cihazında yerel hesaplanır, kişisel notların asla dışarı çıkmaz.
+
+![Tamamlama halkası, temel göstergeler, mini afişli arşiv rekorları ve tıklanabilir ısı haritasıyla Sinema İstatistikleri](screenshots/tr/stats.png)
+
 <details>
-<summary>Kayıt, giriş ve kişisel özetin</summary>
+<summary>Tür Takımyıldızı Radarı, 10 Basamaklı Puan Merdiveni, Portreler ve Stüdyo Logoları</summary>
 
-Adım adım kayıt: e-posta → kod → kullanıcı adı → şifre. Kayıt ekranında, cihazındaki filmlerin yeni hesabına nasıl alınacağı açıklanır.
+![Kristal Tür Takımyıldızı Radarı, 10 basamaklı Puan Dağılımı ve 35mm on yıl şeritleri](screenshots/tr/stats-constellation.png)
 
-![Doğrulama adımları ve yerel kütüphane aktarım açıklamasıyla e-posta üzerinden kayıt](screenshots/tr/registration.png)
+![TMDB portreli en çok izlenen yönetmenler ve oyuncular ile logolu ve afiş desteli stüdyolar](screenshots/tr/stats-podium.png)
+
+</details>
+
+### Boydan boya film detayı ve özel not kasası
+
+![Interstellar için tam ekran arka planlı, hızlı puanlamalı, özel not kasalı ve özetli film detay sayfası](screenshots/tr/movie-details.png)
+
+### Keşfet ve sana özel öneriler
+
+![Sinema Lobisi ve çerçevesiz 2:3 Trend filmler duvarıyla Keşfet sayfası](screenshots/tr/explore.png)
+
+![3 modlu keşif frekans kadranı ve festival gösterim kartlarıyla Sana özel sayfası](screenshots/tr/recommendations.png)
+
+<details>
+<summary>Yönetmen profilleri, Sosyal ve isteğe bağlı hesap ekranları</summary>
+
+![Christopher Nolan profili ve kronolojik filmografisi](screenshots/tr/director.png)
+
+![Açık vitrinlerle MyMovieList Sosyal sayfası](screenshots/tr/social.png)
+
+![Doğrulama adımları ve yerel kütüphane kopyalama şemasıyla e-posta üzerinden kayıt](screenshots/tr/registration.png)
 
 ![E-posta ve şifreyle giriş, hesap açmadan devam etme seçeneği](screenshots/tr/sign-in.png)
 
-![Kütüphane sayaçları ve favori filmlerle özel kişisel özet](screenshots/tr/profile-personal.png)
-
 </details>
 
 <details>
-<summary>Telefon görünümü: kütüphane, keşif, profil ve kayıt</summary>
+<summary>Telefon görünümü: kütüphane, keşif, sana özel ve istatistikler</summary>
 
-Ortak arayüzün telefon boyutuna uyarlanan görünümü; kaynak kod önizlemesinden alınmıştır.
+Ortak v4.0.0 arayüzünün yüzen alt menüyle telefon boyutundaki (`390×844`) görünümü.
 
 <p align="center">
-  <img src="screenshots/tr/mobile-library.png" alt="Türkçe film kütüphanesinin telefon görünümü" width="44%">
-  <img src="screenshots/tr/mobile-explore.png" alt="Türkçe keşif sayfasının telefon görünümü" width="44%">
+  <img src="screenshots/tr/mobile-library.png" alt="Türkçe kütüphane telefon görünümü" width="44%">
+  <img src="screenshots/tr/mobile-explore.png" alt="Türkçe keşif sayfası telefon görünümü" width="44%">
 </p>
 <p align="center">
-  <img src="screenshots/tr/mobile-profile.png" alt="Türkçe profil ve seçilen vitrin filmlerinin telefon görünümü" width="44%">
-  <img src="screenshots/tr/mobile-registration.png" alt="Türkçe kayıt ve yerel kütüphane açıklamasının telefon görünümü" width="44%">
+  <img src="screenshots/tr/mobile-recommendations.png" alt="Türkçe sana özel öneriler telefon görünümü" width="44%">
+  <img src="screenshots/tr/mobile-stats.png" alt="Türkçe sinema istatistikleri telefon görünümü" width="44%">
 </p>
 
 </details>
@@ -129,19 +128,19 @@ Hesap açmadan kullanmaya devam edebilir veya özel kütüphaneni cihazlar aras�
 - **Kayıt olurken filmlerin korunur:** yeni hesap oluşturduğunda bu cihazda kayıtlı filmler; notları, puanları, favorileri ve eklenme sırasıyla otomatik olarak hesabına kopyalanır. Kayıt ekranında işlem önceden açıklanır. İlk yerel kopyan cihazında kalır.
 - **Ayrı kütüphaneler:** mevcut hesaba giriş yaptığında o hesabın kütüphanesi açılır. İlk yerel kütüphaneni hesap ayarlarından kopyalayabilirsin; hesapta zaten bulunan filmlerin notları ve puanları korunur.
 - **Adım adım kayıt:** e-posta → doğrulama kodu → benzersiz kullanıcı adı → şifre. Normal giriş e-posta ve şifreyle yapılır. Şifre yenilemede önce kod doğrulanır, sonra yeni şifre istenir.
-- **Sana ait profil:** görünen isim ve 16 hazır kedi avatarından birini seç. Görünen isimler aynı olabilir. Benzersiz @kullanıcı_adın profilinde görünür, bir kez seçilir ve şu an değiştirilemez. Profil düzenleme yalnızca görünen isim ve avatarı değiştirir; kullanıcı adı olmayan eski hesaplar ilk seçimini Hesap ve eşitleme bölümünde yapabilir.
+- **Sana ait profil:** görünen isim ve 16 hazır kedi avatarından birini seç. Benzersiz `@kullanıcı_adın` profilinde görünür, bir kez seçilir ve şu an değiştirilemez.
 - **Vitrinin:** sergilemek istediğin en fazla altı filmi kendin seçip sırala. Paylaşım başlangıçta kapalıdır. Açarsan adresin `myshelf.cloud/u/<kullanıcı_adı>` olur. Yalnızca seçtiğin filmler paylaşılır; puanları ve kütüphane sayaçlarını göstermek de isteğe bağlıdır.
-- **Özel notların:** film notların, e-postan, elle eklediğin filmler ve kütüphanenin geri kalanı herkese açık profilde görünmez. İsim kontrolü kişisel film notlarını sansürlemez.
-
-Profiline sol menüden veya üst çubuktan ulaşabilirsin. Masaüstünde içe/dışa aktarma **Ayarlar** bölümünde kalır. Çevrimdışı kullanım, o cihazda kaydedilen verilere dayanır; başka cihazdaki değişiklikleri almak için bağlantı gerekir.
+- **Özel notların:** film notların, e-postan, elle eklediğin filmler ve kütüphanenin geri kalanı herkese açık profilde veya paylaşılabilir sinema kartlarında asla görünmez.
 
 ## Düşüncelerin sana ait kalsın
 
-Her filmin ardından yazdıklarını paylaşmak zorunda değilsin. Kütüphanen, notların, puanların ve favorilerin cihazına kaydedilir; keşif servisine veya TMDB’ye yüklenmez. İsteğe bağlı bir hesap kullanırsan hesaba ait kütüphane Supabase üzerinden özel olarak eşitlenir. Yeni kayıt, kayıt ekranında açıklandığı üzere yerel filmlerini hesaba taşır. Mevcut hesaba girişte ilk yerel kütüphane sen kopyalamayı seçene kadar ayrı kalır. Öneri sıralaması cihazında yapılır; kişisel notların analiz edilmez.
+Her filmin ardından yazdıklarını paylaşmak zorunda değilsin. Kütüphanen, notların, puanların ve favorilerin cihazına kaydedilir; keşif servisine veya TMDB’ye yüklenmez. İsteğe bağlı bir hesap kullanırsan hesaba ait kütüphane Supabase üzerinden özel olarak eşitlenir.
 
-Aramalar ve film kataloğu istekleri `api.myshelf.cloud` üzerinden TMDB’ye iletilir. Keşif ve uzak görseller için internet gerekir; kaydedilmiş film bilgileri ve indirilmiş afişler çevrimdışı kullanılabilir. Önerilerde kullanılan herkese açık film havuzu cihazında önbelleğe alınır; çevrimdışı sonuçlar bu havuzdaki verilere bağlıdır. Uygulama yerel verileri ayrıca şifrelemez.
+Öneri sıralaması ve sinema istatistikleri cihazında hesaplanır; kişisel notların analiz edilmez.
 
-**Windows güncellemeleri kütüphaneni korur.** EXE dosyasını değiştirmeden önce uygulamayı kapat. Verilerin `%APPDATA%\MovieWatchlist` içinde kalır; eski klasör adı uyumluluk için korunur. Android’de veriler uygulamanın özel depolama alanında tutulur ve aynı imzalı sürümle yapılan normal güncellemede korunur. Uygulamayı kaldırmak veya depolama alanını temizlemek telefondaki kütüphaneyi siler. Hesapla eşitleme kullanılmıyorsa cihaz kütüphaneleri birbirinden bağımsızdır.
+Aramalar ve film kataloğu istekleri `api.myshelf.cloud` üzerinden TMDB’ye iletilir. Keşif ve uzak görseller için internet gerekir; kaydedilmiş film bilgileri ve indirilmiş afişler çevrimdışı kullanılabilir. Uygulama yerel verileri ayrıca şifrelemez.
+
+**Windows güncellemeleri kütüphaneni korur.** EXE dosyasını değiştirmeden önce uygulamayı kapat. Verilerin `%APPDATA%\MovieWatchlist` içinde kalır; eski klasör adı uyumluluk için korunur. Android’de veriler uygulamanın özel depolama alanında tutulur ve aynı imzalı sürümle yapılan normal güncellemede korunur.
 
 ## Kaynak koddan çalıştırma
 
@@ -153,10 +152,9 @@ python -m venv .venv
 .\.venv\Scripts\python run_desktop.py
 ```
 
-Geliştirme ayrıntıları için [sürüm notları](RELEASE_NOTES.md), [test sonuçları](QA_RESULTS.md), [Android derleme yönergeleri](ANDROID.md) ve [keşif servisi kurulumu](cloudflare/watchlist-api/README.md) belgelerine bakabilirsin.
+Windows derlemesi için `.\scripts\build_release.ps1`, Android sürüm paketi için `.\scripts\build_android.ps1 -Release` kullanılır. Ayrıntılar için [sürüm notları](RELEASE_NOTES.md), [test sonuçları](QA_RESULTS.md), [Android derleme yönergeleri](ANDROID.md) ve [keşif servisi kurulumu](cloudflare/watchlist-api/README.md) belgelerine bakabilirsin.
 
-Geliştiriciler için: [bulut kurulumu](supabase/README.md) ve [veri taşıma tasarımı](CLOUD_SYNC_DESIGN.md). Hesaplar için 001–004, Sosyal için ayrıca 005 veritabanı kurulumu gerekir. [Sosyal tasarım ve doğrulama](SOCIAL_DESIGN.md).
-
+Geliştiriciler için: [bulut kurulumu](supabase/README.md) ve [veri taşıma tasarımı](CLOUD_SYNC_DESIGN.md). Veritabanı geçişleri `001–008` hesapları, Sosyal özelliğini ve ölçeklenme indekslerini etkinleştirir. [Sosyal tasarım ve doğrulama](SOCIAL_DESIGN.md).
 
 ## Teşekkürler
 

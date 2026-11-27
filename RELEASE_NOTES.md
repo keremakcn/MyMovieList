@@ -19,6 +19,12 @@
 - **Full-Bleed Movie Detail & Edit Pages:** unified edge-to-edge film backdrop
   with frosted glass navigation chrome, compact inline rating + quick actions,
   and side-by-side Private Critic Vault & Synopsis layout.
+- **Interactive Cinema Stats (`/stats`):** clickable 53-week watch heatmap
+  with live day-title preview, glowing monthly wave chart, weekday equalizer
+  meters, luminous crystal 6-axis genre radar, zero-void 10-tier rating ladder,
+  35mm decade filmstrips with mini posters, 2×2 runtime cards, TMDB
+  director/actor portraits, cached studio logos with watched film stacks, and a
+  frosted-glass Screening Inspector poster modal.
 - **Automatic Note Auto-Save (>40 characters):** long private notes auto-save
   safely after typing pauses, on blur, or before quick actions without touching
   ratings, watch status, dates or favorites.
@@ -57,5 +63,11 @@ users need no API key or manual cloud setup.
   (`♥`) veya `8+` puanlı filmlerinden birinin geniş ekran sahnesiyle aydınlanır.
 - **Boydan Boya Detay ve Düzenleme Sayfaları:** tek bütün tam ekran film
   sahnesi, buzlu cam yan menü/üst çubuk ve yan yana Notun & Özet düzeni.
+- **İnteraktif Sinema İstatistikleri (`/stats`):** üzerine gelince film
+  adlarını gösteren tıklanabilir ısı haritası, ışıklı aylık dalga grafiği,
+  haftanın günleri ekolayzır sütunları, kristal altıgen tür radarı, 10
+  basamaklı puan merdiveni, mini afişli 35mm on yıl şeritleri, 2×2 süre
+  kartları, TMDB yönetmen/oyuncu portreleri, logolu stüdyo kartları ve her
+  grafiğe tıklayınca açılan afişli Film İnceleyici penceresi.
 - **40+ Karakter Otomatik Not Kaydı:** uzun kişisel notlar yazarken otomatik
   olarak yalnızca not alanını güncelleyerek güvenle kaydedilir.
