@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}
     {{ t("Settings · MyMovieList") }}
 {% endblock %}
@@ -33,8 +34,20 @@
         <section class="form-card external-import-card"
                  id="external-import"
                  aria-labelledby="external-import-heading">
-            <h2 id="external-import-heading">{{ t("Import from Letterboxd or IMDb") }}</h2>
-            <p>{{ t("Bring your watched history, watchlist, ratings and reviews into MyMovieList in seconds.") }}</p>
+            <div class="import-booth-header">
+                <div>
+                    <h2 id="external-import-heading">{{ t("Import from Letterboxd or IMDb") }}</h2>
+                    <p>{{ t("Bring your watched history, watchlist, ratings and reviews into MyMovieList in seconds.") }}</p>
+                </div>
+                <svg class="import-reel-svg" viewBox="0 0 64 64" width="54" height="54" fill="none" aria-hidden="true">
+                    <circle cx="32" cy="32" r="27" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="32" cy="32" r="7" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="32" cy="14" r="4.5" fill="currentColor" opacity="0.55"/>
+                    <circle cx="32" cy="50" r="4.5" fill="currentColor" opacity="0.55"/>
+                    <circle cx="14" cy="32" r="4.5" fill="currentColor" opacity="0.55"/>
+                    <circle cx="50" cy="32" r="4.5" fill="currentColor" opacity="0.55"/>
+                </svg>
+            </div>
             {% if external_import_error %}
                 <p class="form-error" role="alert">{{ t(external_import_error) }}</p>
             {% endif %}
@@ -49,16 +62,19 @@
                     <option value="letterboxd">{{ t("Letterboxd (ZIP archive or CSV)") }}</option>
                     <option value="imdb">{{ t("IMDb (CSV export)") }}</option>
                 </select>
-                <label for="external-import-file">{{ t("Export file (.zip or .csv)") }}</label>
-                <input id="external-import-file"
-                       type="file"
-                       name="import_file"
-                       accept=".zip,.csv,text/csv,application/zip"
-                       aria-describedby="external-import-help external-import-privacy"
-                       required>
+                <div class="import-drop-booth" data-import-booth>
+                    <label for="external-import-file">{{ icon('upload', 20) }} <span>{{ t("Export file (.zip or .csv)") }}</span></label>
+                    <p class="import-drop-sub" data-import-filename>{{ t("Drag & drop your Letterboxd .zip/.csv or IMDb .csv reel here, or click to choose.") }}</p>
+                    <input id="external-import-file"
+                           type="file"
+                           name="import_file"
+                           accept=".zip,.csv,text/csv,application/zip"
+                           aria-describedby="external-import-help external-import-privacy"
+                           required>
+                </div>
                 <p id="external-import-help" class="settings-note">{{ t("Supports full Letterboxd .zip exports (watched, watchlist, ratings, diary, reviews), individual Letterboxd .csv files and IMDb .csv exports up to 25 MB.") }}</p>
                 <p id="external-import-privacy" class="settings-note">{{ t("Half-star Letterboxd ratings convert to 1–10. Existing films in your library keep their notes and ratings, and TV series or episodes from IMDb are skipped.") }}</p>
-                <button type="submit">{{ t("Import films") }}</button>
+                <button type="submit">{{ icon('reel', 16) }} <span>{{ t("Import films") }}</span></button>
             </form>
         </section>
         {% include '_account_backup.html' %}

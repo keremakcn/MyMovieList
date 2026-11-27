@@ -1,7 +1,8 @@
-// CSP-safe pure SVG Personal Cinema Statistics page for MyShelf Web.
+// CSP-safe pure SVG Personal Cinema Statistics Scrollytelling page for MyShelf Web.
 import {computeCinemaStats} from './stats-model.mjs';
 import {libraryMetadataKeys} from './library-model.mjs';
 import {formatDecadeLabel,openStatsCardDialog} from './stats-card.mjs';
+import {NOIR_SILHOUETTE_SVG} from './cinema-ux.mjs';
 
 function formatWatchTime(totalMinutes,t){
   if(!totalMinutes || totalMinutes<=0)return '—';
@@ -36,26 +37,53 @@ function renderVerticalSvg(items,{labelKey,ariaLabel,barClass='svg-bar-accent',h
   return `<svg class="stats-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${ariaLabel}">${bars}</svg>`;
 }
 
-function renderHorizontalRows(items,{e,t,barClass='svg-bar-accent',highlightFn=null,showAvg=false,emptyText}){
+function renderHorizontalRows(items,{e,t,barClass='svg-bar-accent',highlightFn=null,showAvg=false,filmstrip=false,emptyText}){
   if(!items.length)return `<p class="stats-empty-note">${emptyText}</p>`;
-  return `<div class="stats-hbar-list">${items.map((item,i)=>{
+  return `<div class="stats-hbar-list ${filmstrip?'filmstrip-decade-list':''}">${items.map((item,i)=>{
     const w=item.count>0 ? Math.max(4,Math.round((item.share || 0)*100)) : 0;
     const activeCls=highlightFn && highlightFn(item,i) ? 'svg-bar-gold' : barClass;
-    return `<div class="stats-hbar-row">`+
+    return `<div class="stats-hbar-row ${filmstrip?'filmstrip-decade-frame':''}">`+
       `<div class="stats-hbar-head"><strong>${e(item.label || item.name || item.decade)}</strong><span class="stats-hbar-meta">${item.count} ${t('filmCount')}${showAvg && item.avgRating!==null ? ` · <span class="gold-text">★ ${item.avgRating}</span>` : ''}</span></div>`+
       `<svg class="stats-hbar-svg" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect class="svg-track" x="0" y="0" width="100" height="8" rx="4"/>${w>0 ? `<rect class="${activeCls}" x="0" y="0" width="${w}" height="8" rx="4"/>` : ''}</svg>`+
     `</div>`;
   }).join('')}</div>`;
 }
 
+function renderGenreRadar(radar,{e,t}){
+  if(!radar || !radar.hasData)return '';
+  return `<div class="genre-constellation-wrap"><svg class="genre-radar-svg" viewBox="0 0 260 220" role="img" aria-label="${e(t('statsConstellationTitle'))}">`+
+    radar.rings.map(pts=>`<polygon class="radar-ring" points="${pts}" fill="none"></polygon>`).join('')+
+    radar.axes.map(ax=>`<line class="radar-axis" x1="130" y1="110" x2="${ax.x2}" y2="${ax.y2}"></line>`).join('')+
+    `<polygon class="radar-shape" points="${radar.polygon}"></polygon>`+
+    radar.axes.map(ax=>`<circle class="radar-dot" cx="${ax.dotX}" cy="${ax.dotY}" r="4"><title>${e(ax.name)}: ${ax.count}</title></circle><text class="radar-label" x="${ax.lx}" y="${ax.ly}" text-anchor="${ax.anchor}">${e(ax.name)}</text>`).join('')+
+  `</svg></div>`;
+}
+
+function renderWatchHeatmap(heatmap,months,weekdaysShort,{e,t,year}){
+  if(!heatmap)return '';
+  return `<section class="stats-panel stats-full-panel">`+
+    `<div class="stats-panel-head"><div><h2>${year} · ${e(t('statsHeatmapTitle'))}</h2></div><span class="stats-privacy-pill">${heatmap.activeDays} ${e(t('statsHeatmapActive'))}</span></div>`+
+    `<div class="heatmap-scroll"><svg class="watch-heatmap-svg" viewBox="0 0 ${heatmap.width} ${heatmap.height}" role="img" aria-label="${year} ${e(t('statsHeatmapTitle'))}">`+
+      heatmap.monthMarkers.map(m=>`<text class="heatmap-month-label" x="${m.x}" y="12">${e(months[m.month-1] || '')}</text>`).join('')+
+      `<text class="heatmap-day-label" x="2" y="26">${e(weekdaysShort[0] || 'Mon')}</text>`+
+      `<text class="heatmap-day-label" x="2" y="52">${e(weekdaysShort[2] || 'Wed')}</text>`+
+      `<text class="heatmap-day-label" x="2" y="78">${e(weekdaysShort[4] || 'Fri')}</text>`+
+      heatmap.cells.map(c=>`<rect class="heatmap-cell heatmap-lvl-${c.level}" x="${c.x}" y="${c.y}" width="10" height="10" rx="2.5"><title>${c.date} · ${c.count} ${e(t('filmCount'))}</title></rect>`).join('')+
+    `</svg></div>`+
+    `<div class="heatmap-legend" aria-hidden="true"><span>${e(t('statsQuiet'))}</span><i class="heatmap-swatch heatmap-lvl-0"></i><i class="heatmap-swatch heatmap-lvl-1"></i><i class="heatmap-swatch heatmap-lvl-2"></i><i class="heatmap-swatch heatmap-lvl-3"></i><i class="heatmap-swatch heatmap-lvl-4"></i><span>${e(t('statsMarathon'))}</span></div>`+
+  `</section>`;
+}
+
 function renderPeopleList(people,{e,t,image,emptyText}){
   if(!people.length)return `<p class="stats-empty-note">${emptyText}</p>`;
-  return `<div class="stats-people-grid">${people.map(p=>{
+  return `<div class="stats-people-grid">${people.map((p,idx)=>{
     const photo=image(p.profile_path,'w185');
-    const avatar=photo ? `<img src="${photo}" alt="" loading="lazy">` : `<span class="stats-person-fallback">${e(p.name?.[0] || '?')}</span>`;
+    const avatar=photo ? `<img src="${photo}" alt="" loading="lazy">` : `<span class="stats-person-fallback noir-thumb">${NOIR_SILHOUETTE_SVG}</span>`;
     const meta=`${p.count} ${t('filmCount')}${p.avgRating!==null ? ` · ★ ${p.avgRating}` : ''}`;
-    const inner=`${avatar}<div><strong>${e(p.name)}</strong><span>${e(meta)}</span></div>`;
-    return p.id ? `<a class="stats-person-card" href="/person/${p.id}" data-route>${inner}</a>` : `<div class="stats-person-card">${inner}</div>`;
+    const medal=idx<3 ? `<span class="podium-medal">#${idx+1}</span>` : '';
+    const rankCls=idx<3 ? `podium-rank-${idx+1}` : '';
+    const inner=`${medal}${avatar}<div><strong>${e(p.name)}</strong><span>${e(meta)}</span></div>`;
+    return p.id ? `<a class="stats-person-card ${rankCls}" href="/person/${p.id}" data-route>${inner}</a>` : `<div class="stats-person-card ${rankCls}">${inner}</div>`;
   }).join('')}</div>`;
 }
 
@@ -109,9 +137,7 @@ export function createStatsPage({state,store,t,e,image,toast}){
       : '';
 
     const insightChips=[];
-    if(overview.topDecade){
-      insightChips.push(`<span class="stats-insight-chip">${e(t('statsPeakEra').replace('{era}',formatDecadeLabel(overview.topDecade,state.lang)))}</span>`);
-    }
+    if(overview.topDecade)insightChips.push(`<span class="stats-insight-chip">${e(t('statsPeakEra').replace('{era}',formatDecadeLabel(overview.topDecade,state.lang)))}</span>`);
     if(overview.criticDelta!==null){
       const deltaLabel=overview.criticDelta>0
         ? t('statsCriticAbove').replace('{delta}',`+${overview.criticDelta}`)
@@ -120,15 +146,9 @@ export function createStatsPage({state,store,t,e,image,toast}){
           : t('statsCriticMatch').replace('{avg}',String(overview.tmdbAvg));
       insightChips.push(`<span class="stats-insight-chip stats-chip-gold">${e(deltaLabel)}</span>`);
     }
-    if(overview.longestStreak>1){
-      insightChips.push(`<span class="stats-insight-chip">${e(t('statsBestStreak').replace('{days}',String(overview.longestStreak)))}</span>`);
-    }
-    if(overview.tenCount>0){
-      insightChips.push(`<span class="stats-insight-chip stats-chip-gold">${e(t('statsMasterpieces').replace('{count}',String(overview.tenCount)))}</span>`);
-    }
-    if(overview.avgRuntime){
-      insightChips.push(`<span class="stats-insight-chip">${e(t('statsAvgRuntimeChip').replace('{min}',String(overview.avgRuntime)))}</span>`);
-    }
+    if(overview.longestStreak>1)insightChips.push(`<span class="stats-insight-chip">${e(t('statsBestStreak').replace('{days}',String(overview.longestStreak)))}</span>`);
+    if(overview.tenCount>0)insightChips.push(`<span class="stats-insight-chip stats-chip-gold">${e(t('statsMasterpieces').replace('{count}',String(overview.tenCount)))}</span>`);
+    if(overview.avgRuntime)insightChips.push(`<span class="stats-insight-chip">${e(t('statsAvgRuntimeChip').replace('{min}',String(overview.avgRuntime)))}</span>`);
 
     const heroHeadline=overview.topGenreName
       ? t('statsDrawnTo').replace('{genre}',overview.topGenreName)
@@ -188,13 +208,14 @@ export function createStatsPage({state,store,t,e,image,toast}){
       heroBanner+
       `<section class="stats-kpis" aria-label="${t('stats')}">${kpis.map(k=>`<div class="stat stats-kpi ${k.wide?'stats-kpi-wide':''}"><strong class="${k.gold?'gold-text':''}">${e(k.value)}</strong><span>${e(k.label)}</span><small>${e(k.sub)}</small></div>`).join('')}</section>`+
       recordsMarkup+
+      renderWatchHeatmap(stats.watchHeatmap,months,weekdaysLabels,{e,t,year:stats.year})+
       `<section class="stats-grid">`+
+        `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsGenresTitle')}</h2><p>${t('statsGenresP')}</p></div></div>${renderGenreRadar(stats.genreRadar,{e,t})}${renderHorizontalRows(stats.topGenres,{e,t,barClass:'svg-bar-accent',showAvg:true,emptyText:e(t('statsNoGenres'))})}</article>`+
         `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsRatingsTitle')}</h2><p>${t('statsRatingsP')}</p></div></div>${renderVerticalSvg(ratingItems,{labelKey:'label',ariaLabel:e(t('statsRatingsTitle')),barClass:'svg-bar-accent',highlightFn:item=>item.rating>=8,emptyText:e(t('statsNoRatings'))})}</article>`+
         `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${stats.year} · ${t('statsMonthlyTitle')}</h2><p>${e(peakMonthSub)}</p></div></div>${renderVerticalSvg(monthlyItems,{labelKey:'label',ariaLabel:e(t('statsMonthlyTitle')),barClass:'svg-bar-accent',emptyText:e(t('statsNoDatedYear'))})}</article>`+
         `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsWeekdaysTitle')}</h2><p>${t('statsWeekdaysP')}</p></div></div>${renderVerticalSvg(weekdayItems,{labelKey:'label',ariaLabel:e(t('statsWeekdaysTitle')),barClass:'svg-bar-accent',highlightFn:item=>item.day>=4,emptyText:e(t('statsNoDatedWatches'))})}</article>`+
+        `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsDecadesTitle')}</h2><p>35MM · ${t('statsDecadesP')}</p></div></div>${renderHorizontalRows(decadeItems,{e,t,barClass:'svg-bar-gold',filmstrip:true,showAvg:false,emptyText:e(t('statsNoDecades'))})}</article>`+
         `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsRuntimeTitle')}</h2><p>${overview.avgRuntime ? e(t('statsAvgRuntimeChip').replace('{min}',String(overview.avgRuntime))) : t('statsRuntimeP')}</p></div></div>${totals.runtimeCount ? renderHorizontalRows(runtimeItems,{e,t,barClass:'svg-bar-accent',highlightFn:item=>item.key==='epic',showAvg:false,emptyText:e(t('statsRuntimePending'))}) : `<p class="stats-empty-note">${e(t('statsRuntimePending'))}</p>`}</article>`+
-        `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsGenresTitle')}</h2><p>${t('statsGenresP')}</p></div></div>${renderHorizontalRows(stats.topGenres,{e,t,barClass:'svg-bar-accent',showAvg:true,emptyText:e(t('statsNoGenres'))})}</article>`+
-        `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsDecadesTitle')}</h2><p>${t('statsDecadesP')}</p></div></div>${renderHorizontalRows(decadeItems,{e,t,barClass:'svg-bar-gold',showAvg:false,emptyText:e(t('statsNoDecades'))})}</article>`+
       `</section>`+
       `<section class="stats-grid">`+
         `<article class="stats-panel"><div class="stats-panel-head"><div><h2>${t('statsDirectorsTitle')}</h2></div></div>${renderPeopleList(stats.topDirectors,{e,t,image,emptyText:e(t('statsNoPeople'))})}</article>`+

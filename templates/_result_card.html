@@ -32,6 +32,8 @@
         {% endif %}
         {% if movie.recommendation_highlight %}
             <p class="recommendation-highlight"><span aria-hidden="true">✦</span> {{ t(movie.recommendation_highlight) }}</p>
+        {% elif movie.taste_hint %}
+            <p class="taste-match-badge"><span aria-hidden="true">✦</span> {{ movie.taste_hint }}</p>
         {% endif %}
         <p class="result-overview">{{ movie.overview or t("No overview available.") }}</p>
         {% include "_movie_action.html" %}

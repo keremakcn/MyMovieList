@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#111114">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090a11">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MyMovieList">
@@ -22,19 +22,45 @@
   <script type="module" src="/app.mjs"></script>
 </head>
 <body>
+  <canvas id="ambient-canvas" class="ambient-canvas" aria-hidden="true"></canvas>
+  <canvas id="particle-canvas" class="particle-canvas" aria-hidden="true"></canvas>
+  <svg class="cinema-grain-svg" aria-hidden="true" focusable="false"><filter id="web-analog-grain"><feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" stitchTiles="stitch"></feTurbulence></filter><rect width="100%" height="100%" filter="url(#web-analog-grain)"></rect></svg>
   <a class="skip" href="#main">İçeriğe geç / Skip to content</a>
   <header class="header">
     <a href="/" data-route class="brand"><img src="/assets/logo.png" alt="" width="34" height="34"><span>MyMovieList<small>ON MYSHELF</small></span></a>
     <nav aria-label="Main navigation"><a href="/discover" data-route data-i18n="discover">Keşfet</a><a href="/library" data-route data-i18n="library">Kütüphanem</a><a href="/stats" data-route data-i18n="stats">İstatistikler</a><a href="/recommendations" data-route data-i18n="forYou">Sana özel</a><a href="/social" data-route data-i18n="social">Sosyal</a><a href="/updates" data-route data-i18n="updates">Yenilikler</a></nav>
-    <div class="header-actions"><button id="language" class="quiet" aria-label="Change language">EN</button><div id="account-actions"></div><a href="https://github.com/keremakcn/MyMovieList/releases/latest" class="button small download" target="_blank" rel="noopener" data-i18n="download">Uygulamayı indir ↗</a></div>
+    <div class="header-actions">
+      <button type="button" id="open-command" class="cmd-trigger-btn" aria-label="Command palette"><span data-i18n="cmdOpen">Komut</span> <kbd>⌘K</kbd></button>
+      <button id="language" class="quiet" aria-label="Change language">EN</button>
+      <div id="account-actions"></div>
+      <a href="https://github.com/keremakcn/MyMovieList/releases/latest" class="button small download" target="_blank" rel="noopener" data-i18n="download">Uygulamayı indir ↗</a>
+    </div>
   </header>
   <main id="main" tabindex="-1"><div class="initial"><span class="spinner"></span> MyMovieList</div></main>
+  <nav class="mobile-bottom-dock" aria-label="Mobile navigation">
+    <a href="/library" data-route data-i18n="library">Kütüphanem</a>
+    <a href="/discover" data-route data-i18n="discover">Keşfet</a>
+    <a href="/recommendations" data-route data-i18n="forYou">Sana özel</a>
+    <a href="/stats" data-route data-i18n="stats">İstatistikler</a>
+    <a href="/social" data-route data-i18n="social">Sosyal</a>
+  </nav>
   <footer><a class="brand" href="/" data-route><img src="/assets/logo.png" alt="" width="24" height="24"><span>MyMovieList</span></a><span data-i18n="footer">İzlediklerin, izleyeceklerin ve aklında kalanlar.</span><a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a><a href="https://github.com/keremakcn/MyMovieList" target="_blank" rel="noopener">GitHub ↗</a><a href="/credits" data-i18n="credits">Kaynaklar</a></footer>
   <dialog id="auth-dialog" aria-labelledby="auth-title"><div class="auth-top"><a class="brand" href="/" data-route><img src="/assets/logo.png" alt="" width="32" height="32"><span>MyMovieList</span></a><button class="icon" data-close="auth-dialog" aria-label="Close">×</button></div><div id="auth-content"></div></dialog>
   <dialog id="movie-dialog" aria-labelledby="movie-title"><button class="icon dialog-close" data-close="movie-dialog" aria-label="Close">×</button><div id="movie-content"></div></dialog>
   <dialog id="profile-dialog" aria-labelledby="profile-title"><button class="icon dialog-close" data-close="profile-dialog" aria-label="Close">×</button><div id="profile-content"></div></dialog>
   <dialog id="external-import-dialog" aria-labelledby="external-import-title"><button class="icon dialog-close" data-close="external-import-dialog" aria-label="Close">×</button><div id="external-import-content"></div></dialog>
   <dialog id="stats-card-dialog" aria-labelledby="stats-card-title"><button class="icon dialog-close" data-close="stats-card-dialog" aria-label="Close">×</button><div id="stats-card-content"></div></dialog>
+  <dialog id="command-dialog" class="command-dialog" aria-labelledby="command-title">
+    <div class="cmd-shell">
+      <div class="cmd-head">
+        <span id="command-title" class="sr-only">Spotlight</span>
+        <span class="cmd-head-glyph" aria-hidden="true">⌘</span>
+        <input id="command-input" type="search" autocomplete="off" maxlength="160" data-i18n-placeholder="cmdPlaceholder" placeholder="Film, yönetmen ara veya komut çalıştır…">
+        <button type="button" class="cmd-esc" data-close="command-dialog">ESC</button>
+      </div>
+      <div id="command-body" class="cmd-body"></div>
+    </div>
+  </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <noscript><p>MyMovieList web sürümünü kullanmak için JavaScript'i etkinleştir. / Enable JavaScript to use MyMovieList on the web.</p></noscript>
 </body>

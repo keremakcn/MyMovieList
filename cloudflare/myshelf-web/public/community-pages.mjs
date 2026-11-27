@@ -2,20 +2,48 @@ import {createRecommender} from './recommendation-catalog.mjs';
 import {GENRES} from './recommendation-model.mjs';
 import {socialQuery,socialCursor,socialPage} from './social-model.mjs';
 const trGenres={28:'Aksiyon',12:'Macera',16:'Animasyon',35:'Komedi',80:'Suç',99:'Belgesel',18:'Dram',10751:'Aile',14:'Fantastik',36:'Tarih',27:'Korku',10402:'Müzik',9648:'Gizem',10749:'Romantik',878:'Bilim-Kurgu',10770:'TV Filmi',53:'Gerilim',10752:'Savaş',37:'Western'};
+const freqByMode={familiar:'88.4 MHz',balanced:'96.2 MHz',explore:'104.8 MHz'};
+
 export function createCommunityPages({state,store,api,t,e,image,card,render,navigate,errorText,toast}){
   const recommender=createRecommender(store,api);
   let mode='balanced',refresh=false,requestNumber=0;
   const date=value=>new Intl.DateTimeFormat(state.lang==='tr'?'tr-TR':'en-US',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(value+'T00:00:00Z'));
   const skeleton=(label='recommendLoading')=>`<div class="recommendation-loading" role="status"><span class="spinner"></span><p>${t(label)}</p></div>`;
-  function recommendationCard(m,work){
+
+  function recommendationCard(m,work,idx){
     const genres=(m.genre_ids || []).filter(id=>GENRES[id]).slice(0,3).map(id=>`<span class="genre-tag">${e(state.lang==='tr'?trGenres[id]:GENRES[id])}</span>`).join('');
     const reason=m.liked_title?t('recommendShared').replace('{title}',m.liked_title):t('recommendDiscovery');
-    return `<div class="recommendation-item">${card(m,work,m.recommendation_highlight?t('classicBadge'):'')}<div class="recommendation-tags">${genres}</div><p class="recommendation-reason">${e(reason)}</p><button class="quiet recommendation-hide" data-recommendation-owner="${e(state.owner)}" data-hide-recommendation="${m.id}">${t('hideSuggestion')}</button></div>`;
+    const dealCls=`deal-card deal-${Math.min(8,idx+1)}`;
+    return `<div class="recommendation-item ${dealCls}">${card(m,work,m.recommendation_highlight?t('classicBadge'):'')}<div class="recommendation-tags">${genres}</div><p class="recommendation-reason">✦ ${e(reason)}</p><button class="quiet recommendation-hide" data-recommendation-owner="${e(state.owner)}" data-hide-recommendation="${m.id}">${t('hideSuggestion')}</button></div>`;
   }
+
+  function tunerMarkup(){
+    return `<section class="discovery-tuner" data-active-mode="${mode}">`+
+      `<div class="tuner-dial-visual" aria-hidden="true">`+
+        `<svg class="tuner-dial-svg" viewBox="0 0 120 120">`+
+          `<circle class="tuner-ring-outer" cx="60" cy="60" r="54" fill="none" stroke-width="1.4"></circle>`+
+          `<circle class="tuner-ticks" cx="60" cy="60" r="47" fill="none" stroke-width="4" stroke-dasharray="1.6 6.6"></circle>`+
+          `<path class="tuner-arc-scale" d="M 21 83 A 45 45 0 1 1 99 83" fill="none" stroke-width="2.6" stroke-linecap="round"></path>`+
+          `<circle class="tuner-station-dot" cx="25" cy="36" r="2.8"></circle><circle class="tuner-station-dot" cx="60" cy="15" r="2.8"></circle><circle class="tuner-station-dot" cx="95" cy="36" r="2.8"></circle>`+
+          `<circle class="tuner-hub" cx="60" cy="60" r="25"></circle>`+
+          `<g class="tuner-needle"><polygon class="tuner-needle-blade" points="60,17 63.2,60 56.8,60"></polygon><circle class="tuner-pivot-outer" cx="60" cy="60" r="6"></circle><circle class="tuner-pivot-core" cx="60" cy="60" r="2.5"></circle></g>`+
+        `</svg>`+
+        `<span class="tuner-freq-readout">${freqByMode[mode] || '96.2 MHz'}</span>`+
+      `</div>`+
+      `<div class="tuner-stations">`+
+        [['familiar','CH 01 · 88.4 MHz'],['balanced','CH 02 · 96.2 MHz'],['explore','CH 03 · 104.8 MHz']].map(([k,code])=>
+          `<button type="button" class="tuner-station-btn ${mode===k?'selected':''}" data-recommendation-mode="${k}" aria-pressed="${mode===k}">`+
+            `<span class="tuner-station-code">${code}</span><strong>${e(t('mode_'+k))}</strong>`+
+          `</button>`
+        ).join('')+
+      `</div>`+
+    `</section>`;
+  }
+
   async function recommendations(view){
     const owner=state.owner,number=++requestNumber;
     const isCurrent=()=>state.view===view && owner===state.owner && number===requestNumber;
-    document.querySelector('#main').innerHTML=`<div class="page-head"><div class="eyebrow">${t('recommendEyebrow')}</div><h1>${t('recommendTitle')}</h1><p>${t('recommendIntro')}</p></div><div class="recommendation-toolbar"><div class="tabs">${['familiar','balanced','explore'].map(k=>`<button class="tab ${mode===k?'selected':''}" data-recommendation-mode="${k}" aria-pressed="${mode===k}">${t('mode_'+k)}</button>`).join('')}</div><button class="button secondary small" data-refresh-recommendations>${t('newSuggestions')} ↻</button></div><p class="form-hint recommendation-mode-hint">${t('modeHint_'+mode)}</p><section id="recommendation-results" aria-live="polite" aria-busy="true">${skeleton()}</section><div class="section"></div>`;
+    document.querySelector('#main').innerHTML=`<div class="page-head"><div class="eyebrow"><span class="dot"></span>${t('recommendEyebrow')}</div><h1>${t('recommendTitle')}</h1><p>${t('recommendIntro')}</p></div>${tunerMarkup()}<div class="recommendation-toolbar"><p class="form-hint recommendation-mode-hint">${t('modeHint_'+mode)}</p><button class="button secondary small" data-refresh-recommendations>✦ ${t('newSuggestions')} ↻</button></div><section id="recommendation-results" aria-live="polite" aria-busy="true">${skeleton()}</section><div class="section"></div>`;
     const refreshButton=document.querySelector('[data-refresh-recommendations]');refreshButton.disabled=true;
     try{
       const requestedRefresh=refresh;refresh=false;
@@ -31,8 +59,14 @@ export function createCommunityPages({state,store,api,t,e,image,card,render,navi
       const hiddenRows=hiddenMeta ? recentHidden.map(id=>({id,movie:hiddenMeta[state.lang+':'+id] || hiddenMeta['recommendation-features:'+id]})) : await Promise.all(recentHidden.map(async id=>({id,movie:await store.metadata(state.lang+':'+id) || await store.metadata('recommendation-features:'+id)})));
       if(!isCurrent())return;
       const restore=hidden.length?`<details class="hidden-suggestions"><summary>${t('hiddenSuggestions')} (${hidden.length})</summary><p>${t('hiddenExplanation')}</p><button class="quiet red" data-recommendation-owner="${e(owner)}" data-restore-all-recommendations>${t('restoreAllSuggestions')}</button>${hiddenRows.map(row=>`<div><span>${e(row.movie?.title || 'TMDB #'+row.id)}</span><button class="quiet red" data-recommendation-owner="${e(owner)}" data-restore-recommendation="${row.id}">${t('showAgain')}</button></div>`).join('')}</details>`:'';
-      document.querySelector('#recommendation-results').innerHTML=intro+changed+warning+(result.movies.length?`<div class="movie-grid recommendation-grid">${result.movies.map(m=>recommendationCard(m,work)).join('')}</div>`:`<div class="empty"><h2>${t('recommendEmpty')}</h2><p>${t('recommendEmptyP')}</p><a class="button secondary" href="/discover" data-route>${t('browse')} →</a></div>`)+restore;
-      document.querySelector('#recommendation-results').setAttribute('aria-busy','false');
+      const container=document.querySelector('#recommendation-results');
+      container.innerHTML=intro+changed+warning+(result.movies.length?`<div class="movie-grid recommendation-grid">${result.movies.map((m,i)=>recommendationCard(m,work,i)).join('')}</div>`:`<div class="empty"><h2>${t('recommendEmpty')}</h2><p>${t('recommendEmptyP')}</p><a class="button secondary" href="/discover" data-route>${t('browse')} →</a></div>`)+restore;
+      container.setAttribute('aria-busy','false');
+      if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+        container.querySelectorAll('.deal-card').forEach((node,i)=>{
+          node.animate([{opacity:0,transform:'translateY(16px) scale(0.96)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:400,delay:Math.min(i*45,320),easing:'cubic-bezier(0.22,1,0.36,1)',fill:'both'});
+        });
+      }
       for(const m of result.movies)await store.cacheMetadata(state.lang+':'+m.id,{id:m.id,title:m.title,poster_path:m.poster_path,genre_ids:m.genre_ids,release_date:m.release_date,vote_average:m.vote_average});
     }catch(error){
       if(isCurrent()){
@@ -41,12 +75,14 @@ export function createCommunityPages({state,store,api,t,e,image,card,render,navi
       }
     }finally{if(isCurrent())refreshButton.disabled=false;}
   }
-  const memberCard=row=>`<a class="member-card" href="/u/${e(row.username)}"><img src="/assets/avatars/${e(row.avatar_id)}.svg" alt="" width="68" height="68"><div><strong>${e(row.display_name || row.username)}</strong><span>@${e(row.username)}</span></div><span class="member-arrow" aria-hidden="true">↗</span></a>`;
-  const activityCard=(row,m)=>`<article class="activity-card"><a class="activity-person" href="/u/${e(row.username)}"><img src="/assets/avatars/${e(row.avatar_id)}.svg" alt="" width="36" height="36"><div><strong>${e(row.display_name || row.username)}</strong><span>@${e(row.username)}</span></div></a><a class="activity-film" href="/movie/${row.tmdb_id}" data-route>${image(m.poster_path)?`<img src="${image(m.poster_path)}" alt="" width="72" height="108" loading="lazy">`:`<span class="activity-placeholder">${row.tmdb_id}</span>`}<div><span class="activity-watched">${t('watched')}</span><h3>${e(m.title || 'TMDB #'+row.tmdb_id)}</h3><p>${e(date(row.watched_date))}${row.rating?` <span class="card-rating">· ★ ${row.rating}/10</span>`:''}</p></div></a></article>`;
+
+  const memberCard=row=>`<a class="member-card" href="/u/${e(row.username)}"><img class="medallion-avatar" src="/assets/avatars/${e(row.avatar_id)}.svg" alt="" width="68" height="68"><div><strong>${e(row.display_name || row.username)}</strong><span>@${e(row.username)}</span></div><span class="member-arrow" aria-hidden="true">↗</span></a>`;
+  const activityCard=(row,m)=>`<article class="activity-card"><a class="activity-person" href="/u/${e(row.username)}"><img class="medallion-avatar" src="/assets/avatars/${e(row.avatar_id)}.svg" alt="" width="36" height="36"><div><strong>${e(row.display_name || row.username)}</strong><span>@${e(row.username)}</span></div></a><a class="activity-film" href="/movie/${row.tmdb_id}" data-route>${image(m.poster_path)?`<img src="${image(m.poster_path)}" alt="" width="72" height="108" loading="lazy">`:`<span class="activity-placeholder">${row.tmdb_id}</span>`}<div><span class="activity-watched">${t('watched')}</span><h3>${e(m.title || 'TMDB #'+row.tmdb_id)}</h3><p>${e(date(row.watched_date))}${row.rating?` <span class="card-rating">· ★ ${row.rating}/10</span>`:''}</p></div></a></article>`;
+
   async function social(view){
     const params=new URLSearchParams(location.search),kind=params.get('view')==='week'?'week':'people',query=socialQuery(params.get('q') || '');
     const tabURL=tab=>'/social?'+new URLSearchParams({view:tab,q:query});
-    document.querySelector('#main').innerHTML=`<div class="page-head"><div class="eyebrow">${t('socialEyebrow')}</div><h1>${t('socialTitle')}</h1><p>${t('socialIntro')}</p></div><div class="toolbar social-toolbar"><div class="tabs"><a class="tab ${kind==='people'?'selected':''}" href="${e(tabURL('people'))}" data-route ${kind==='people'?'aria-current="page"':''}>${t('socialPeople')}</a><a class="tab ${kind==='week'?'selected':''}" href="${e(tabURL('week'))}" data-route ${kind==='week'?'aria-current="page"':''}>${t('socialWeek')}</a></div><form id="social-search-form" class="search-box"><input name="query" value="${e(query)}" placeholder="${t('socialSearch')}" aria-label="${t('socialSearch')}" maxlength="60"><button aria-label="${t('searchButton')}">⌕</button></form></div><p class="form-hint social-privacy">${t('socialPrivacy')}</p><section id="social-results" aria-live="polite" aria-busy="true">${skeleton('socialLoading')}</section><div class="section"></div>`;
+    document.querySelector('#main').innerHTML=`<div class="page-head"><div class="eyebrow"><span class="dot"></span>${t('socialEyebrow')}</div><h1>${t('socialTitle')}</h1><p>${t('socialIntro')}</p></div><div class="toolbar social-toolbar"><div class="tabs"><a class="tab ${kind==='people'?'selected':''}" href="${e(tabURL('people'))}" data-route ${kind==='people'?'aria-current="page"':''}>${t('socialPeople')}</a><a class="tab ${kind==='week'?'selected':''}" href="${e(tabURL('week'))}" data-route ${kind==='week'?'aria-current="page"':''}>${t('socialWeek')}</a></div><form id="social-search-form" class="search-box"><input name="query" value="${e(query)}" placeholder="${t('socialSearch')}" aria-label="${t('socialSearch')}" maxlength="60"><button aria-label="${t('searchButton')}">⌕</button></form></div><p class="form-hint social-privacy">${t('socialPrivacy')}</p><section id="social-results" aria-live="polite" aria-busy="true">${skeleton('socialLoading')}</section><div class="section"></div>`;
     try{
       const request=new URLSearchParams({view:kind,q:query});if(params.get('cursor'))request.set('cursor',params.get('cursor'));
       const page=socialPage(await api('social?'+request),kind);if(view!==state.view)return;
@@ -72,6 +108,7 @@ export function createCommunityPages({state,store,api,t,e,image,card,render,navi
       }
     }catch(error){if(view===state.view){document.querySelector('#social-results').innerHTML=`<div class="empty"><h2>${t('socialUnavailable')}</h2><p>${e(errorText(error))}</p><button class="button secondary small" data-retry-community>${t('retry')}</button></div>`;document.querySelector('#social-results').setAttribute('aria-busy','false');}}
   }
+
   async function handleClick(button){
     if(button.dataset.recommendationOwner && button.dataset.recommendationOwner!==state.owner)throw Error('account_changed');
     if(button.dataset.recommendationMode){mode=button.dataset.recommendationMode;await render();return true;}
@@ -82,6 +119,7 @@ export function createCommunityPages({state,store,api,t,e,image,card,render,navi
     if(button.hasAttribute('data-retry-community')){await render();return true;}
     return false;
   }
+
   async function handleSubmit(form){
     if(form.id!=='social-search-form')return false;
     const query=socialQuery(new FormData(form).get('query') || ''),kind=new URLSearchParams(location.search).get('view')==='week'?'week':'people';

@@ -1,13 +1,24 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}
     {{ movie.title }} · {{ t("Your library") }}
 {% endblock %}
+{% block page_backdrop %}
+    {% set page_art = tmdb.backdrop_url or tmdb.poster_url %}
+    {% if page_art %}
+        <div class="page-cinema-backdrop" aria-hidden="true">
+            <img class="page-cinema-backdrop-img{{ ' is-poster-fallback' if not tmdb.backdrop_url }}"
+                 src="{{ page_art }}"
+                 alt=""
+                 loading="eager"
+                 decoding="async">
+        </div>
+    {% endif %}
+{% endblock %}
 {% block content %}
+    {% set hero_art = tmdb.backdrop_url or tmdb.poster_url %}
     <a class="back-link" href="{{ request.args.get('back')|safe_back }}">{{ t("← Back to library") }}</a>
-    <section class="movie-detail-card {{ 'has-backdrop' if tmdb.backdrop_url }}" data-detail-id="{{ movie.id }}">
-        {% if tmdb.backdrop_url %}
-            <div class="detail-backdrop"><img src="{{ tmdb.backdrop_url }}" alt="" loading="eager"></div>
-        {% endif %}
+    <section class="movie-detail-card {{ 'has-backdrop' if hero_art }}" data-detail-id="{{ movie.id }}">
         <div class="detail-hero-head">
             <p class="eyebrow">{{ t("IN YOUR LIBRARY") }}</p>
             <h1>{{ movie.title }}</h1>
@@ -17,13 +28,16 @@
                 <img class="movie-poster detail-poster"
                      src="{{ tmdb.poster_url }}"
                      alt="{{ t("Poster for {title}", title=movie.title) }}"
-                     width="180"
-                     height="270">
+                     width="160"
+                     height="240">
             {% endif %}
             <div class="movie-header-badges">
                 {% include "_info_badges.html" %}
-                <span class="status-badge {{ movie.status|lower }}">{{ t('Want to watch' if movie.status=='Watchlist' else 'Watched') }}</span>
-                <p class="detail-rating-readout" data-rating-readout>{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("No rating yet") }}</p>
+                <div class="detail-status-inline">
+                    <span class="status-badge {{ movie.status|lower }}">{{ t('Want to watch' if movie.status=='Watchlist' else 'Watched') }}</span>
+                    <p class="detail-rating-readout" data-rating-readout>{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("No rating yet") }}</p>
+                    <p class="detail-watched-chip" data-watched-date {{ "hidden" if not movie.watched_date }}>{{ t("Watched {date}", date=movie.watched_date or "") }}</p>
+                </div>
                 <form class="quick-rate-form"
                       action="{{ url_for('rate_movie', movie_id=movie.id) }}"
                       method="post"
@@ -47,18 +61,64 @@
                                 title="{{ t('Clear rating') }}">×</button>
                     </div>
                 </form>
-                <p data-watched-date {{ "hidden" if not movie.watched_date }}>{{ t("Watched {date}", date=movie.watched_date or "") }}</p>
+                <div class="detail-actions-bar">{% include "_library_actions.html" %}</div>
             </div>
         </div>
-        {% include "_library_actions.html" %}
-        {% if movie.note %}
-            <section class="movie-note-block" id="note" tabindex="-1" aria-labelledby="note-title">
-                <h2 id="note-title">{{ t("Your note") }}</h2>
-                <p>{{ movie.note }}</p>
-            </section>
-        {% endif %}
-        {% include "_tmdb_info.html" %}
-        {% include "_entities.html" %}
 
+        <div class="detail-story-grid">
+            <section class="ticket-vault" id="note" tabindex="-1" aria-labelledby="note-title">
+            <div class="ticket-vault-head">
+                <span class="ticket-vault-serial">{{ icon('ticket', 15) }} ADMIT ONE · #MML-{{ "%05d"|format(movie.tmdb_id or movie.id) }}</span>
+                {% if movie.watched_date %}
+                    <span class="ticket-date-stamp">{{ icon('check', 12) }} {{ movie.watched_date }}</span>
+                {% else %}
+                    <span class="ticket-date-stamp">{{ t("PRIVATE CRITIC VAULT") }}</span>
+                {% endif %}
+            </div>
+
+            {% if movie.note %}
+                <div class="movie-note-block">
+                    <h2 id="note-title">{{ t("Your note") }}</h2>
+                    <p>{{ movie.note }}</p>
+                </div>
+            {% else %}
+                <div class="movie-note-block">
+                    <h2 id="note-title">{{ t("Your note") }}</h2>
+                    <p class="muted">{{ t("Leave a private reflection on a scene, dialogue or memory that stayed with you.") }}</p>
+                </div>
+            {% endif %}
+
+            <details class="ticket-inline-editor">
+                <summary>{{ icon('edit', 14) }} {{ t("Write or edit in your private ticket journal") }}</summary>
+                <form class="movie-form" action="{{ url_for('edit', movie_id=movie.id, next=current_url) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="rating" value="{{ movie.rating or '' }}" data-vault-rating-sync>
+                    <label for="vault-watched-date">{{ t("Watched date") }}</label>
+                    <input id="vault-watched-date" name="watched_date" type="date" value="{{ movie.watched_date or '' }}">
+                    <label for="vault-note">{{ t("Your note") }}</label>
+                    <textarea id="vault-note"
+                              class="ticket-textarea"
+                              name="note"
+                              rows="5"
+                              maxlength="20000"
+                              data-autosave-url="{{ url_for('autosave_note', movie_id=movie.id) }}"
+                              placeholder="{{ t('What stayed with you after the credits rolled?') }}">{{ movie.note or '' }}</textarea>
+                    <div class="ticket-inline-actions">
+                        <button type="submit">{{ t("Save changes") }}</button>
+                        <span class="autosave-indicator" data-autosave-status role="status" aria-live="polite"></span>
+                    </div>
+                </form>
+            </details>
+
+            <div class="ticket-vault-seal">
+                <span class="ticket-seal-badge">{{ icon('lock', 14) }} {{ t("Sealed in your private vault · Stored on your device, never shared publicly.") }}</span>
+            </div>
+            </section>
+
+            <div class="detail-synopsis-panel">
+                {% include "_tmdb_info.html" %}
+            </div>
+        </div>
+        {% include "_entities.html" %}
     </section>
 {% endblock %}

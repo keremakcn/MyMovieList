@@ -593,3 +593,32 @@ def test_search_checkbox_filters_and_pagination(app, client):
     )
     assert client.get("/api/suggestions?q=example&filters=1").json["results"] == []
     assert not calls
+
+
+def test_autosave_note_updates_only_note(app, client):
+    db = app.extensions["db"]
+    movie_id = db.add_custom(
+        {
+            "title": "Autosave Film",
+            "status": "Watched",
+            "rating": 9,
+            "watched_date": "2025-10-12",
+            "note": "Initial note",
+        }
+    )
+    db.update_personal(movie_id, {"favorite": 1})
+    long_note = (
+        "Bu filmde atmosfer, müzik ve kurgu baştan sona inanılmaz bir gerilim kuruyor."
+    )
+    res = post(client, f"/note/{movie_id}", note=long_note)
+    assert res.status_code == 200
+    assert res.json == {"ok": True, "id": movie_id, "note": long_note}
+    row = db.movie(movie_id)
+    assert row["note"] == long_note
+    assert row["rating"] == 9
+    assert row["status"] == "Watched"
+    assert row["watched_date"] == "2025-10-12"
+    assert row["favorite"] == 1
+    assert post(client, f"/note/{movie_id}", note="x" * 20001).status_code == 400
+    assert post(client, "/note/999999", note=long_note).status_code == 404
+    assert client.post(f"/note/{movie_id}", data={"note": long_note}).status_code == 400

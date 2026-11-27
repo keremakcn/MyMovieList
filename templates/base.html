@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-        <meta name="theme-color" content="#101116">
+        <meta name="theme-color" content="#090a11">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="library-scope" content="{{ library_scope }}">
         <title>
@@ -20,66 +20,136 @@
         <script id="ui-translations" type="application/json">{{ ui_messages|tojson }}</script>
         <script defer src="{{ url_for('static', filename='i18n.js', v=asset_version) }}"></script>
         <script defer src="{{ url_for('static', filename='script.js', v=asset_version) }}"></script>
-        <script defer src="{{ url_for('static',filename='account.js',v=asset_version) }}"></script>
+        <script defer src="{{ url_for('static', filename='account.js', v=asset_version) }}"></script>
+        <script defer src="{{ url_for('static', filename='cinema_engine.js', v=asset_version) }}"></script>
     </head>
     <body>
+        <canvas id="ambient-canvas" class="ambient-canvas" aria-hidden="true"></canvas>
+        {% block page_backdrop %}{% endblock %}
+        <canvas id="particle-canvas" class="particle-canvas" aria-hidden="true"></canvas>
+        <svg class="cinema-grain-layer" aria-hidden="true" focusable="false">
+            <filter id="mml-analog-grain">
+                <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" stitchTiles="stitch"></feTurbulence>
+            </filter>
+            <rect width="100%" height="100%" filter="url(#mml-analog-grain)"></rect>
+        </svg>
         <a class="skip-link" href="#main">{{ t("Skip to content") }}</a>
         <aside class="sidebar">
-            <a class="brand" href="/" aria-label="{{ t("MyMovieList home") }}"><img class="brand-logo" src="{{ url_for('static', filename='branding/mymovielist-256.png') }}" width="43" height="43" alt=""><span>MyMovie<span class="brand-second">List<span class="brand-dot">.</span></span></span></a>
+            <div class="sidebar-top-row">
+                <a class="brand" href="/" aria-label="{{ t("MyMovieList home") }}">
+                    <img class="brand-logo" src="{{ url_for('static', filename='branding/mymovielist-256.png') }}" width="38" height="38" alt="">
+                    <span>MyMovie<span class="brand-second">List<span class="brand-dot">.</span></span></span>
+                </a>
+                <button type="button"
+                        class="sidebar-collapse-btn"
+                        data-sidebar-toggle
+                        aria-pressed="false"
+                        title="{{ t('Toggle sidebar') }}"
+                        aria-label="{{ t('Toggle sidebar') }}">{{ icon('sidebar', 16) }}</button>
+            </div>
             <p class="nav-caption">{{ t("YOUR CINEMA") }}</p>
             <nav class="app-nav" aria-label="{{ t("Main navigation") }}">
-                <a href="/"
-                   {% if request.endpoint in ['index', 'movie', 'edit', 'add'] %} aria-current="page" {% endif %}>{{ icon('library') }}<span>{{ t("Library") }}</span></a>
-                <a href="/search"
-                   {% if request.endpoint in ['search', 'entity', 'catalog_movie'] or request.blueprint == 'discovery' %} aria-current="page" {% endif %}>{{ icon('explore') }}<span>{{ t("Explore") }}</span></a>
-                <a href="/recommendations"
-                   {% if request.blueprint == 'recommendations' %} aria-current="page" {% endif %}>{{ icon('spark') }}<span>{{ t("For you") }}</span></a>
-                <a href="/stats"
-                   {% if request.endpoint == 'stats' %} aria-current="page" {% endif %}>{{ icon('stats') }}<span>{{ t("Stats") }}</span></a>
-                <a href="{{ url_for('social.page') }}"
-                   {% if request.blueprint in ['social','public_profiles'] %} aria-current="page" {% endif %}>{{ icon('social') }}<span>{{ t("Social") }}</span></a>
-                <a href="{{ url_for('accounts.account') }}" class="profile-nav"
-                   {% if request.blueprint == 'accounts' and request.endpoint != 'accounts.settings' and flow != 'settings' %} aria-current="page" {% endif %}>{{ icon('profile') }}<span>{{ t("Profile") }}</span></a>
-                <a href="{{ url_for('people.index') }}" {% if request.blueprint == 'people' %}aria-current="page"{% endif %}>{{ icon('heart') }}<span>{{ t('Favorite people') }}</span></a>
-                <a href="/settings"
-                   {% if request.endpoint in ['settings','accounts.settings'] or (request.blueprint == 'accounts' and flow == 'settings') %} aria-current="page" {% endif %}>{{ icon('settings') }}<span>{{ t("Settings") }}</span></a>
+                <a href="/"{% if request.endpoint in ['index', 'movie', 'edit', 'add'] %} aria-current="page"{% endif %}>{{ icon('library') }}<span>{{ t("Library") }}</span></a>
+                <a href="/search"{% if request.endpoint in ['search', 'entity', 'catalog_movie'] or request.blueprint == 'discovery' %} aria-current="page"{% endif %}>{{ icon('explore') }}<span>{{ t("Explore") }}</span></a>
+                <a href="/recommendations"{% if request.blueprint == 'recommendations' %} aria-current="page"{% endif %}>{{ icon('dial') }}<span>{{ t("For you") }}</span></a>
+                <a href="/stats"{% if request.endpoint == 'stats' %} aria-current="page"{% endif %}>{{ icon('stats') }}<span>{{ t("Stats") }}</span></a>
+                <a href="{{ url_for('social.page') }}"{% if request.blueprint in ['social','public_profiles'] %} aria-current="page"{% endif %}>{{ icon('social') }}<span>{{ t("Social") }}</span></a>
+                <a href="{{ url_for('accounts.account') }}" class="profile-nav"{% if request.blueprint == 'accounts' and request.endpoint != 'accounts.settings' and flow != 'settings' %} aria-current="page"{% endif %}>{{ icon('profile') }}<span>{{ t("Profile") }}</span></a>
+                <a href="{{ url_for('people.index') }}"{% if request.blueprint == 'people' %} aria-current="page"{% endif %}>{{ icon('heart') }}<span>{{ t('Favorite people') }}</span></a>
+                <a href="/settings"{% if request.endpoint in ['settings','accounts.settings'] or (request.blueprint == 'accounts' and flow == 'settings') %} aria-current="page"{% endif %}>{{ icon('settings') }}<span>{{ t("Settings") }}</span></a>
             </nav>
-            <div class="sidebar-note"><span class="eyebrow">{{ t("A LITTLE SERENDIPITY") }}</span><p>{{ t("Your next favorite") }}<br>{{ t("is out there.") }}</p><a href="/recommendations">{{ t("Find your next film") }} {{ icon('arrow', 16) }}</a></div>
-            <div class="sidebar-bottom"><span class="local-dot"></span> {{ t("A library of your own") }}<small data-cloud-label data-state="{{ account_status.state }}">{{ t(account_status.label) }}</small></div>
+            <div class="sidebar-note">
+                <span class="eyebrow">{{ t("A LITTLE SERENDIPITY") }}</span>
+                <p>{{ t("Your next favorite") }}<br>{{ t("is out there.") }}</p>
+                <a href="/recommendations">{{ t("Find your next film") }} {{ icon('arrow', 15) }}</a>
+            </div>
+            <div class="sidebar-bottom">
+                <span class="local-dot"></span> {{ t("A library of your own") }}
+                <small data-cloud-label data-state="{{ account_status.state }}">{{ t(account_status.label) }}</small>
+            </div>
         </aside>
         <div class="workspace">
-        <header class="workspace-topbar">
-            <span class="topbar-motto">{{ t("Good films.") }} <span class="muted">{{ t("Kept close.") }}</span></span>
-            <div class="topbar-actions">
-                <a href="/search" class="topbar-search" aria-label="{{ t('Find a film') }}">{{ icon('search', 18) }}<span>{{ t('Find a film') }}</span><kbd>{{ primary_modifier }} K</kbd></a>
-                {% if account_status.owner %}
-                    <details class="account-menu"><summary aria-label="{{ t('Open account menu') }}"><img data-account-avatar src="{{ url_for('static',filename='avatars/' + account_status.profile.avatar_id + '.svg') }}" width="34" height="34" alt=""><span data-account-name data-account-empty="{{ t('Your profile') }}">{{ account_status.profile.display_name or t('Your profile') }}</span>{{ icon('chevron',14) }}</summary>
-                        <div class="account-menu-panel"><p class="account-menu-email">{{ account_status.email }}</p><span class="sync-badge" data-cloud-label data-state="{{ account_status.state }}">{{ t(account_status.label) }}</span><a href="{{ url_for('accounts.account') }}">{{ t('Your profile') }}</a><a href="/settings">{{ t('Settings') }}</a><form action="{{ url_for('accounts.signout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">{{ t('Sign out') }}</button></form></div>
-                    </details>
-                {% else %}
-                    <nav class="topbar-auth" aria-label="{{ t('Account options') }}"><a href="{{ url_for('accounts.account',flow='signin') }}">{{ t('Sign in') }}</a><a class="topbar-register" href="{{ url_for('accounts.account',flow='signup') }}">{{ t('Create account') }}</a></nav>
-                {% endif %}
-            </div>
-        </header>
-        <div id="update-banner" class="update-banner" role="status" hidden></div>
-        <main id="main" tabindex="-1">
-            {% block content %}{% endblock %}
-        </main>
-        <div id="toast-region"
-             class="toast-region"
-             aria-label="{{ t("Notifications") }}"
-             aria-live="polite"
-             aria-relevant="additions text">
-            {% for message in get_flashed_messages() %}
-                <div class="toast">
-                    <span>{{ t(message) }}</span>
-                    <button type="button" data-dismiss aria-label="{{ t("Dismiss notification") }}">×</button>
+            <header class="workspace-topbar">
+                <span class="topbar-motto">{{ t("Good films.") }} <span class="muted">{{ t("Kept close.") }}</span></span>
+                <div class="topbar-actions">
+                    <a href="/search"
+                       class="topbar-search"
+                       data-open-spotlight
+                       aria-label="{{ t('Find a film') }}">
+                        {{ icon('search', 16) }}
+                        <span>{{ t('Command & search') }}</span>
+                        <kbd>{{ primary_modifier }} K</kbd>
+                    </a>
+                    {% if account_status.owner %}
+                        <details class="account-menu">
+                            <summary aria-label="{{ t('Open account menu') }}">
+                                <img data-account-avatar src="{{ url_for('static',filename='avatars/' + account_status.profile.avatar_id + '.svg') }}" width="32" height="32" alt="">
+                                <span data-account-name data-account-empty="{{ t('Your profile') }}">{{ account_status.profile.display_name or t('Your profile') }}</span>
+                                {{ icon('chevron', 14) }}
+                            </summary>
+                            <div class="account-menu-panel">
+                                <p class="account-menu-email">{{ account_status.email }}</p>
+                                <span class="sync-badge" data-cloud-label data-state="{{ account_status.state }}">{{ t(account_status.label) }}</span>
+                                <a href="{{ url_for('accounts.account') }}">{{ t('Your profile') }}</a>
+                                <a href="/settings">{{ t('Settings') }}</a>
+                                <form action="{{ url_for('accounts.signout') }}" method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit">{{ t('Sign out') }}</button>
+                                </form>
+                            </div>
+                        </details>
+                    {% else %}
+                        <nav class="topbar-auth" aria-label="{{ t('Account options') }}">
+                            <a href="{{ url_for('accounts.account',flow='signin') }}">{{ t('Sign in') }}</a>
+                            <a class="topbar-register" href="{{ url_for('accounts.account',flow='signup') }}">{{ t('Create account') }}</a>
+                        </nav>
+                    {% endif %}
                 </div>
-            {% endfor %}
+            </header>
+            <div id="update-banner" class="update-banner" role="status" hidden></div>
+            <main id="main" tabindex="-1">
+                {% block content %}{% endblock %}
+            </main>
+            <div id="toast-region"
+                 class="toast-region"
+                 aria-label="{{ t("Notifications") }}"
+                 aria-live="polite"
+                 aria-relevant="additions text">
+                {% for message in get_flashed_messages() %}
+                    <div class="toast">
+                        <span>{{ t(message) }}</span>
+                        <button type="button" data-dismiss aria-label="{{ t("Dismiss notification") }}">×</button>
+                    </div>
+                {% endfor %}
+            </div>
+            <footer class="app-footer">
+                {{ t("Made for the love of film.") }}
+                <span>MyMovieList · Obsidian Screening Room · v{{ app_version }}</span>
+            </footer>
         </div>
-        <footer class="app-footer">
-            {{ t("Made for the love of film.") }}<span>MyMovieList · v{{ app_version }}</span>
-        </footer>
-        </div>
+
+        <dialog id="command-palette" class="command-dialog" aria-labelledby="command-palette-label">
+            <div class="command-shell">
+                <div class="command-head">
+                    {{ icon('command', 18) }}
+                    <label class="sr-only" id="command-palette-label" for="command-palette-input">{{ t("Command & search") }}</label>
+                    <input id="command-palette-input"
+                           type="search"
+                           autocomplete="off"
+                           maxlength="200"
+                           placeholder="{{ t('Search films, directors, studios or run a command…') }}">
+                    <button type="button" id="command-palette-close" class="command-close-btn">ESC</button>
+                </div>
+                <div id="command-palette-body" class="command-body"></div>
+                <div class="command-foot">
+                    <div class="command-hints">
+                        <span><kbd>↑↓</kbd> {{ t("Navigate") }}</span>
+                        <span><kbd>↵</kbd> {{ t("Open") }}</span>
+                        <span><kbd>ESC</kbd> {{ t("Close") }}</span>
+                    </div>
+                    <span>{{ icon('lock', 12) }} {{ t("Your notes stay private.") }}</span>
+                </div>
+            </div>
+        </dialog>
     </body>
 </html>

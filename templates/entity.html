@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_entities.html" import noir_silhouette_svg %}
 {% block title %}
     {{ profile.name }} · {{ t("Explore") }}
 {% endblock %}
@@ -11,6 +13,10 @@
                  alt="{{ profile.name }}"
                  width="150"
                  height="180">
+        {% else %}
+            <div class="entity-noir-avatar" aria-hidden="true">
+                {{ noir_silhouette_svg('portrait-placeholder') }}
+            </div>
         {% endif %}
         <div>
             <p class="eyebrow">{{ t(role_label)|upper }}</p>
@@ -36,6 +42,25 @@
         </div>
         <span>{{ t("{count} films · Popular first", count=total) }}</span>
     </div>
+    {% set ns = namespace(eras=[]) %}
+    {% for m in movies %}
+        {% if m.year %}
+            {% set dec = ((m.year|int) // 10) * 10 %}
+            {% if dec not in ns.eras %}
+                {% set ns.eras = ns.eras + [dec] %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+    {% if ns.eras %}
+        <div class="era-timeline-ribbon" aria-label="{{ t('Filmography timeline') }}">
+            <span class="era-timeline-label">{{ icon('reel', 15) }} {{ t("Career timeline") }}</span>
+            <div class="era-timeline-stops">
+                {% for dec in ns.eras|sort(reverse=true) %}
+                    <span class="era-stop-pill">{{ dec ~ "'ler" if ui_language == 'tr' else dec ~ "s" }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
     <div class="results-grid">
         {% for movie in movies %}
             {% include "_result_card.html" %}

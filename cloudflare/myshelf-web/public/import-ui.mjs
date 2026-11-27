@@ -1,5 +1,15 @@
-// Modal UI for browser-side Letterboxd (ZIP/CSV) and IMDb (CSV) import.
+// Modal UI for browser-side Letterboxd (ZIP/CSV) and IMDb (CSV) import with spinning 35mm reel.
 import {MAX_UPLOAD_BYTES,parseExternalFile,importExternalItems} from './external-import.mjs';
+
+const REEL_SVG=
+  `<svg class="import-reel-svg" viewBox="0 0 64 64" width="48" height="48" fill="none" aria-hidden="true">`+
+    `<circle cx="32" cy="32" r="27" stroke="currentColor" stroke-width="2"/>`+
+    `<circle cx="32" cy="32" r="7" stroke="currentColor" stroke-width="2"/>`+
+    `<circle cx="32" cy="14" r="4.5" fill="currentColor" opacity="0.55"/>`+
+    `<circle cx="32" cy="50" r="4.5" fill="currentColor" opacity="0.55"/>`+
+    `<circle cx="14" cy="32" r="4.5" fill="currentColor" opacity="0.55"/>`+
+    `<circle cx="50" cy="32" r="4.5" fill="currentColor" opacity="0.55"/>`+
+  `</svg>`;
 
 export function createImportUI({state,store,api,t,e,queueSync,render,toast,navigate}){
   let source='auto',selectedFile=null,running=false,lastSummary=null,lastError='';
@@ -23,9 +33,8 @@ export function createImportUI({state,store,api,t,e,queueSync,render,toast,navig
     ];
     const fileLabel=selectedFile ? `${selectedFile.name} (${Math.max(1,Math.round(selectedFile.size/1024))} KB)` : t('importDropHint');
     box.innerHTML=
-      `<div class="auth-body import-body">`+
-        `<h1 id="external-import-title">${t('importExternalTitle')}</h1>`+
-        `<p>${t('importExternalP')}</p>`+
+      `<div class="auth-body import-body ${running?'is-importing':''}">`+
+        `<div class="import-head-row"><div><h1 id="external-import-title">${t('importExternalTitle')}</h1><p>${t('importExternalP')}</p></div>${REEL_SVG}</div>`+
         `<div class="tabs import-sources" role="radiogroup" aria-label="${e(t('importExternalTitle'))}">${sources.map(([id,label])=>`<button type="button" class="tab ${source===id?'selected':''}" data-import-source="${id}" aria-pressed="${source===id}" ${running?'disabled':''}>${e(label)}</button>`).join('')}</div>`+
         `<label class="import-dropzone ${selectedFile?'has-file':''}" id="external-import-drop">`+
           `<input type="file" id="external-import-file" accept=".zip,.csv,application/zip,text/csv" hidden ${running?'disabled':''}>`+
@@ -33,7 +42,7 @@ export function createImportUI({state,store,api,t,e,queueSync,render,toast,navig
           `<span>${e(fileLabel)}</span>`+
         `</label>`+
         `<p class="form-hint">${t('importExternalHint')}</p>`+
-        `<div id="external-import-progress" class="import-progress" hidden>`+
+        `<div id="external-import-progress" class="import-progress" ${running?'':'hidden'}>`+
           `<div class="import-progress-meta"><span id="external-import-stage"></span><span id="external-import-counter"></span></div>`+
           `<progress id="external-import-bar" max="100" value="0"></progress>`+
         `</div>`+

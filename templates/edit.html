@@ -1,13 +1,42 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}
     {{ t("Edit {title}", title=movie.title) }}
 {% endblock %}
+{% block page_backdrop %}
+    {% set edit_art = movie.backdrop_url or movie.poster_path %}
+    {% if edit_art %}
+        <div class="page-cinema-backdrop" aria-hidden="true">
+            <img class="page-cinema-backdrop-img{{ ' is-poster-fallback' if not movie.backdrop_url }}"
+                 src="{{ edit_art }}"
+                 alt=""
+                 loading="eager"
+                 decoding="async">
+        </div>
+    {% endif %}
+{% endblock %}
 {% block content %}
+    {% set edit_art = movie.backdrop_url or movie.poster_path %}
     <div class="form-page">
         <a class="back-link" href="{{ next_url }}">{{ t("← Back") }}</a>
-        <section class="form-card" data-detail-id="{{ movie.id }}">
-            <p class="eyebrow">{{ t("YOUR PERSPECTIVE") }}</p>
-            <h1>{{ movie.title }}</h1>
+        <section class="form-card ticket-vault{{ ' has-backdrop' if edit_art }}" data-detail-id="{{ movie.id }}">
+            <div class="ticket-vault-head">
+                <span class="ticket-vault-serial">{{ icon('ticket', 15) }} ADMIT ONE · #MML-{{ "%05d"|format(movie.tmdb_id or movie.id) }}</span>
+                <span class="ticket-date-stamp">{{ icon('lock', 12) }} {{ t("PRIVATE CRITIC VAULT") }}</span>
+            </div>
+            <div class="edit-hero-title-row">
+                {% if movie.poster_path %}
+                    <img class="edit-hero-poster"
+                         src="{{ movie.poster_path }}"
+                         alt="{{ t('Poster for {title}', title=movie.title) }}"
+                         width="64"
+                         height="96">
+                {% endif %}
+                <div>
+                    <p class="eyebrow">{{ t("YOUR PERSPECTIVE") }}</p>
+                    <h1>{{ movie.title }}</h1>
+                </div>
+            </div>
             {% if error %}
                 <p class="form-error" role="alert">{{ t(error) }}</p>
             {% endif %}
@@ -41,7 +70,17 @@
                        type="date"
                        value="{{ movie.watched_date or '' }}">
                 <label for="note">{{ t("Your note") }}</label>
-                <textarea id="note" name="note" rows="7" maxlength="20000">{{ movie.note or '' }}</textarea>
+                <textarea id="note"
+                          class="ticket-textarea"
+                          name="note"
+                          rows="7"
+                          maxlength="20000"
+                          data-autosave-url="{{ url_for('autosave_note', movie_id=movie.id) }}"
+                          placeholder="{{ t('What stayed with you after the credits rolled?') }}">{{ movie.note or '' }}</textarea>
+                <div class="ticket-vault-seal">
+                    <span class="ticket-seal-badge">{{ icon('lock', 14) }} {{ t("Sealed in your private vault · Stored on your device, never shared publicly.") }}</span>
+                    <span class="autosave-indicator" data-autosave-status role="status" aria-live="polite"></span>
+                </div>
                 <button>{{ t("Save changes") }}</button>
                 <a class="edit-link" href="{{ next_url }}">{{ t("Cancel") }}</a>
             </form>

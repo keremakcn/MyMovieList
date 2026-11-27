@@ -30,7 +30,7 @@ from flask import (
 )
 
 from catalog import display_summary
-from cinema_stats import compute_cinema_stats
+from cinema_stats import build_stats_view_extras, compute_cinema_stats
 from external_import import (
     MAX_UPLOAD_BYTES,
     import_external_library,
@@ -214,6 +214,9 @@ def create_app(config=None):
                     (BASE_DIR / "static/stats_card.js").stat().st_mtime_ns
                     if (BASE_DIR / "static/stats_card.js").exists()
                     else 0,
+                    (BASE_DIR / "static/cinema_engine.js").stat().st_mtime_ns
+                    if (BASE_DIR / "static/cinema_engine.js").exists()
+                    else 0,
                     (BASE_DIR / "static/locales/tr.json").stat().st_mtime_ns,
                 )
             ),
@@ -344,6 +347,31 @@ def create_app(config=None):
         )
         pending = catalog.schedule(movies)
         stats = db.library_stats()
+        library_backdrop = None
+        if status != "trash":
+            pool = db.query(
+                "SELECT id,title,year,tmdb_id,poster_path FROM movies "
+                "WHERE deleted_at IS NULL AND (favorite=1 OR rating>=8) "
+                "ORDER BY favorite DESC, COALESCE(rating,0) DESC, id DESC LIMIT 80"
+            )
+            if pool:
+                catalog.schedule(pool)
+                candidates = [
+                    m
+                    for m in catalog.present(pool, content_locale())
+                    if m.get("backdrop_url")
+                ]
+                if candidates:
+                    last_id = session.get("last_library_backdrop_id")
+                    fresh = [m for m in candidates if m["id"] != last_id]
+                    chosen = secrets.choice(fresh or candidates)
+                    session["last_library_backdrop_id"] = chosen["id"]
+                    library_backdrop = {
+                        "url": chosen["backdrop_url"],
+                        "title": chosen["title"],
+                        "year": chosen.get("year"),
+                        "movie_id": chosen["id"],
+                    }
         return render_template(
             "index.html",
             movies=[
@@ -358,6 +386,7 @@ def create_app(config=None):
             count=count,
             page=page,
             pages=pages,
+            library_backdrop=library_backdrop,
         )
 
     @app.get("/api/library/metadata")
@@ -388,6 +417,7 @@ def create_app(config=None):
                     "id": m["id"],
                     "title": m["title"],
                     "search_title": m["search_title"],
+                    "backdrop_url": m.get("backdrop_url"),
                     "pending": m.get("tmdb_id") in pending,
                 }
                 for m in catalog.present(rows, content_locale())
@@ -583,6 +613,85 @@ def create_app(config=None):
             ]
         )
 
+    @app.get("/api/command-search")
+    def command_search():
+        query = request.args.get("q", "").strip()[:200]
+        if len(query) < 2:
+            return jsonify(library=[], catalog=[])
+        pattern = (
+            "%"
+            + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            + "%"
+        )
+        local_rows = db.query(
+            """SELECT * FROM movies WHERE deleted_at IS NULL AND (
+                search_fold(title) LIKE search_fold(?) ESCAPE '\\' OR EXISTS (
+                    SELECT 1 FROM movie_metadata c WHERE c.tmdb_id=movies.tmdb_id AND (
+                        search_fold(c.english_title) LIKE search_fold(?) ESCAPE '\\' OR
+                        search_fold(c.original_title) LIKE search_fold(?) ESCAPE '\\' OR
+                        search_fold(c.turkish_title) LIKE search_fold(?) ESCAPE '\\'
+                    )
+                )
+            ) ORDER BY favorite DESC, order_key DESC LIMIT 6""",
+            pattern,
+            pattern,
+            pattern,
+            pattern,
+        )
+        local_items = [
+            {
+                "id": m["id"],
+                "tmdb_id": m.get("tmdb_id"),
+                "title": m["title"],
+                "year": m.get("year"),
+                "status": m["status"],
+                "rating": m.get("rating"),
+                "favorite": bool(m.get("favorite")),
+                "poster_path": m.get("poster_path"),
+                "url": url_for("movie", movie_id=m["id"]),
+            }
+            for m in catalog.present(local_rows, content_locale())
+        ]
+        catalog_items = []
+        try:
+            remote_data = search_data(
+                query, "all", 1, ["movie", "actor", "director", "company"]
+            )
+            for item in remote_data.get("results", [])[:8]:
+                if item.get("kind") == "movie":
+                    lib = item.get("library")
+                    catalog_items.append(
+                        {
+                            "kind": "movie",
+                            "tmdb_id": item["tmdb_id"],
+                            "title": item["title"],
+                            "year": item.get("year"),
+                            "score_percent": item.get("score_percent"),
+                            "poster_url": item.get("poster_url"),
+                            "url": url_for("catalog_movie", tmdb_id=item["tmdb_id"]),
+                            "library": {"id": lib["id"], "status": lib["status"]}
+                            if lib
+                            else None,
+                        }
+                    )
+                else:
+                    catalog_items.append(
+                        {
+                            "kind": item["kind"],
+                            "id": item["id"],
+                            "name": item["name"],
+                            "role_label": t(item.get("role_label", "Person")),
+                            "subtitle": item.get("description") or "",
+                            "image": item.get("image"),
+                            "url": url_for(
+                                "entity", kind=item["kind"], entity_id=item["id"]
+                            ),
+                        }
+                    )
+        except TMDBError:
+            pass
+        return jsonify(library=local_items, catalog=catalog_items)
+
     def download_poster(tmdb_id, remote):
         if not remote:
             return None
@@ -705,7 +814,115 @@ def create_app(config=None):
             parsed = int(raw_year)
             if 1800 <= parsed <= 2200:
                 selected_year = parsed
-        return render_template("stats.html", stats=compute_cinema_stats(db, year=selected_year))
+        data = compute_cinema_stats(db, year=selected_year)
+        # Enrich archive milestone records with cached backdrops (zero network calls).
+        record_ids = [
+            film["id"]
+            for film in (data.get("records") or {}).values()
+            if isinstance(film, dict) and film.get("id")
+        ]
+        if record_ids:
+            rows = db.query(
+                "SELECT id,title,year,tmdb_id,poster_path FROM movies WHERE deleted_at IS NULL AND id IN ("
+                + ",".join("?" for _ in record_ids)
+                + ")",
+                *record_ids,
+            )
+            by_id = {
+                m["id"]: m for m in catalog.present(rows, content_locale())
+            }
+            for film in (data.get("records") or {}).values():
+                if isinstance(film, dict) and film.get("id") in by_id:
+                    film["backdrop_url"] = by_id[film["id"]].get("backdrop_url")
+        stats_backdrop = None
+        pool = db.query(
+            "SELECT id,title,year,tmdb_id,poster_path FROM movies "
+            "WHERE deleted_at IS NULL AND (favorite=1 OR rating>=8) "
+            "ORDER BY favorite DESC, COALESCE(rating,0) DESC, id DESC LIMIT 80"
+        )
+        if pool:
+            candidates = [
+                m
+                for m in catalog.present(pool, content_locale())
+                if m.get("backdrop_url")
+            ]
+            if candidates:
+                last_id = session.get("last_library_backdrop_id")
+                fresh = [m for m in candidates if m["id"] != last_id]
+                chosen = secrets.choice(fresh or candidates)
+                session["last_library_backdrop_id"] = chosen["id"]
+                stats_backdrop = {
+                    "url": chosen["backdrop_url"],
+                    "title": chosen["title"],
+                    "year": chosen.get("year"),
+                    "movie_id": chosen["id"],
+                }
+        stats_view = build_stats_view_extras(db, data)
+        top_studio_ids = [
+            s["id"]
+            for s in (data.get("top_studios") or [])
+            if type(s.get("id")) is int and s["id"] > 0
+        ]
+        if top_studio_ids:
+            logo_cache = {}
+            cached_row = db.query(
+                "SELECT value FROM settings WHERE key='studio_logo_cache'"
+            )
+            if cached_row:
+                try:
+                    parsed_cache = json.loads(cached_row[0]["value"] or "{}")
+                    if isinstance(parsed_cache, dict):
+                        logo_cache = parsed_cache
+                except (TypeError, ValueError):
+                    logo_cache = {}
+            missing_ids = [
+                sid
+                for sid in top_studio_ids
+                if str(sid) not in logo_cache
+                and not (
+                    stats_view["studio_visuals"]
+                    .get(str(sid), {})
+                    .get("logo_url")
+                )
+            ]
+            if missing_ids and not app.config.get("TESTING"):
+
+                def fetch_studio_logo(sid):
+                    try:
+                        profile = tmdb.get(f"company/{sid}")
+                        return str(sid), (
+                            image_url(profile.get("logo_path"), "w185") or ""
+                        )
+                    except TMDBError:
+                        return str(sid), None
+
+                with ThreadPoolExecutor(max_workers=4) as logo_pool:
+                    fetched = list(logo_pool.map(fetch_studio_logo, missing_ids))
+                dirty = False
+                for sid_key, url in fetched:
+                    if url is not None:
+                        logo_cache[sid_key] = url
+                        dirty = True
+                if dirty:
+                    db.execute(
+                        "INSERT OR REPLACE INTO settings(key, value) VALUES('studio_logo_cache', ?)",
+                        json.dumps(logo_cache),
+                    )
+            for sid in top_studio_ids:
+                sid_key = str(sid)
+                cached_url = logo_cache.get(sid_key)
+                if (
+                    isinstance(cached_url, str)
+                    and cached_url.startswith("https://image.tmdb.org/t/p/")
+                    and sid_key in stats_view["studio_visuals"]
+                ):
+                    stats_view["studio_visuals"][sid_key]["logo_url"] = cached_url
+        return render_template(
+            "stats.html",
+            stats=data,
+            stats_backdrop=stats_backdrop,
+            stats_view=stats_view,
+        )
 
     @app.post("/movie/<int:movie_id>/refresh")
     def refresh_movie(movie_id):
@@ -905,6 +1122,17 @@ def create_app(config=None):
         db.update_personal(movie_id, {"rating": rating})
         return mutation_result(movie_id)
 
+    @app.post("/note/<int:movie_id>")
+    def autosave_note(movie_id):
+        row = db.movie(movie_id)
+        if not row:
+            abort(404)
+        note = request.form.get("note", "").strip() or None
+        if len(note or "") > 20000:
+            abort(400, "Keep notes under 20,000 characters.")
+        db.update_personal(movie_id, {"note": note})
+        return jsonify(ok=True, id=movie_id, note=note)
+
     @app.post("/favorite/<int:movie_id>")
     def favorite(movie_id):
         value = request.form.get("value")
@@ -1045,6 +1273,8 @@ def create_app(config=None):
         from flask import g
 
         g.ui_language = choice
+        if request.form.get("stay") == "1":
+            return jsonify(language=choice, ok=True)
         flash(t("Language saved."))
         return redirect(url_for("settings"), code=303)
 

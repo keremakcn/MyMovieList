@@ -4,6 +4,17 @@
 {% block title %}
     {{ t("Cinema stats") }} · MyMovieList
 {% endblock %}
+{% block page_backdrop %}
+    {% if stats_backdrop %}
+        <div class="page-cinema-backdrop is-library-ambient" aria-hidden="true">
+            <img class="page-cinema-backdrop-img"
+                 src="{{ stats_backdrop.url }}"
+                 alt=""
+                 loading="eager"
+                 decoding="async">
+        </div>
+    {% endif %}
+{% endblock %}
 {% block content %}
     <header class="app-header stats-header">
         <div>
@@ -25,7 +36,7 @@
                     </nav>
                 {% endif %}
                 <button type="button" id="open-stats-card" class="add-movie-link stats-share-btn">
-                    {{ icon('film', 16) }}<span>{{ t("Share Cinema Card (PNG)") }}</span>
+                    {{ icon('ticket', 16) }}<span>{{ t("Share Cinema Card (PNG)") }}</span>
                 </button>
             </div>
         {% endif %}
@@ -57,7 +68,7 @@
                             transform="rotate(-90 50 50)"></circle>
                 </svg>
                 <div class="stats-ring-center">
-                    <strong>{{ stats.overview.completion_pct }}%</strong>
+                    <strong data-count-target="{{ stats.overview.completion_pct }}" data-count-suffix="%">{{ stats.overview.completion_pct }}%</strong>
                     <span>{{ t("Watched") }}</span>
                 </div>
             </div>
@@ -87,7 +98,7 @@
                         </span>
                     {% endif %}
                     {% if stats.overview.longest_streak > 1 %}
-                        <span class="stats-insight-chip">{{ t("Best streak: {days} days", days=stats.overview.longest_streak) }}</span>
+                        <span class="stats-insight-chip">{{ icon('flame', 13) }} {{ t("Best streak: {days} days", days=stats.overview.longest_streak) }}</span>
                     {% endif %}
                     {% if stats.overview.ten_count > 0 %}
                         <span class="stats-insight-chip stats-chip-gold">{{ t("{count} masterpieces (10/10)", count=stats.overview.ten_count) }}</span>
@@ -102,7 +113,7 @@
         <section class="stats-kpi-grid" aria-label="{{ t("Cinema overview") }}" data-stats-totals>
             <article class="stats-kpi-card">
                 <span class="stats-kpi-label">{{ icon('check', 16) }}<span>{{ t("Watched") }}</span></span>
-                <strong class="stats-kpi-value" data-stat-watched>{{ stats.totals.watched }}</strong>
+                <strong class="stats-kpi-value" data-stat-watched data-count-target="{{ stats.totals.watched }}">{{ stats.totals.watched }}</strong>
                 <small class="stats-kpi-sub">{{ t("{count} in library", count=stats.totals.total) }}</small>
             </article>
             <article class="stats-kpi-card">
@@ -128,7 +139,9 @@
             </article>
             <article class="stats-kpi-card stats-kpi-gold">
                 <span class="stats-kpi-label">{{ icon('star', 16) }}<span>{{ t("Average rating") }}</span></span>
-                <strong class="stats-kpi-value" data-stat-avg>{{ "★ " ~ stats.totals.avg_rating if stats.totals.avg_rating is not none else "—" }}</strong>
+                <strong class="stats-kpi-value"
+                        data-stat-avg
+                        {% if stats.totals.avg_rating is not none %}data-count-target="{{ stats.totals.avg_rating }}" data-count-decimals="1" data-count-prefix="★ "{% endif %}>{{ "★ " ~ stats.totals.avg_rating if stats.totals.avg_rating is not none else "—" }}</strong>
                 <small class="stats-kpi-sub">
                     {% if stats.overview.median_rating is not none %}
                         {{ t("{count} rated · median {median}", count=stats.totals.rated, median=stats.overview.median_rating) }}
@@ -139,12 +152,12 @@
             </article>
             <article class="stats-kpi-card stats-kpi-rose">
                 <span class="stats-kpi-label">{{ icon('heart', 16) }}<span>{{ t("Favorites") }}</span></span>
-                <strong class="stats-kpi-value" data-stat-favorites>{{ stats.totals.favorites }}</strong>
+                <strong class="stats-kpi-value" data-stat-favorites data-count-target="{{ stats.totals.favorites }}">{{ stats.totals.favorites }}</strong>
                 <small class="stats-kpi-sub">{{ t("{pct}% of watched · {count} want to watch", pct=stats.overview.favorite_rate, count=stats.totals.watchlist) }}</small>
             </article>
             <article class="stats-kpi-card">
                 <span class="stats-kpi-label">{{ icon('film', 16) }}<span>{{ t("Watched in {year}", year=stats.year) }}</span></span>
-                <strong class="stats-kpi-value" data-stat-this-year>{{ stats.totals.watched_this_year }}</strong>
+                <strong class="stats-kpi-value" data-stat-this-year data-count-target="{{ stats.totals.watched_this_year }}">{{ stats.totals.watched_this_year }}</strong>
                 <small class="stats-kpi-sub">{{ t("{count} personal notes", count=stats.totals.with_notes) }}</small>
             </article>
         </section>
@@ -158,49 +171,101 @@
                     ('Newest film', stats.records.newest, stats.records.newest.year if stats.records.newest else '')
                 ] %}
                     {% if film %}
-                        <a class="stats-record-card" href="{{ url_for('movie', movie_id=film.id, back='/stats') }}">
-                            <span class="stats-record-label">{{ t(label) }}</span>
-                            <strong>{{ film.title }}</strong>
-                            <span class="stats-record-meta">{{ detail }}{% if film.rating %} · ★ {{ film.rating }}/10{% endif %}</span>
+                        {% set rec_img = film.backdrop_url or film.poster_path %}
+                        <a class="stats-record-card{{ ' has-record-art' if rec_img }}" href="{{ url_for('movie', movie_id=film.id, back='/stats') }}">
+                            {% if rec_img %}
+                                <div class="stats-record-art" aria-hidden="true">
+                                    <img class="{{ 'is-poster-fallback' if not film.backdrop_url }}"
+                                         src="{{ rec_img }}"
+                                         alt=""
+                                         loading="lazy"
+                                         decoding="async">
+                                </div>
+                            {% endif %}
+                            <div class="stats-record-row">
+                                {% if film.poster_path %}
+                                    <div class="stats-record-poster">
+                                        <img src="{{ film.poster_path }}" alt="{{ t('Poster for {title}', title=film.title) }}" loading="lazy" decoding="async">
+                                    </div>
+                                {% endif %}
+                                <div class="stats-record-copy">
+                                    <span class="stats-record-label">{{ t(label) }}</span>
+                                    <strong>{{ film.title }}</strong>
+                                    <span class="stats-record-meta">{{ detail }}{% if film.rating %} · ★ {{ film.rating }}/10{% endif %}</span>
+                                </div>
+                            </div>
                         </a>
                     {% endif %}
                 {% endfor %}
             </section>
         {% endif %}
 
-        <div class="stats-panels-grid">
-            <section class="stats-panel" aria-labelledby="stats-ratings-heading" data-stats-ratings>
+        <div class="stats-story-chapter">
+            <span class="chapter-num">01</span>
+            <div>
+                <p class="eyebrow">{{ t("CHAPTER I · SCREENING RHYTHM") }}</p>
+                <h2>{{ t("Your year in the dark") }}</h2>
+            </div>
+        </div>
+
+        {% if stats.watch_heatmap %}
+            <section class="stats-panel stats-full-panel" aria-labelledby="stats-heatmap-heading" data-stats-heatmap>
                 <div class="stats-panel-header">
-                    <h2 id="stats-ratings-heading">{{ t("Rating distribution") }}</h2>
-                    <span class="stats-panel-badge">
-                        {% if stats.totals.avg_rating is not none %}
-                            {{ t("★ {avg} average · {count} rated", avg=stats.totals.avg_rating, count=stats.totals.rated) }}
-                        {% else %}
-                            {{ t("No ratings yet") }}
-                        {% endif %}
-                    </span>
+                    <h2 id="stats-heatmap-heading">{{ t("{year} watch heatmap", year=stats.year) }}</h2>
+                    <span class="stats-panel-badge">{{ t("{count} active screening days", count=stats.watch_heatmap.active_days) }}</span>
                 </div>
-                <div class="stats-vchart" role="list" aria-label="{{ t("Rating distribution") }}">
-                    {% for item in stats.rating_distribution %}
-                        <div class="stats-vbar-col" role="listitem" data-rating-bin="{{ item.rating }}">
-                            <span class="stats-bar-count">{{ item.count }}</span>
-                            <svg class="stats-vbar-svg" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
-                                <rect class="stats-bar-track" x="3" y="0" width="18" height="100" rx="5"></rect>
-                                {% if item.bar_height > 0 %}
-                                    <rect class="stats-bar-fill{{ ' stats-bar-fill-gold' if item.rating >= 8 else '' }}"
-                                          x="3"
-                                          y="{{ 100 - item.bar_height }}"
-                                          width="18"
-                                          height="{{ item.bar_height }}"
-                                          rx="5"></rect>
-                                {% endif %}
-                            </svg>
-                            <span class="stats-bar-label">★ {{ item.rating }}</span>
-                        </div>
-                    {% endfor %}
+                <div class="heatmap-scroll">
+                    <svg class="watch-heatmap-svg"
+                         viewBox="0 0 {{ stats.watch_heatmap.width }} {{ stats.watch_heatmap.height }}"
+                         role="img"
+                         aria-label="{{ t('{year} watch heatmap', year=stats.year) }}">
+                        {% for m in stats.watch_heatmap.month_markers %}
+                            <text class="heatmap-month-label" x="{{ m.x }}" y="12">{{ t(month_labels[m.month - 1]) }}</text>
+                        {% endfor %}
+                        <text class="heatmap-day-label" x="2" y="26">{{ t("Mon") }}</text>
+                        <text class="heatmap-day-label" x="2" y="52">{{ t("Wed") }}</text>
+                        <text class="heatmap-day-label" x="2" y="78">{{ t("Fri") }}</text>
+                        {% for cell in stats.watch_heatmap.cells %}
+                            {% set day_titles = stats_view.heatmap_titles.get(cell.date, '') %}
+                            <rect class="heatmap-cell heatmap-lvl-{{ cell.level }}{{ ' is-drillable' if cell.count > 0 else '' }}"
+                                  x="{{ cell.x }}"
+                                  y="{{ cell.y }}"
+                                  width="10"
+                                  height="10"
+                                  rx="2.5"
+                                  {% if cell.count > 0 %}
+                                  tabindex="0"
+                                  role="button"
+                                  data-drill-group="by_date"
+                                  data-drill-key="{{ cell.date }}"
+                                  data-drill-title="{{ cell.date }}"
+                                  data-heatmap-titles="{{ day_titles }}"
+                                  aria-label="{{ cell.date }} · {{ day_titles or t('{count} watched', count=cell.count) }}"
+                                  {% endif %}>
+                                <title>{{ cell.date }} · {{ day_titles if day_titles else t("{count} watched", count=cell.count) }}</title>
+                            </rect>
+                        {% endfor %}
+                    </svg>
+                </div>
+                <div class="heatmap-footer">
+                    <div id="heatmap-live-preview" class="heatmap-live-preview" aria-live="polite">
+                        <span class="heatmap-preview-dot" aria-hidden="true"></span>
+                        <span class="heatmap-preview-text">{{ t("Hover or click an active day to inspect films") }}</span>
+                    </div>
+                    <div class="heatmap-legend" aria-hidden="true">
+                        <span>{{ t("Quiet") }}</span>
+                        <i class="heatmap-swatch heatmap-lvl-0"></i>
+                        <i class="heatmap-swatch heatmap-lvl-1"></i>
+                        <i class="heatmap-swatch heatmap-lvl-2"></i>
+                        <i class="heatmap-swatch heatmap-lvl-3"></i>
+                        <i class="heatmap-swatch heatmap-lvl-4"></i>
+                        <span>{{ t("Marathon") }}</span>
+                    </div>
                 </div>
             </section>
+        {% endif %}
 
+        <div class="stats-panels-grid">
             <section class="stats-panel" aria-labelledby="stats-monthly-heading" data-stats-monthly>
                 <div class="stats-panel-header">
                     <h2 id="stats-monthly-heading">{{ t("{year} watch cadence", year=stats.year) }}</h2>
@@ -212,24 +277,70 @@
                         {% endif %}
                     </span>
                 </div>
-                <div class="stats-vchart stats-vchart-months" role="list" aria-label="{{ t("{year} watch cadence", year=stats.year) }}">
-                    {% for item in stats.monthly_activity %}
-                        <div class="stats-vbar-col" role="listitem" data-month-bin="{{ item.month }}">
-                            <span class="stats-bar-count">{{ item.count }}</span>
-                            <svg class="stats-vbar-svg" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
-                                <rect class="stats-bar-track" x="3" y="0" width="18" height="100" rx="5"></rect>
-                                {% if item.bar_height > 0 %}
-                                    <rect class="stats-bar-fill"
-                                          x="3"
-                                          y="{{ 100 - item.bar_height }}"
-                                          width="18"
-                                          height="{{ item.bar_height }}"
-                                          rx="5"></rect>
-                                {% endif %}
-                            </svg>
-                            <span class="stats-bar-label">{{ t(month_labels[item.month - 1]) }}</span>
-                        </div>
-                    {% endfor %}
+                <div class="stats-wave-wrap">
+                    <svg class="stats-wave-svg"
+                         viewBox="0 0 {{ stats_view.monthly_wave.width }} {{ stats_view.monthly_wave.height }}"
+                         role="img"
+                         aria-label="{{ t('{year} watch cadence', year=stats.year) }}">
+                        <defs>
+                            <linearGradient id="wave-area-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#ebd096" stop-opacity="0.46"></stop>
+                                <stop offset="52%" stop-color="#cbb9ff" stop-opacity="0.20"></stop>
+                                <stop offset="100%" stop-color="#cbb9ff" stop-opacity="0.01"></stop>
+                            </linearGradient>
+                            <linearGradient id="wave-line-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#cbb9ff"></stop>
+                                <stop offset="50%" stop-color="#ebd096"></stop>
+                                <stop offset="100%" stop-color="#cbb9ff"></stop>
+                            </linearGradient>
+                        </defs>
+                        {% for gy in stats_view.monthly_wave.grid_lines %}
+                            <line class="wave-grid-line" x1="18" y1="{{ gy }}" x2="542" y2="{{ gy }}"></line>
+                        {% endfor %}
+                        <line class="wave-baseline" x1="18" y1="{{ stats_view.monthly_wave.baseline }}" x2="542" y2="{{ stats_view.monthly_wave.baseline }}"></line>
+                        {% if stats_view.monthly_wave.has_data %}
+                            <path class="wave-area" d="{{ stats_view.monthly_wave.area_path }}" fill="url(#wave-area-grad)"></path>
+                            <path class="wave-line" d="{{ stats_view.monthly_wave.line_path }}" fill="none" stroke="url(#wave-line-grad)"></path>
+                        {% endif %}
+                        {% for pt in stats_view.monthly_wave.points %}
+                            {% set m_name = t(month_labels[pt.month - 1]) %}
+                            {% if pt.count > 0 %}
+                                <g class="wave-node-group is-drillable"
+                                   tabindex="0"
+                                   role="button"
+                                   data-drill-group="by_month"
+                                   data-drill-key="{{ pt.month }}"
+                                   data-drill-title="{{ m_name }} {{ stats.year }}"
+                                   aria-label="{{ m_name }} {{ stats.year }} · {{ t('{count} watched', count=pt.count) }}">
+                                    <title>{{ m_name }} {{ stats.year }} · {{ t("{count} watched", count=pt.count) }}</title>
+                                    <circle class="wave-node-hit" cx="{{ pt.x }}" cy="{{ pt.y }}" r="14"></circle>
+                                    <circle class="wave-node-halo{{ ' is-peak' if pt.is_peak else '' }}" cx="{{ pt.x }}" cy="{{ pt.y }}" r="7.5"></circle>
+                                    <circle class="wave-node-core{{ ' is-peak' if pt.is_peak else '' }}" cx="{{ pt.x }}" cy="{{ pt.y }}" r="4"></circle>
+                                    <text class="wave-node-count" x="{{ pt.x }}" y="{{ pt.y - 11 }}" text-anchor="middle">{{ pt.count }}</text>
+                                </g>
+                            {% else %}
+                                <circle class="wave-node-idle" cx="{{ pt.x }}" cy="{{ pt.y }}" r="2.2"></circle>
+                            {% endif %}
+                        {% endfor %}
+                    </svg>
+                    <div class="stats-wave-months" role="list" aria-label="{{ t('{year} watch cadence', year=stats.year) }}">
+                        {% for item in stats.monthly_activity %}
+                            {% set m_name = t(month_labels[item.month - 1]) %}
+                            <button type="button"
+                                    class="stats-wave-month-btn{{ ' has-films' if item.count > 0 else '' }}{{ ' is-peak' if stats.overview.peak_month == item.month and item.count > 0 else '' }}"
+                                    data-month-bin="{{ item.month }}"
+                                    {% if item.count > 0 %}
+                                    data-drill-group="by_month"
+                                    data-drill-key="{{ item.month }}"
+                                    data-drill-title="{{ m_name }} {{ stats.year }}"
+                                    {% else %}
+                                    disabled
+                                    {% endif %}>
+                                <span>{{ m_name }}</span>
+                                <small>{{ item.count }}</small>
+                            </button>
+                        {% endfor %}
+                    </div>
                 </div>
             </section>
 
@@ -238,25 +349,232 @@
                     <h2 id="stats-weekdays-heading">{{ t("Screening days") }}</h2>
                     <span class="stats-panel-badge">{{ t("By day of week") }}</span>
                 </div>
-                <div class="stats-vchart stats-vchart-week" role="list" aria-label="{{ t('Screening days') }}">
+                <div class="stats-eq-grid" role="list" aria-label="{{ t('Screening days') }}">
                     {% for item in stats.weekdays %}
-                        <div class="stats-vbar-col" role="listitem" data-weekday-bin="{{ item.day }}">
-                            <span class="stats-bar-count">{{ item.count }}</span>
-                            <svg class="stats-vbar-svg" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
-                                <rect class="stats-bar-track" x="3" y="0" width="18" height="100" rx="5"></rect>
+                        {% set day_label = t(item.label) %}
+                        <button type="button"
+                                class="stats-eq-col{{ ' is-weekend' if item.day >= 4 else '' }}{{ ' has-films is-drillable' if item.count > 0 else '' }}"
+                                role="listitem"
+                                data-weekday-bin="{{ item.day }}"
+                                {% if item.count > 0 %}
+                                data-drill-group="by_weekday"
+                                data-drill-key="{{ item.day }}"
+                                data-drill-title="{{ day_label }} · {{ t('Screening days') }}"
+                                {% else %}
+                                disabled
+                                {% endif %}>
+                            <span class="stats-eq-count">{{ item.count }}</span>
+                            <svg class="stats-eq-svg" viewBox="0 0 28 116" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="eq-lav-{{ item.day }}" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#e4d8ff"></stop>
+                                        <stop offset="100%" stop-color="#7c68b8" stop-opacity="0.55"></stop>
+                                    </linearGradient>
+                                    <linearGradient id="eq-gold-{{ item.day }}" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#fae2a8"></stop>
+                                        <stop offset="100%" stop-color="#c49440" stop-opacity="0.62"></stop>
+                                    </linearGradient>
+                                </defs>
+                                <rect class="stats-eq-track" x="4" y="4" width="20" height="108" rx="10"></rect>
                                 {% if item.bar_height > 0 %}
-                                    <rect class="stats-bar-fill{{ ' stats-bar-fill-gold' if item.day >= 4 else '' }}"
-                                          x="3"
-                                          y="{{ 100 - item.bar_height }}"
-                                          width="18"
-                                          height="{{ item.bar_height }}"
+                                    {% set eq_h = (item.bar_height * 108 / 100)|round(1) %}
+                                    {% set eq_y = (112 - eq_h)|round(1) %}
+                                    <rect class="stats-eq-fill"
+                                          x="4"
+                                          y="{{ eq_y }}"
+                                          width="20"
+                                          height="{{ eq_h }}"
+                                          rx="10"
+                                          fill="url(#{{ 'eq-gold-' if item.day >= 4 else 'eq-lav-' }}{{ item.day }})"></rect>
+                                    <circle class="stats-eq-cap{{ ' is-gold' if item.day >= 4 else '' }}" cx="14" cy="{{ eq_y + 6 if eq_h >= 12 else eq_y + eq_h / 2 }}" r="3"></circle>
+                                {% endif %}
+                            </svg>
+                            <span class="stats-eq-label">{{ day_label }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <div class="stats-story-chapter">
+            <span class="chapter-num">02</span>
+            <div>
+                <p class="eyebrow">{{ t("CHAPTER II · TASTE CONSTELLATION") }}</p>
+                <h2>{{ t("Genres, scores & eras") }}</h2>
+            </div>
+        </div>
+
+        <div class="stats-panels-grid">
+            <section class="stats-panel" aria-labelledby="stats-genres-heading" data-stats-genres>
+                <div class="stats-panel-header">
+                    <h2 id="stats-genres-heading">{{ t("Top genres") }}</h2>
+                    <span class="stats-panel-badge">{{ t("{count} genres", count=stats.top_genres|length) }}</span>
+                </div>
+                {% if stats.top_genres %}
+                    {% if stats.genre_radar and stats.genre_radar.has_data %}
+                        <div class="genre-constellation-wrap">
+                            <svg class="genre-radar-svg" viewBox="-72 -18 424 316" role="img" aria-label="{{ t('Genre constellation radar') }}">
+                                <defs>
+                                    <radialGradient id="radar-nebula" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="#cbb9ff" stop-opacity="0.22"></stop>
+                                        <stop offset="55%" stop-color="#ebd096" stop-opacity="0.08"></stop>
+                                        <stop offset="100%" stop-color="#0d0e1a" stop-opacity="0"></stop>
+                                    </radialGradient>
+                                    <linearGradient id="radar-crystal-fill" x1="15%" y1="5%" x2="85%" y2="95%">
+                                        <stop offset="0%" stop-color="#f3d99c" stop-opacity="0.54"></stop>
+                                        <stop offset="52%" stop-color="#cbb9ff" stop-opacity="0.34"></stop>
+                                        <stop offset="100%" stop-color="#7fa8ff" stop-opacity="0.26"></stop>
+                                    </linearGradient>
+                                    <linearGradient id="radar-crystal-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#fae4ac"></stop>
+                                        <stop offset="55%" stop-color="#cbb9ff"></stop>
+                                        <stop offset="100%" stop-color="#ebd096"></stop>
+                                    </linearGradient>
+                                </defs>
+                                <circle class="radar-nebula-glow" cx="140" cy="140" r="96" fill="url(#radar-nebula)"></circle>
+                                {% for ring_pts in stats.genre_radar.rings %}
+                                    <polygon class="radar-ring{{ ' is-outer' if loop.last else '' }}" points="{{ ring_pts }}" fill="none"></polygon>
+                                {% endfor %}
+                                {% for axis in stats.genre_radar.axes %}
+                                    <line class="radar-axis" x1="140" y1="140" x2="{{ axis.x2 }}" y2="{{ axis.y2 }}"></line>
+                                {% endfor %}
+                                <polygon class="radar-polygon"
+                                         points="{{ stats.genre_radar.polygon }}"
+                                         fill="url(#radar-crystal-fill)"
+                                         stroke="url(#radar-crystal-stroke)"></polygon>
+                                {% for axis in stats.genre_radar.axes %}
+                                    {% set axis_label = t(axis.name) if axis.known else axis.name %}
+                                    <g class="radar-vertex{{ ' is-drillable' if axis.count > 0 else '' }}"
+                                       {% if axis.count > 0 %}
+                                       tabindex="0"
+                                       role="button"
+                                       data-drill-group="by_genre"
+                                       data-drill-key="{{ axis.name }}"
+                                       data-drill-title="{{ axis_label }}"
+                                       aria-label="{{ axis_label }} · {{ t('{count} film' if axis.count == 1 else '{count} films', count=axis.count) }}"
+                                       {% endif %}>
+                                        <title>{{ axis_label }} · {{ axis.count }}</title>
+                                        <circle class="radar-star-halo" cx="{{ axis.dot_x }}" cy="{{ axis.dot_y }}" r="8.5"></circle>
+                                        <circle class="radar-star-node" cx="{{ axis.dot_x }}" cy="{{ axis.dot_y }}" r="4.2"></circle>
+                                        <text class="radar-label" x="{{ axis.lx }}" y="{{ axis.ly }}" text-anchor="{{ axis.anchor }}" dominant-baseline="middle">{{ axis_label }}</text>
+                                    </g>
+                                {% endfor %}
+                            </svg>
+                        </div>
+                    {% endif %}
+                    <ul class="stats-hbar-list">
+                        {% for genre in stats.top_genres %}
+                            {% set g_name = t(genre.name) if genre.known else genre.name %}
+                            <li class="stats-hbar-item">
+                                <button type="button"
+                                        class="stats-hbar-btn is-drillable"
+                                        data-drill-group="by_genre"
+                                        data-drill-key="{{ genre.name }}"
+                                        data-drill-title="{{ g_name }}">
+                                    <div class="stats-hbar-meta">
+                                        <strong>{{ g_name }}</strong>
+                                        <span>{{ t("{count} film" if genre.count == 1 else "{count} films", count=genre.count) }}{% if genre.avg_rating is not none %} · ★ {{ genre.avg_rating }}{% endif %}</span>
+                                    </div>
+                                    <svg class="stats-hbar-svg" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
+                                        <rect class="stats-bar-track" x="0" y="0" width="100" height="8" rx="4"></rect>
+                                        {% if genre.bar_width > 0 %}
+                                            <rect class="stats-bar-fill" x="0" y="0" width="{{ genre.bar_width }}" height="8" rx="4"></rect>
+                                        {% endif %}
+                                    </svg>
+                                </button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="stats-empty-note">{{ t("Genres will appear as you add films.") }}</p>
+                {% endif %}
+            </section>
+
+            <section class="stats-panel" aria-labelledby="stats-ratings-heading" data-stats-ratings>
+                <div class="stats-panel-header">
+                    <h2 id="stats-ratings-heading">{{ t("Rating distribution") }}</h2>
+                    <span class="stats-panel-badge">
+                        {% if stats.totals.avg_rating is not none %}
+                            {{ t("★ {avg} average · {count} rated", avg=stats.totals.avg_rating, count=stats.totals.rated) }}
+                        {% else %}
+                            {{ t("No ratings yet") }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="stats-rating-ladder" role="list" aria-label="{{ t('Rating distribution') }}">
+                    {% for item in stats_view.rating_ladder %}
+                        <button type="button"
+                                class="rating-ladder-row{{ ' is-gold-tier' if item.rating >= 8 else (' is-mid-tier' if item.rating >= 5 else ' is-low-tier') }}{{ ' has-films is-drillable' if item.count > 0 else '' }}"
+                                role="listitem"
+                                data-rating-bin="{{ item.rating }}"
+                                {% if item.count > 0 %}
+                                data-drill-group="by_rating"
+                                data-drill-key="{{ item.rating }}"
+                                data-drill-title="★ {{ item.rating }}/10"
+                                {% else %}
+                                disabled
+                                {% endif %}>
+                            <span class="rating-ladder-score">★ {{ item.rating }}</span>
+                            <svg class="rating-ladder-svg" viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true">
+                                <rect class="stats-bar-track" x="0" y="1" width="100" height="10" rx="5"></rect>
+                                {% if item.bar_width > 0 %}
+                                    <rect class="stats-bar-fill{{ ' stats-bar-fill-gold' if item.rating >= 8 else (' stats-bar-fill-rose' if item.rating <= 4 else '') }}"
+                                          x="0"
+                                          y="1"
+                                          width="{{ item.bar_width }}"
+                                          height="10"
                                           rx="5"></rect>
                                 {% endif %}
                             </svg>
-                            <span class="stats-bar-label">{{ t(item.label) }}</span>
-                        </div>
+                            <span class="rating-ladder-count">{{ item.count }}</span>
+                            <span class="rating-ladder-pct">{{ item.share_pct }}%</span>
+                        </button>
                     {% endfor %}
                 </div>
+            </section>
+
+            <section class="stats-panel" aria-labelledby="stats-decades-heading" data-stats-decades>
+                <div class="stats-panel-header">
+                    <h2 id="stats-decades-heading">{{ t("Films by decade") }}</h2>
+                    <span class="stats-panel-badge">35MM · {{ t("{count} eras", count=stats.decades|length) }}</span>
+                </div>
+                {% if stats.decades %}
+                    <ul class="stats-hbar-list filmstrip-decade-list">
+                        {% for item in stats.decades %}
+                            {% set dec_label = item.label_tr if ui_language == 'tr' else item.decade %}
+                            {% set dec_posters = stats_view.decade_posters.get(item.decade, []) %}
+                            <li class="filmstrip-decade-frame" data-decade="{{ item.decade }}">
+                                <button type="button"
+                                        class="filmstrip-decade-btn is-drillable"
+                                        data-drill-group="by_decade"
+                                        data-drill-key="{{ item.decade }}"
+                                        data-drill-title="{{ dec_label }}">
+                                    <div class="filmstrip-decade-main">
+                                        <div class="stats-hbar-meta">
+                                            <strong>{{ dec_label }}</strong>
+                                            <span>{{ t("{count} film" if item.count == 1 else "{count} films", count=item.count) }}</span>
+                                        </div>
+                                        <svg class="stats-hbar-svg" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+                                            <rect class="stats-bar-track" x="0" y="1" width="100" height="8" rx="4"></rect>
+                                            {% if item.bar_width > 0 %}
+                                                <rect class="stats-bar-fill stats-bar-fill-gold" x="0" y="1" width="{{ item.bar_width }}" height="8" rx="4"></rect>
+                                            {% endif %}
+                                        </svg>
+                                    </div>
+                                    {% if dec_posters %}
+                                        <div class="filmstrip-posters" aria-hidden="true">
+                                            {% for p in dec_posters %}
+                                                <img src="{{ p.poster_path }}" alt="" loading="lazy" decoding="async">
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="stats-empty-note">{{ t("Release years will appear as you add films.") }}</p>
+                {% endif %}
             </section>
 
             <section class="stats-panel" aria-labelledby="stats-runtimes-heading" data-stats-runtimes>
@@ -271,92 +589,67 @@
                     </span>
                 </div>
                 {% if stats.totals.runtime_count %}
-                    <ul class="stats-hbar-list">
+                    <div class="runtime-cards-grid">
                         {% for bucket in stats.runtime_buckets %}
-                            <li class="stats-hbar-item">
-                                <div class="stats-hbar-meta">
-                                    <strong>{{ t(bucket.label) }}</strong>
-                                    <span>{{ t("{count} film" if bucket.count == 1 else "{count} films", count=bucket.count) }}</span>
-                                </div>
-                                <svg class="stats-hbar-svg" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
-                                    <rect class="stats-bar-track" x="0" y="0" width="100" height="8" rx="4"></rect>
+                            {% set b_label = t(bucket.label) %}
+                            <button type="button"
+                                    class="runtime-card{{ ' is-epic' if bucket.key == 'epic' else '' }}{{ ' has-films is-drillable' if bucket.count > 0 else '' }}"
+                                    {% if bucket.count > 0 %}
+                                    data-drill-group="by_runtime"
+                                    data-drill-key="{{ bucket.key }}"
+                                    data-drill-title="{{ b_label }}"
+                                    {% else %}
+                                    disabled
+                                    {% endif %}>
+                                <span class="runtime-card-label">{{ b_label }}</span>
+                                <strong class="runtime-card-count">{{ bucket.count }}</strong>
+                                <span class="runtime-card-sub">{{ t("{count} film" if bucket.count == 1 else "{count} films", count=bucket.count) }}</span>
+                                <svg class="stats-hbar-svg" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
+                                    <rect class="stats-bar-track" x="0" y="0" width="100" height="6" rx="3"></rect>
                                     {% if bucket.bar_width > 0 %}
-                                        <rect class="stats-bar-fill{{ ' stats-bar-fill-gold' if bucket.key == 'epic' else '' }}" x="0" y="0" width="{{ bucket.bar_width }}" height="8" rx="4"></rect>
+                                        <rect class="stats-bar-fill{{ ' stats-bar-fill-gold' if bucket.key == 'epic' else '' }}" x="0" y="0" width="{{ bucket.bar_width }}" height="6" rx="3"></rect>
                                     {% endif %}
                                 </svg>
-                            </li>
+                            </button>
                         {% endfor %}
-                    </ul>
+                    </div>
                 {% else %}
                     <p class="stats-empty-note">{{ t("Runtime appears on watched films") }}</p>
                 {% endif %}
             </section>
+        </div>
 
-            <section class="stats-panel" aria-labelledby="stats-genres-heading" data-stats-genres>
-                <div class="stats-panel-header">
-                    <h2 id="stats-genres-heading">{{ t("Top genres") }}</h2>
-                    <span class="stats-panel-badge">{{ t("{count} genres", count=stats.top_genres|length) }}</span>
-                </div>
-                {% if stats.top_genres %}
-                    <ul class="stats-hbar-list">
-                        {% for genre in stats.top_genres %}
-                            <li class="stats-hbar-item">
-                                <div class="stats-hbar-meta">
-                                    <strong>{{ t(genre.name) if genre.known else genre.name }}</strong>
-                                    <span>{{ t("{count} film" if genre.count == 1 else "{count} films", count=genre.count) }}{% if genre.avg_rating is not none %} · ★ {{ genre.avg_rating }}{% endif %}</span>
-                                </div>
-                                <svg class="stats-hbar-svg" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
-                                    <rect class="stats-bar-track" x="0" y="0" width="100" height="8" rx="4"></rect>
-                                    {% if genre.bar_width > 0 %}
-                                        <rect class="stats-bar-fill" x="0" y="0" width="{{ genre.bar_width }}" height="8" rx="4"></rect>
-                                    {% endif %}
-                                </svg>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="stats-empty-note">{{ t("Genres will appear as you add films.") }}</p>
-                {% endif %}
-            </section>
+        <div class="stats-story-chapter">
+            <span class="chapter-num">03</span>
+            <div>
+                <p class="eyebrow">{{ t("CHAPTER III · AUTEUR & CAST PODIUM") }}</p>
+                <h2>{{ t("Voices that shaped your archive") }}</h2>
+            </div>
+        </div>
 
-            <section class="stats-panel" aria-labelledby="stats-decades-heading" data-stats-decades>
-                <div class="stats-panel-header">
-                    <h2 id="stats-decades-heading">{{ t("Films by decade") }}</h2>
-                    <span class="stats-panel-badge">{{ t("{count} eras", count=stats.decades|length) }}</span>
-                </div>
-                {% if stats.decades %}
-                    <ul class="stats-hbar-list">
-                        {% for item in stats.decades %}
-                            <li class="stats-hbar-item" data-decade="{{ item.decade }}">
-                                <div class="stats-hbar-meta">
-                                    <strong>{{ item.label_tr if ui_language == 'tr' else item.decade }}</strong>
-                                    <span>{{ t("{count} film" if item.count == 1 else "{count} films", count=item.count) }}</span>
-                                </div>
-                                <svg class="stats-hbar-svg" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
-                                    <rect class="stats-bar-track" x="0" y="0" width="100" height="8" rx="4"></rect>
-                                    {% if item.bar_width > 0 %}
-                                        <rect class="stats-bar-fill stats-bar-fill-gold" x="0" y="0" width="{{ item.bar_width }}" height="8" rx="4"></rect>
-                                    {% endif %}
-                                </svg>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="stats-empty-note">{{ t("Release years will appear as you add films.") }}</p>
-                {% endif %}
-            </section>
-
+        <div class="stats-panels-grid">
             <section class="stats-panel" aria-labelledby="stats-directors-heading" data-stats-directors>
                 <div class="stats-panel-header">
                     <h2 id="stats-directors-heading">{{ t("Most watched directors") }}</h2>
-                    <span class="stats-panel-badge">{{ t("Watched films") }}</span>
+                    <span class="stats-panel-badge">{{ icon('award', 14) }} {{ t("Watched films") }}</span>
                 </div>
                 {% if stats.top_directors %}
                     <div class="stats-people-grid">
                         {% for person in stats.top_directors %}
+                            {% set rank_cls = ' podium-rank-' ~ loop.index if loop.index <= 3 else '' %}
+                            {% set pkey = (person.id|string) if person.id else person.name.lower() %}
+                            {% set pvis = stats_view.director_visuals.get(pkey, {}) %}
                             {% if person.id %}
-                                <a class="stats-person-card"
+                                <a class="stats-person-card{{ rank_cls }}"
                                    href="{{ url_for('entity', kind='person', entity_id=person.id, back='/stats') }}">
+                                    <div class="stats-person-avatar{{ ' has-photo' if pvis.portrait_url else '' }}">
+                                        {% if pvis.portrait_url %}
+                                            <img src="{{ pvis.portrait_url }}" alt="{{ person.name }}" loading="lazy" decoding="async">
+                                        {% else %}
+                                            <span>{{ pvis.monogram or '◈' }}</span>
+                                        {% endif %}
+                                        {% if loop.index <= 3 %}<i class="podium-rank-pip">#{{ loop.index }}</i>{% endif %}
+                                    </div>
                                     <div class="stats-person-info">
                                         <strong>{{ person.name }}</strong>
                                         <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
@@ -364,7 +657,15 @@
                                     <span class="stats-person-arrow" aria-hidden="true">{{ icon('arrow', 15) }}</span>
                                 </a>
                             {% else %}
-                                <div class="stats-person-card">
+                                <div class="stats-person-card{{ rank_cls }}">
+                                    <div class="stats-person-avatar{{ ' has-photo' if pvis.portrait_url else '' }}">
+                                        {% if pvis.portrait_url %}
+                                            <img src="{{ pvis.portrait_url }}" alt="{{ person.name }}" loading="lazy" decoding="async">
+                                        {% else %}
+                                            <span>{{ pvis.monogram or '◈' }}</span>
+                                        {% endif %}
+                                        {% if loop.index <= 3 %}<i class="podium-rank-pip">#{{ loop.index }}</i>{% endif %}
+                                    </div>
                                     <div class="stats-person-info">
                                         <strong>{{ person.name }}</strong>
                                         <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
@@ -381,14 +682,25 @@
             <section class="stats-panel" aria-labelledby="stats-actors-heading" data-stats-actors>
                 <div class="stats-panel-header">
                     <h2 id="stats-actors-heading">{{ t("Most watched actors") }}</h2>
-                    <span class="stats-panel-badge">{{ t("Watched films") }}</span>
+                    <span class="stats-panel-badge">{{ icon('award', 14) }} {{ t("Watched films") }}</span>
                 </div>
                 {% if stats.top_actors %}
                     <div class="stats-people-grid">
                         {% for person in stats.top_actors %}
+                            {% set rank_cls = ' podium-rank-' ~ loop.index if loop.index <= 3 else '' %}
+                            {% set pkey = (person.id|string) if person.id else person.name.lower() %}
+                            {% set pvis = stats_view.actor_visuals.get(pkey, {}) %}
                             {% if person.id %}
-                                <a class="stats-person-card"
+                                <a class="stats-person-card{{ rank_cls }}"
                                    href="{{ url_for('entity', kind='person', entity_id=person.id, back='/stats') }}">
+                                    <div class="stats-person-avatar{{ ' has-photo' if pvis.portrait_url else '' }}">
+                                        {% if pvis.portrait_url %}
+                                            <img src="{{ pvis.portrait_url }}" alt="{{ person.name }}" loading="lazy" decoding="async">
+                                        {% else %}
+                                            <span>{{ pvis.monogram or '◈' }}</span>
+                                        {% endif %}
+                                        {% if loop.index <= 3 %}<i class="podium-rank-pip">#{{ loop.index }}</i>{% endif %}
+                                    </div>
                                     <div class="stats-person-info">
                                         <strong>{{ person.name }}</strong>
                                         <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
@@ -396,7 +708,15 @@
                                     <span class="stats-person-arrow" aria-hidden="true">{{ icon('arrow', 15) }}</span>
                                 </a>
                             {% else %}
-                                <div class="stats-person-card">
+                                <div class="stats-person-card{{ rank_cls }}">
+                                    <div class="stats-person-avatar{{ ' has-photo' if pvis.portrait_url else '' }}">
+                                        {% if pvis.portrait_url %}
+                                            <img src="{{ pvis.portrait_url }}" alt="{{ person.name }}" loading="lazy" decoding="async">
+                                        {% else %}
+                                            <span>{{ pvis.monogram or '◈' }}</span>
+                                        {% endif %}
+                                        {% if loop.index <= 3 %}<i class="podium-rank-pip">#{{ loop.index }}</i>{% endif %}
+                                    </div>
                                     <div class="stats-person-info">
                                         <strong>{{ person.name }}</strong>
                                         <span>{{ t("{count} watched", count=person.count) }}{% if person.avg_rating is not none %} · ★ {{ person.avg_rating }}{% endif %}</span>
@@ -419,21 +739,47 @@
                 </div>
                 <div class="stats-people-grid stats-studios-grid">
                     {% for studio in stats.top_studios %}
+                        {% set skey = (studio.id|string) if studio.id else studio.name.lower() %}
+                        {% set svis = stats_view.studio_visuals.get(skey, {}) %}
                         {% if studio.id %}
-                            <a class="stats-person-card"
+                            <a class="stats-person-card stats-studio-card"
                                href="{{ url_for('entity', kind='company', entity_id=studio.id, back='/stats') }}">
+                                <div class="stats-studio-emblem{{ ' has-logo' if svis.logo_url else '' }}">
+                                    {% if svis.logo_url %}
+                                        <img src="{{ svis.logo_url }}" alt="{{ studio.name }}" loading="lazy" decoding="async">
+                                    {% else %}
+                                        <span>{{ svis.monogram or '◈' }}</span>
+                                    {% endif %}
+                                </div>
                                 <div class="stats-person-info">
                                     <strong>{{ studio.name }}</strong>
                                     <span>{{ t("{count} watched", count=studio.count) }}{% if studio.avg_rating is not none %} · ★ {{ studio.avg_rating }}{% endif %}</span>
                                 </div>
+                                {% if svis.posters %}
+                                    <div class="stats-studio-posters" aria-hidden="true">
+                                        {% for p in svis.posters %}
+                                            <img src="{{ p.poster_path }}" alt="" loading="lazy" decoding="async">
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                                 <span class="stats-person-arrow" aria-hidden="true">{{ icon('arrow', 15) }}</span>
                             </a>
                         {% else %}
-                            <div class="stats-person-card">
+                            <div class="stats-person-card stats-studio-card">
+                                <div class="stats-studio-emblem">
+                                    <span>{{ svis.monogram or '◈' }}</span>
+                                </div>
                                 <div class="stats-person-info">
                                     <strong>{{ studio.name }}</strong>
                                     <span>{{ t("{count} watched", count=studio.count) }}{% if studio.avg_rating is not none %} · ★ {{ studio.avg_rating }}{% endif %}</span>
                                 </div>
+                                {% if svis.posters %}
+                                    <div class="stats-studio-posters" aria-hidden="true">
+                                        {% for p in svis.posters %}
+                                            <img src="{{ p.poster_path }}" alt="" loading="lazy" decoding="async">
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         {% endif %}
                     {% endfor %}
@@ -470,10 +816,26 @@
         {% endif %}
 
         <script id="cinema-stats-data" type="application/json">{{ stats|tojson }}</script>
+        <script id="cinema-stats-drilldown" type="application/json">{{ stats_view.drilldown|tojson }}</script>
         <script id="cinema-card-owner" type="application/json">{{ {
             "name": (account_status.profile.display_name or "") if account_status and account_status.owner and account_status.profile else "",
             "username": ((account_status.username.username if account_status.username is mapping else account_status.username) or "") if account_status and account_status.owner and account_status.username else ""
         }|tojson }}</script>
+
+        <dialog id="stats-drilldown-dialog" class="stats-drilldown-dialog" aria-labelledby="stats-drilldown-title">
+            <div class="stats-drilldown-modal">
+                <div class="stats-drilldown-header">
+                    <div>
+                        <p class="eyebrow">{{ t("SCREENING INSPECTOR") }}</p>
+                        <h2 id="stats-drilldown-title"></h2>
+                        <p id="stats-drilldown-subtitle" class="stats-drilldown-subtitle"></p>
+                    </div>
+                    <button type="button" id="close-stats-drilldown" class="stats-card-close" aria-label="{{ t('Close') }}">×</button>
+                </div>
+                <div id="stats-drilldown-grid" class="stats-drilldown-grid"></div>
+            </div>
+        </dialog>
+
         <dialog id="stats-card-dialog" class="stats-card-dialog" aria-labelledby="stats-card-dialog-title">
             <div class="stats-card-modal">
                 <div class="stats-card-modal-header">

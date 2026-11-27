@@ -803,4 +803,167 @@
     });
 
     renderCinemaPassport();
+
+    /* Interactive Stats Drilldown Modal & Live Heatmap Preview (CSP-safe, zero innerHTML/inline styles) */
+    const drilldownEl = document.getElementById('cinema-stats-drilldown');
+    const drillDialog = document.getElementById('stats-drilldown-dialog');
+    const drillTitle = document.getElementById('stats-drilldown-title');
+    const drillSub = document.getElementById('stats-drilldown-subtitle');
+    const drillGrid = document.getElementById('stats-drilldown-grid');
+    const drillClose = document.getElementById('close-stats-drilldown');
+    const heatmapPreview = document.getElementById('heatmap-live-preview');
+
+    let drilldown = null;
+    if (drilldownEl) {
+        try {
+            drilldown = JSON.parse(drilldownEl.textContent || '{}');
+        } catch {
+            drilldown = null;
+        }
+    }
+
+    function openDrilldown(group, key, heading) {
+        if (!drilldown || !drillDialog || !drillGrid) return;
+        const bucket = drilldown[group];
+        const films = (bucket && Array.isArray(bucket[key])) ? bucket[key] : [];
+        if (drillTitle) drillTitle.textContent = heading || String(key || '');
+        if (drillSub) {
+            drillSub.textContent = films.length === 1
+                ? t('{count} film', {count: 1})
+                : t('{count} films', {count: films.length});
+        }
+        drillGrid.replaceChildren();
+        if (!films.length) {
+            const empty = document.createElement('p');
+            empty.className = 'stats-empty-note';
+            empty.textContent = t('No films recorded for this selection.');
+            drillGrid.append(empty);
+        } else {
+            const frag = document.createDocumentFragment();
+            for (const film of films) {
+                const card = document.createElement('a');
+                card.className = 'drilldown-film-card';
+                card.href = `/movie/${encodeURIComponent(film.id)}?back=/stats`;
+
+                const posterWrap = document.createElement('div');
+                posterWrap.className = 'drilldown-film-poster';
+                if (film.poster_path) {
+                    const img = document.createElement('img');
+                    img.src = film.poster_path;
+                    img.alt = t('Poster for {title}', {title: film.title || ''});
+                    img.loading = 'lazy';
+                    img.decoding = 'async';
+                    posterWrap.append(img);
+                } else {
+                    const ph = document.createElement('span');
+                    ph.className = 'poster-placeholder';
+                    ph.textContent = '◈';
+                    posterWrap.append(ph);
+                }
+
+                if (film.favorite) {
+                    const heart = document.createElement('span');
+                    heart.className = 'stats-film-heart';
+                    heart.setAttribute('aria-hidden', 'true');
+                    heart.textContent = '♥';
+                    posterWrap.append(heart);
+                }
+                if (film.rating !== null && film.rating !== undefined) {
+                    const badge = document.createElement('span');
+                    badge.className = 'profile-film-rating';
+                    badge.textContent = `★ ${film.rating}/10`;
+                    posterWrap.append(badge);
+                }
+
+                const titleEl = document.createElement('h3');
+                titleEl.textContent = film.title || '';
+
+                const metaEl = document.createElement('p');
+                const metaParts = [];
+                if (film.year) metaParts.push(String(film.year));
+                if (film.runtime) metaParts.push(`${film.runtime} ${t('min')}`);
+                if (group === 'by_date' || group === 'by_month' || group === 'by_weekday') {
+                    if (film.watched_date) metaParts.push(film.watched_date);
+                }
+                metaEl.textContent = metaParts.join(' · ') || t('Year unknown');
+
+                card.append(posterWrap, titleEl, metaEl);
+                frag.append(card);
+            }
+            drillGrid.append(frag);
+        }
+
+        if (typeof drillDialog.showModal === 'function') {
+            drillDialog.showModal();
+        } else {
+            drillDialog.setAttribute('open', '');
+        }
+    }
+
+    function closeDrilldown() {
+        if (!drillDialog) return;
+        if (typeof drillDialog.close === 'function') {
+            drillDialog.close();
+        } else {
+            drillDialog.removeAttribute('open');
+        }
+    }
+
+    drillClose?.addEventListener('click', closeDrilldown);
+    drillDialog?.addEventListener('click', event => {
+        if (event.target === drillDialog) closeDrilldown();
+    });
+
+    if (drilldown) {
+        const triggerDrill = target => {
+            const node = target.closest?.('[data-drill-group][data-drill-key]');
+            if (!node) return false;
+            const group = node.getAttribute('data-drill-group');
+            const key = node.getAttribute('data-drill-key');
+            const title = node.getAttribute('data-drill-title') || key;
+            if (group && key !== null) {
+                openDrilldown(group, key, title);
+                return true;
+            }
+            return false;
+        };
+
+        document.addEventListener('click', event => {
+            const node = event.target?.closest?.('[data-drill-group][data-drill-key]');
+            if (node && triggerDrill(node)) {
+                node.blur?.();
+            }
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const node = event.target?.closest?.('[data-drill-group][data-drill-key]');
+            if (!node || node.tagName === 'BUTTON' || node.tagName === 'A') return;
+            event.preventDefault();
+            triggerDrill(node);
+        });
+
+        if (heatmapPreview) {
+            const previewText = heatmapPreview.querySelector('.heatmap-preview-text');
+            const defaultPrompt = previewText ? previewText.textContent : '';
+            const showPreview = cell => {
+                if (!previewText) return;
+                const d = cell.getAttribute('data-drill-key') || '';
+                const titles = cell.getAttribute('data-heatmap-titles') || '';
+                previewText.textContent = titles ? `${d} · ${titles}` : d;
+                heatmapPreview.classList.add('is-active');
+            };
+            const resetPreview = () => {
+                if (!previewText) return;
+                previewText.textContent = defaultPrompt;
+                heatmapPreview.classList.remove('is-active');
+            };
+            document.querySelectorAll('.heatmap-cell[data-drill-key]').forEach(cell => {
+                cell.addEventListener('mouseenter', () => showPreview(cell));
+                cell.addEventListener('focus', () => showPreview(cell));
+                cell.addEventListener('mouseleave', resetPreview);
+                cell.addEventListener('blur', resetPreview);
+            });
+        }
+    }
 })();

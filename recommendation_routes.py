@@ -59,6 +59,16 @@ def register_recommendations(app, db, tmdb, download_poster, service=None):
             movie["genre_tags"] = [
                 t(GENRES[gid]) for gid in movie.get("genre_ids", []) if gid in GENRES
             ]
+            raw_reason = movie.get("reason") or ""
+            if raw_reason.startswith("Shares an interest with ") and raw_reason.endswith("."):
+                liked_name = raw_reason[len("Shares an interest with ") : -1]
+                movie["taste_hint"] = t(
+                    "Shares an interest with {title}.", title=liked_name
+                )
+            elif raw_reason:
+                movie["taste_hint"] = t("A discovery pick to broaden your selection.")
+            else:
+                movie["taste_hint"] = ""
         data["waiting"] = catalog.present(data["waiting"], language())
         return jsonify(
             profile_changed=data.get("profile_changed", False),
@@ -164,6 +174,8 @@ def register_recommendations(app, db, tmdb, download_poster, service=None):
             "INSERT OR REPLACE INTO settings(key,value) VALUES ('recommendation_mode',?)",
             mode,
         )
+        if request.form.get("ajax") == "1":
+            return jsonify(ok=True, mode=mode)
         return redirect(url_for("recommendations.index"))
 
     @bp.post("/recommendations/dismiss")

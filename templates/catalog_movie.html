@@ -2,12 +2,22 @@
 {% block title %}
     {{ movie.title }} · {{ t("Explore") }}
 {% endblock %}
+{% block page_backdrop %}
+    {% set page_art = tmdb.backdrop_url or tmdb.poster_url %}
+    {% if page_art %}
+        <div class="page-cinema-backdrop" aria-hidden="true">
+            <img class="page-cinema-backdrop-img{{ ' is-poster-fallback' if not tmdb.backdrop_url }}"
+                 src="{{ page_art }}"
+                 alt=""
+                 loading="eager"
+                 decoding="async">
+        </div>
+    {% endif %}
+{% endblock %}
 {% block content %}
+    {% set hero_art = tmdb.backdrop_url or tmdb.poster_url %}
     <a class="back-link" href="{{ back_url }}">{{ t("← Back to explore") }}</a>
-    <section class="movie-detail-card {{ 'has-backdrop' if tmdb.backdrop_url }}">
-        {% if tmdb.backdrop_url %}
-            <div class="detail-backdrop"><img src="{{ tmdb.backdrop_url }}" alt="" loading="eager"></div>
-        {% endif %}
+    <section class="movie-detail-card {{ 'has-backdrop' if hero_art }}">
         <div class="detail-hero-head">
             <p class="eyebrow">{{ t("MOVIE DETAILS") }}</p>
             <h1>{{ movie.title }}</h1>
@@ -17,8 +27,8 @@
                 <img class="movie-poster detail-poster"
                      src="{{ tmdb.poster_url }}"
                      alt="{{ t("Poster for {title}", title=movie.title) }}"
-                     width="180"
-                     height="270">
+                     width="196"
+                     height="294">
             {% endif %}
             <div class="movie-header-badges">
                 {% include "_info_badges.html" %}

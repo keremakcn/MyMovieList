@@ -247,6 +247,10 @@ def movie_summary(data):
     release = data.get("release_date") or ""
     genres = data.get("genre_ids")
     genres = genres if isinstance(genres, list) else []
+    collection = data.get("belongs_to_collection")
+    collection_backdrop = (
+        collection.get("backdrop_path") if isinstance(collection, dict) else None
+    )
     return {
         "tmdb_id": data["id"],
         "title": data.get("title") or "Untitled movie",
@@ -255,7 +259,9 @@ def movie_summary(data):
         "year": int(release[:4]) if release[:4].isdigit() else None,
         "poster_url": image_url(data.get("poster_path")),
         "backdrop_url": safe_backdrop_url(
-            data.get("backdrop_path") or data.get("backdrop_url")
+            data.get("backdrop_path")
+            or data.get("backdrop_url")
+            or collection_backdrop
         ),
         "overview": data.get("overview") or "",
         "genre_ids": list(

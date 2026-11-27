@@ -4,9 +4,20 @@
     <h2>{{ t('Your next discoveries' if profile.ready else 'Starting suggestions') }}</h2>
     <span>{{ t("{count} picks", count=movies|length) }}</span>
 </div>
-<div class="results-grid">
+<div class="results-grid recommendation-deck">
     {% for movie in movies %}
-        <div class="recommendation-item">
+        {% set rec_art = movie.backdrop_url or movie.poster_url %}
+        <div class="recommendation-item deal-card deal-{{ loop.index if loop.index <= 8 else 8 }}{{ ' has-rec-backdrop' if rec_art }}">
+            {% if rec_art %}
+                <div class="rec-card-backdrop" aria-hidden="true">
+                    <img class="rec-card-backdrop-img{{ ' is-poster-fallback' if not movie.backdrop_url }}"
+                         src="{{ rec_art }}"
+                         alt=""
+                         loading="lazy"
+                         decoding="async">
+                </div>
+            {% endif %}
+            <span class="rec-rank-stamp" aria-hidden="true">#{{ "%02d"|format(loop.index) }}</span>
             {% include "_result_card.html" %}
             <div class="recommendation-context">
                 <div class="recommendation-actions">

@@ -1,27 +1,53 @@
 {% extends "base.html" %}
+{% block page_backdrop %}
+    {% if library_backdrop %}
+        <div class="page-cinema-backdrop is-library-ambient" aria-hidden="true">
+            <img class="page-cinema-backdrop-img"
+                 src="{{ library_backdrop.url }}"
+                 alt=""
+                 loading="eager"
+                 decoding="async">
+        </div>
+    {% endif %}
+{% endblock %}
 {% block content %}
     <header class="app-header">
         <div>
             <p class="eyebrow">{{ t("YOUR PERSONAL COLLECTION") }}</p>
             <h1>{{ t("Your library") }}<span class="heading-dot">.</span></h1>
             <p class="page-subtitle">{{ t("A collection of stories. A reflection of you.") }}</p>
+            {% if library_backdrop %}
+                <a class="library-backdrop-credit"
+                   href="{{ url_for('movie', movie_id=library_backdrop.movie_id, back=current_url) }}">✦ {{ library_backdrop.title }}{% if library_backdrop.year %} · {{ library_backdrop.year }}{% endif %}</a>
+            {% endif %}
         </div>
-        <div class="header-actions"><a class="text-button" href="/add">{{ t("Add manually") }}</a><a class="add-movie-link" href="/search">{{ icon('plus', 17) }} {{ t("Find a film") }}</a></div>
+        <div class="header-actions">
+            <a class="text-button" href="/add">{{ t("Add manually") }}</a>
+            <a class="add-movie-link" href="/search">{{ icon('plus', 17) }} {{ t("Find a film") }}</a>
+        </div>
     </header>
+
     <section class="stats-grid" aria-label="{{ t("Library statistics") }}">
-        {% for symbol,label,value,href,active_key in [
-            ('check','Watched',stats.watched,url_for('index', status='Watched', sort=sort, q=query),'Watched'),
-            ('clock','Want to watch',stats.watchlist,url_for('index', status='Watchlist', sort=sort, q=query),'Watchlist'),
-            ('heart','Favorites',stats.favorites,url_for('index', status='favorite', sort=sort, q=query),'favorite'),
-            ('star','Average rating',(stats.average|string ~ '/10') if stats.average else '—',url_for('stats'),None)
+        {% set total_films = stats.total or 1 %}
+        {% for symbol,label,value,href,active_key,tone,meter_val,meter_max in [
+            ('check','Watched',stats.watched,url_for('index', status='Watched', sort=sort, q=query),'Watched','watched',stats.watched,total_films),
+            ('clock','Want to watch',stats.watchlist,url_for('index', status='Watchlist', sort=sort, q=query),'Watchlist','watchlist',stats.watchlist,total_films),
+            ('heart','Favorites',stats.favorites,url_for('index', status='favorite', sort=sort, q=query),'favorite','favorites',stats.favorites,total_films),
+            ('star','Average rating',(stats.average|string ~ '/10') if stats.average else '—',url_for('stats'),None,'rating',stats.average or 0,10)
         ] %}
-            <a class="stat-card {{ 'stat-card-active' if active_key and status_filter==active_key }} {{ 'stat-card-gold' if active_key is none }}"
+            <a class="stat-card stat-tone-{{ tone }} {{ 'stat-card-active' if active_key and status_filter==active_key }} {{ 'stat-card-gold' if active_key is none }}"
                href="{{ href }}"
                {% if active_key is none %}title="{{ t('View full stats') }}"{% endif %}>
-                <span class="stat-symbol">{{ icon(symbol,18) }}</span><div><strong>{{ value }}</strong><span>{{ t(label) }}</span></div>
+                <div class="stat-card-top">
+                    <span class="stat-label">{{ t(label) }}</span>
+                    <span class="stat-symbol">{{ icon(symbol,16) }}</span>
+                </div>
+                <strong class="stat-value">{{ value }}</strong>
+                <progress class="stat-meter" value="{{ meter_val }}" max="{{ meter_max }}" aria-hidden="true"></progress>
             </a>
         {% endfor %}
     </section>
+
     <section class="filter-bar">
         <nav class="filter-group" aria-label="{{ t("Library views") }}">
             {% for value,label in [('all','All films'),('Watchlist','Want to watch'),('Watched','Watched'),('favorite','Favorites'),('trash','Recently removed')] %}
@@ -51,25 +77,77 @@
             <button type="submit" class="secondary-button" data-auto-hide>{{ t("Apply") }}</button>
         </form>
     </section>
+
     <p class="sr-only" id="library-update-status" role="status"></p>
+
     <section class="recent-section" id="library-results" aria-label="{{ t("Movie collection") }}">
         <div class="section-heading">
             <h2 tabindex="-1">{{ t('Recently removed' if status_filter=='trash' else 'Your collection') }}</h2>
             <div class="section-heading-meta">
                 <span>{{ t("{count} film" if count == 1 else "{count} films", count=count) }}</span>
                 <div class="view-switcher" role="group" aria-label="{{ t('Library view mode') }}">
-                    <button type="button" class="view-toggle" data-library-view="cards" aria-pressed="true" title="{{ t('Card view') }}" aria-label="{{ t('Card view') }}">{{ icon('cards', 15) }}</button>
-                    <button type="button" class="view-toggle" data-library-view="posters" aria-pressed="false" title="{{ t('Poster grid') }}" aria-label="{{ t('Poster grid') }}">{{ icon('grid', 15) }}</button>
+                    <button type="button"
+                            class="view-toggle"
+                            data-library-view="cards"
+                            aria-pressed="true"
+                            title="{{ t('Card view') }}"
+                            aria-label="{{ t('Card view') }}">
+                        {{ icon('cards', 15) }}<span class="view-toggle-label">{{ t("Editorial") }}</span>
+                    </button>
+                    <button type="button"
+                            class="view-toggle"
+                            data-library-view="shelf"
+                            aria-pressed="false"
+                            title="{{ t('3D Spatial Shelf view') }}"
+                            aria-label="{{ t('3D Spatial Shelf view') }}">
+                        {{ icon('shelf', 15) }}<span class="view-toggle-label">{{ t("3D Shelf") }}</span>
+                    </button>
+                    <button type="button"
+                            class="view-toggle"
+                            data-library-view="posters"
+                            aria-pressed="false"
+                            title="{{ t('Poster grid') }}"
+                            aria-label="{{ t('Poster grid') }}">
+                        {{ icon('grid', 15) }}<span class="view-toggle-label">{{ t("Posters") }}</span>
+                    </button>
                 </div>
             </div>
         </div>
+
         <p id="library-search-empty" class="library-search-empty" hidden>{{ t("No movies match your search.") }}</p>
+
         <div class="movie-list" id="movie-list">
             {% for movie in movies %}
-                <article class="movie-card"
+                {% set note_excerpt = (movie.note or '').split()|join(' ') %}
+                {% set shelf_backdrop = movie.backdrop_url or movie.poster_path %}
+                <article class="movie-card{{ ' has-shelf-backdrop' if shelf_backdrop }}"
                          data-movie-id="{{ movie.id }}"
                          data-metadata-pending="{{ 1 if movie.metadata_pending else 0 }}"
                          data-title="{{ movie.search_title }}">
+                    {% if shelf_backdrop %}
+                        <div class="shelf-card-backdrop" aria-hidden="true">
+                            <img class="shelf-card-backdrop-img{{ ' is-poster-fallback' if not movie.backdrop_url }}"
+                                 src="{{ shelf_backdrop }}"
+                                 alt=""
+                                 loading="lazy"
+                                 decoding="async">
+                        </div>
+                    {% endif %}
+                    <div class="shelf-spine-face{{ ' has-spine-art' if movie.poster_path }}" aria-hidden="true">
+                        {% if movie.poster_path %}
+                            <img class="shelf-spine-art"
+                                 src="{{ movie.poster_path }}"
+                                 alt=""
+                                 loading="lazy"
+                                 decoding="async">
+                        {% endif %}
+                        <span class="shelf-spine-num">#{{ "%03d"|format(loop.index + (page - 1) * 36) }}</span>
+                        <span class="shelf-spine-title">{{ movie.title }}</span>
+                        <span class="shelf-spine-foot">
+                            {% if movie.rating %}<span class="shelf-spine-star">★{{ movie.rating }}</span>{% endif %}
+                            <span>{{ movie.year or "—" }}</span>
+                        </span>
+                    </div>
                     <div class="movie-card-main">
                         <div class="movie-card-poster-wrapper">
                             {% if status_filter != "trash" %}<a class="poster-link" href="{{ url_for('movie',movie_id=movie.id,back=current_url) }}" tabindex="-1">{% endif %}
@@ -93,8 +171,15 @@
                             {% if movie.rating %}
                                 <span class="poster-rating-pill" aria-hidden="true">★ {{ movie.rating }}</span>
                             {% endif %}
-                            {% if movie.note %}
-                                <span class="poster-note-pill" title="{{ t('View note') }}" aria-hidden="true">✎</span>
+                            {% if note_excerpt %}
+                                {% if status_filter != "trash" %}
+                                    <a class="poster-note-pill"
+                                       href="{{ url_for('movie', movie_id=movie.id, back=current_url, _anchor='note') }}"
+                                       title="{{ t('View note') }}"
+                                       aria-label="{{ t('View note for {title}', title=movie.title) }}">✎</a>
+                                {% else %}
+                                    <span class="poster-note-pill" title="{{ t('View note') }}" aria-hidden="true">✎</span>
+                                {% endif %}
                             {% endif %}
                         </div>
                         <div class="movie-card-body">
@@ -106,13 +191,16 @@
                                 {% endif %}
                             </h2>
                             <p class="card-year">
-                                {{ movie.year or t("Year unknown") }} <span class="favorite-icon"
-       {{ 'hidden' if not movie.favorite }}>♥</span>
+                                {{ movie.year or t("Year unknown") }}{% if movie.director %} · {{ movie.director }}{% endif %}
+                                <span class="favorite-icon" {{ 'hidden' if not movie.favorite }}>♥</span>
                             </p>
-                            <p class="card-genre"
-                               title="{{ movie.genre or '' }}">{{ movie.genre or t("Uncategorized") }}</p>
-                            <span class="status-badge {{ movie.status|lower }}">{{ t('Want to watch' if movie.status=='Watchlist' else 'Watched') }}</span>
-                            <p class="movie-rating">{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("Not rated yet") }}</p>
+                            <p class="card-genre" title="{{ movie.genre or '' }}">
+                                {{ movie.genre or t("Uncategorized") }}{% if movie.watched_date %} · {{ movie.watched_date }}{% endif %}
+                            </p>
+                            <div class="card-status-row">
+                                <span class="status-badge {{ movie.status|lower }}">{{ t('Want to watch' if movie.status=='Watchlist' else 'Watched') }}</span>
+                                <p class="movie-rating{{ ' is-unrated' if not movie.rating }}">{{ '★ ' ~ movie.rating ~ '/10' if movie.rating else t("Not rated yet") }}</p>
+                            </div>
                         </div>
                     </div>
                     {% if status_filter=="trash" %}
@@ -124,13 +212,17 @@
                     {% else %}
                         {% include "_library_actions.html" %}
                     {% endif %}
-                    {% if movie.note %}
+                    {% if note_excerpt %}
                         <div class="card-note">
-                            <span class="card-note-preview">{{ movie.note.splitlines()[0] }}{% if movie.note.splitlines()|length > 1 %}…{% endif %}</span>
                             {% if status_filter != "trash" %}
+                                <a class="card-note-preview"
+                                   href="{{ url_for('movie', movie_id=movie.id, back=current_url, _anchor='note') }}"
+                                   title="{{ note_excerpt }}">{{ note_excerpt }}</a>
                                 <a class="card-note-link"
                                    href="{{ url_for('movie', movie_id=movie.id, back=current_url, _anchor='note') }}"
                                    aria-label="{{ t("View note for {title}", title=movie.title) }}">{{ t("View note") }}</a>
+                            {% else %}
+                                <span class="card-note-preview">{{ note_excerpt }}</span>
                             {% endif %}
                         </div>
                     {% else %}

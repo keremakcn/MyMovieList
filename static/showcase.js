@@ -1,4 +1,4 @@
-/* Explicit profile picks. This screen only searches the owner's local library. */
+/* Explicit profile picks with drag-and-drop podium ordering & keyboard accessibility. */
 (() => {
     'use strict';
     const form = document.querySelector('[data-showcase-editor]');
@@ -14,7 +14,7 @@
     const search = document.getElementById('showcase-search');
     const status = form.querySelector('[data-showcase-status]');
     const retry = form.querySelector('[data-showcase-retry]');
-    let controller, timer, revision = 0, loading = false;
+    let controller, timer, revision = 0, loading = false, dragSourceKey = null;
 
     const node = (tag, className, text) => {
         const element = document.createElement(tag);
@@ -42,7 +42,10 @@
             const title = movie.title || t('Film not available on this device');
             const row = node('li', 'showcase-selected-film');
             row.dataset.showcaseKey = key;
-            row.append(node('span', 'showcase-order', String(index + 1)), thumbnail(movie));
+            row.draggable = keys.length > 1;
+            const grip = node('span', 'showcase-drag-grip', '⋮⋮');
+            grip.setAttribute('aria-hidden', 'true');
+            row.append(grip, node('span', 'showcase-order', String(index + 1)), thumbnail(movie));
             const info = node('div', 'showcase-film-info');
             info.append(node('strong', '', title));
             if (!movie.title) info.append(node('small', '', t('Removed or not yet synced. You can remove this pick.')));
@@ -69,6 +72,36 @@
                 });
                 actions.append(button);
             }
+            row.addEventListener('dragstart', event => {
+                dragSourceKey = key;
+                row.classList.add('is-dragging');
+                if (event.dataTransfer) {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', key);
+                }
+            });
+            row.addEventListener('dragover', event => {
+                if (!dragSourceKey || dragSourceKey === key) return;
+                event.preventDefault();
+                row.classList.add('is-drag-target');
+            });
+            row.addEventListener('dragleave', () => row.classList.remove('is-drag-target'));
+            row.addEventListener('drop', event => {
+                event.preventDefault();
+                row.classList.remove('is-drag-target');
+                const fromIdx = keys.indexOf(dragSourceKey);
+                const toIdx = keys.indexOf(key);
+                if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+                const [moved] = keys.splice(fromIdx, 1);
+                keys.splice(toIdx, 0, moved);
+                dragSourceKey = null;
+                update();
+            });
+            row.addEventListener('dragend', () => {
+                dragSourceKey = null;
+                row.classList.remove('is-dragging');
+                selected.querySelectorAll('.is-drag-target').forEach(el => el.classList.remove('is-drag-target'));
+            });
             row.append(actions); selected.append(row);
         });
         form.querySelector('[data-showcase-empty]').hidden = keys.length > 0;

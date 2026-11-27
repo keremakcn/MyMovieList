@@ -1,41 +1,39 @@
-# MyMovieList v3.8.0 — Cinema Stats, Letterboxd & IMDb Import, Unified UI
+# MyMovieList v4.0.0 — Obsidian Screening Room
 
 ## What's new
 
-- **Letterboxd & IMDb import (Web & Desktop):** bring your existing film history
-  into your shelf in seconds from a Letterboxd export `.zip` / `.csv` or IMDb
-  `.csv`. Ratings (0.5–5.0 stars converted to 1–10), watched dates, watchlists
-  and reviews are merged automatically; existing records are never overwritten
-  and unmatched or offline titles are preserved as custom films.
-- **Personal Cinema Statistics (`/stats`):** private, on-device analytics with
-  pure CSP-safe SVG charts for your 1–10 rating distribution, monthly watch
-  cadence, top genres with average scores, decade breakdown, total watch time
-  and most-watched directors and actors.
-- **Unified editorial cinema UI & backdrops:** `myshelf.cloud` now shares the
-  desktop app's obsidian, lavender and cinema-gold aesthetic with editorial
-  serif headings, cinematic TMDB backdrop headers on film pages, an interactive
-  1–10 quick-rating strip, library search, 10 sort modes and 48-film pagination
-  backed by per-entry IndexedDB v2 storage.
-- **PWA, Open Graph cards & update banner:** install `myshelf.cloud` as a
-  standalone app, share `/movie/<id>` and `/person/<id>` links with rich poster
-  preview cards, and receive a quiet in-app notification on desktop when a new
-  GitHub release is available.
-- **Social scale indexes (migration 008):** `pg_trgm` trigram search and partial
-  `watched_date` indexes accelerate public directory search and weekly feeds.
-- **Favorite actors and directors (from 3.7):** keep separate private
-  collections with automatic account sync and person filmography pages.
+- **Obsidian Screening Room redesign (Desktop, Android & Web):** a full-bleed
+  cinematic visual overhaul across Library, Explore, For You, Stats, Movie
+  Details and Edit views with frosted obsidian glass, live ambient color bleed,
+  35mm film grain, and instant command palette (`Ctrl+K` / `Cmd+K`).
+- **Three cinema-grade library modes (`Editorial → 3D Shelf → Posters`):**
+  - **Editorial (default):** full-bleed widescreen film scenes, borderless
+    weightless controls, and full-card click-to-detail navigation.
+  - **3D Spatial Shelf:** physical hardcover spines wrapped in each film's own
+    poster artwork that unfold into full-bleed film scenes with automatic
+    background TMDB backdrop caching.
+  - **Poster Wall:** frameless 2:3 vertical posters with zero resting clutter
+    and borderless hover credits.
+- **Living Library Backdrop:** every visit illuminates the library with a
+  rotating full-screen scene from your own favorited (`♥`) or `8+` rated films.
+- **Full-Bleed Movie Detail & Edit Pages:** unified edge-to-edge film backdrop
+  with frosted glass navigation chrome, compact inline rating + quick actions,
+  and side-by-side Private Critic Vault & Synopsis layout.
+- **Automatic Note Auto-Save (>40 characters):** long private notes auto-save
+  safely after typing pauses, on blur, or before quick actions without touching
+  ratings, watch status, dates or favorites.
 
 ## Updating
 
-Release filenames for 3.8.0:
+Release filenames for 4.0.0:
 
-- **Windows:** `MyMovieList-v3.8.0-windows.zip`, containing
-  `MyMovieList-v3.8.0.exe`. Close the previous app before replacing it.
-- **Android:** `MyMovieList-3.8.0-android-beta.1.apk`, versionCode 12.
+- **Windows:** `MyMovieList-v4.0.0-windows.zip`, containing
+  `MyMovieList-v4.0.0.exe`. Close the previous app before replacing it.
+- **Android:** `MyMovieList-4.0.0-android-beta.1.apk`, versionCode 13.
   Install the signed update over the previous app without uninstalling.
   The matching `.aab` is for Google Play submission.
-- **macOS:** `MyMovieList-v3.8.0-macos-arm64-beta.dmg` for Apple Silicon, or
-  `MyMovieList-v3.8.0-macos-x86_64-beta.dmg` for Intel. Build from the current
+- **macOS:** `MyMovieList-v4.0.0-macos-arm64-beta.dmg` for Apple Silicon, or
+  `MyMovieList-v4.0.0-macos-x86_64-beta.dmg` for Intel. Build from the current
   commit through the macOS workflow, then replace the app in Applications.
 
 Accounts remain optional. Saved libraries and account ownership keep their
@@ -44,19 +42,20 @@ users need no API key or manual cloud setup.
 
 ## Türkçe
 
-- **Letterboxd ve IMDb içe aktarma (Web ve Masaüstü):** Letterboxd `.zip` /
-  `.csv` veya IMDb `.csv` dışa aktarma dosyalarını saniyeler içinde kütüphanene
-  taşı. Puanlar (0.5–5.0 yıldız → 1–10), izleme tarihleri, izlenecekler ve
-  inceleme notları birleştirilir; mevcut kayıtların üzerine yazılmaz.
-- **Kişisel Sinema İstatistikleri (`/stats`):** tamamen cihazda yerel hesaplanan
-  1–10 puan dağılımı, aylık izleme ritmi, öne çıkan türler ve ortalama puanlar,
-  on yıllara göre dağılım, toplam izleme süresi ve en çok izlenen
-  yönetmen/oyuncu grafikleri.
-- **Birleşik sinema arayüzü ve backdrop afişler:** `myshelf.cloud` artık
-  masaüstüyle aynı obsidiyen, lavanta ve altın sinema temasına, film detayında
-  sinematik arka plan (backdrop) görsellerine, tek tıkla 1–10 hızlı puan
-  şeridine, kütüphane içi Türkçe duyarlı aramaya, 10 sıralama moduna ve kayıt
-  bazlı IndexedDB v2 + 48'li sayfalamaya sahip.
-- **PWA, Open Graph paylaşım kartları ve sürüm bildirimi:** web sürümünü
-  uygulama olarak yükle, film/kişi bağlantılarını posterli zengin kartla paylaş
-  ve masaüstünde yeni sürüm çıktığında uygulama içi bildirim al.
+- **Obsidian Screening Room tasarımı (Masaüstü, Android ve Web):** Kütüphane,
+  Keşfet, Sana Özel, İstatistikler, Film Detay ve Düzenleme sayfalarının tamamı
+  buzlu obsidiyen cam, canlı ortam ışığı, 35mm film greni ve hızlı komut
+  paletiyle (`Ctrl+K`) yenilendi.
+- **Üç sinematik kütüphane modu (`Günlük → 3D Raf → Afişler`):**
+  - **Günlük (varsayılan):** tam genişlik film sahnesi kartları, kutusuz
+    saydam kontroller ve kartın her yerinden detay sayfasına geçiş.
+  - **3D Raf:** her filmin kendi afişiyle kaplı 3D kitap sırtları ve açıldığında
+    otomatik önbelleğe alınan geniş ekran film sahnesi.
+  - **Afişler:** çerçevesiz 2:3 galeri afiş duvarı ve yalnızca üzerine gelince
+    beliren kutusuz sinema aksiyonları.
+- **Canlı Kütüphane Arkaplanı:** kütüphane her açıldığında yalnızca favori
+  (`♥`) veya `8+` puanlı filmlerinden birinin geniş ekran sahnesiyle aydınlanır.
+- **Boydan Boya Detay ve Düzenleme Sayfaları:** tek bütün tam ekran film
+  sahnesi, buzlu cam yan menü/üst çubuk ve yan yana Notun & Özet düzeni.
+- **40+ Karakter Otomatik Not Kaydı:** uzun kişisel notlar yazarken otomatik
+  olarak yalnızca not alanını güncelleyerek güvenle kaydedilir.

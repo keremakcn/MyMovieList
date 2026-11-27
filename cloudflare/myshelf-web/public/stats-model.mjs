@@ -201,6 +201,7 @@ export function computeCinemaStats(entries,metadataMap={},{lang='en',year=new Da
   const runtimeBucketCounts={short:0,feature:0,extended:0,epic:0};
   const seenYears=new Set([currentYear,targetYear]);
   const exactDayEpochs=new Set();
+  const dailyCounts=new Map();
   const tmdbPairs=[];
   const watchedEntries=[];
   let longestRecord=null,shortestRecord=null,oldestRecord=null,newestRecord=null;
@@ -244,6 +245,10 @@ export function computeCinemaStats(entries,metadataMap={},{lang='en',year=new Da
           if(dt.getUTCFullYear()===wYear && dt.getUTCMonth()===wMonth-1 && dt.getUTCDate()===wDay){
             exactDayEpochs.add(Math.floor(dt.getTime()/86400000));
             weekdayCounts[(dt.getUTCDay()+6)%7]++;
+            if(wYear===targetYear){
+              const isoDay=`${String(wYear).padStart(4,'0')}-${String(wMonth).padStart(2,'0')}-${String(wDay).padStart(2,'0')}`;
+              dailyCounts.set(isoDay,(dailyCounts.get(isoDay) || 0)+1);
+            }
           }
         }
       }
@@ -395,6 +400,61 @@ export function computeCinemaStats(entries,metadataMap={},{lang='en',year=new Da
     ? [...decades].sort((a,b)=>b.count-a.count || b.startYear-a.startYear)[0]
     : null;
 
+  // Precompute 6-axis hexagonal SVG genre radar coordinates
+  const radarCX=130,radarCY=110,radarR=72;
+  const radarSlots=topGenres.slice(0,6);
+  while(radarSlots.length<6)radarSlots.push({name:'—',count:0,avgRating:null});
+  const radarPeak=Math.max(0,...radarSlots.map(s=>s.count));
+  const radarRings=[0.33,0.66,1].map(scale=>{
+    const pts=[];
+    for(let i=0;i<6;i++){
+      const a=-Math.PI/2+i*(Math.PI*2/6);
+      pts.push(`${round1(radarCX+Math.cos(a)*radarR*scale)},${round1(radarCY+Math.sin(a)*radarR*scale)}`);
+    }
+    return pts.join(' ');
+  });
+  const radarPoly=[];
+  const radarAxes=radarSlots.map((item,i)=>{
+    const a=-Math.PI/2+i*(Math.PI*2/6);
+    const ca=Math.cos(a),sa=Math.sin(a);
+    const ratio=item.count>0 && radarPeak>0 ? Math.max(0.14,item.count/radarPeak) : 0.06;
+    const dx=round1(radarCX+ca*radarR*ratio),dy=round1(radarCY+sa*radarR*ratio);
+    radarPoly.push(`${dx},${dy}`);
+    const anchor=Math.abs(ca)<0.25 ? 'middle' : (ca>0 ? 'start' : 'end');
+    return {
+      name:item.name,count:item.count,
+      x2:round1(radarCX+ca*radarR),y2:round1(radarCY+sa*radarR),
+      lx:round1(radarCX+ca*(radarR+22)),ly:round1(radarCY+sa*(radarR+16)),
+      anchor,dotX:dx,dotY:dy,
+    };
+  });
+  const genreRadar={rings:radarRings,axes:radarAxes,polygon:radarPoly.join(' '),hasData:radarPeak>0};
+
+  // Precompute 53-week x 7-day SVG watch heatmap coordinates
+  const jan1=new Date(Date.UTC(targetYear,0,1));
+  const dec31=new Date(Date.UTC(targetYear,11,31));
+  const jan1Dow=(jan1.getUTCDay()+6)%7;
+  let cursorMs=jan1.getTime()-jan1Dow*86400000;
+  const heatPeak=Math.max(0,...dailyCounts.values());
+  const heatCells=[],monthMarkers=[],seenHeatMonths=new Set();
+  let col=0;
+  while(cursorMs<=dec31.getTime() && col<54){
+    for(let dow=0;dow<7;dow++){
+      const cur=new Date(cursorMs+dow*86400000);
+      if(cur.getUTCFullYear()===targetYear){
+        const m=cur.getUTCMonth()+1,d=cur.getUTCDate();
+        const iso=`${String(targetYear).padStart(4,'0')}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const cnt=dailyCounts.get(iso) || 0;
+        const lvl=cnt===0 ? 0 : (heatPeak<=1 ? 4 : Math.min(4,Math.max(1,Math.ceil(cnt*4/heatPeak))));
+        if(d<=7 && !seenHeatMonths.has(m)){seenHeatMonths.add(m);monthMarkers.push({month:m,x:28+col*13});}
+        heatCells.push({date:iso,count:cnt,level:lvl,x:28+col*13,y:18+dow*13});
+      }
+    }
+    cursorMs+=7*86400000;
+    col++;
+  }
+  const watchHeatmap={width:28+col*13+8,height:18+7*13+6,cells:heatCells,monthMarkers,activeDays:dailyCounts.size};
+
   return {
     year:targetYear,
     availableYears:[...seenYears].sort((a,b)=>b-a),
@@ -435,8 +495,10 @@ export function computeCinemaStats(entries,metadataMap={},{lang='en',year=new Da
     },
     ratingDistribution,
     topGenres,
+    genreRadar,
     decades,
     monthlyActivity,
+    watchHeatmap,
     weekdays,
     runtimeBuckets,
     topDirectors,

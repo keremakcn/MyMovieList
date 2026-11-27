@@ -1,11 +1,38 @@
 <div class="discovery-home" data-discovery-home>
-    <nav class="discovery-nav" aria-label="{{ t("Explore collections") }}">
-        <a href="/search" aria-current="page">{{ t("Discover") }}</a>
-        <a href="/discover/trending">{{ t("Trending films") }}</a>
-        <a href="/discover/top-rated">{{ t("Highest rated") }}</a>
-        <a href="/discover/new-releases">{{ t("New releases") }}</a>
-        <a href="/discover/genres">{{ t("Genres") }}</a>
-    </nav>
+    <section class="lobby-hero" data-lobby-hero hidden aria-label="{{ t("Featured Cinema Showcase") }}">
+        <div class="lobby-hero-backdrop" aria-hidden="true">
+            <img class="lobby-hero-bg-img" data-hero-bg src="" alt="" hidden>
+        </div>
+        <div class="lobby-hero-stage">
+            <a class="lobby-hero-feature" data-hero-poster-link href="/search" tabindex="-1" aria-hidden="true">
+                <img class="lobby-hero-poster" data-hero-poster src="" alt="" hidden>
+            </a>
+            <div class="lobby-hero-copy">
+                <p class="eyebrow">{{ t("NOW SHOWING · CINEMA LOBBY") }}</p>
+                <h2 data-hero-title></h2>
+                <p class="lobby-hero-meta" data-hero-meta></p>
+                <div class="lobby-hero-actions">
+                    <a class="add-movie-link" data-hero-open href="/search">{{ icon('film', 16) }}<span>{{ t("Enter scene") }}</span></a>
+                </div>
+            </div>
+            <div class="lobby-hero-posters" data-hero-thumbs role="group" aria-label="{{ t("Featured films") }}"></div>
+        </div>
+    </section>
+
+    <div class="discovery-nav-bar">
+        <nav class="discovery-nav" aria-label="{{ t("Explore collections") }}">
+            <a href="/search" aria-current="page">{{ t("Discover") }}</a>
+            <a href="/discover/trending">{{ t("Trending films") }}</a>
+            <a href="/discover/top-rated">{{ t("Highest rated") }}</a>
+            <a href="/discover/new-releases">{{ t("New releases") }}</a>
+            <a href="/discover/genres">{{ t("Genres") }}</a>
+        </nav>
+        <label class="discovery-hide-library">
+            <input type="checkbox" data-lobby-hide-library>
+            <span>{{ t("Hide films in my library") }}</span>
+        </label>
+    </div>
+
     {% for key,title,description in [('trending','Trending films','The films finding their moment.'),('top-rated','Highest rated','Stories that stand the test of time.'),('new-releases','New releases','Fresh stories from the last three months.')] %}
         <section class="discovery-shelf" id="discovery-{{ key }}" data-discovery-shelf="{{ key }}" aria-labelledby="heading-{{ key }}">
             <div class="discovery-heading">
@@ -33,14 +60,23 @@
             <noscript><p><a href="/discover/{{ key }}">{{ t("Browse {title} →", title=t(title)|lower) }}</a></p></noscript>
         </section>
     {% endfor %}
+
     <section class="discovery-genre-section" aria-labelledby="genre-heading">
-        <div class="discovery-heading"><div><h2 id="genre-heading">{{ t("Find your kind of film") }}</h2><p>{{ t("Pick a mood. Follow a genre. See where it takes you.") }}</p></div><a class="discovery-view-all" href="/discover/genres">{{ t("All genres") }} {{ icon('arrow', 16) }}</a></div>
+        <div class="discovery-heading">
+            <div><h2 id="genre-heading">{{ t("Find your kind of film") }}</h2><p>{{ t("Pick a mood. Follow a genre. See where it takes you.") }}</p></div>
+            <a class="discovery-view-all" href="/discover/genres">{{ t("All genres") }} {{ icon('arrow', 16) }}</a>
+        </div>
         <div class="discovery-genre-tiles">
             {% for id,name,symbol in [(878,'Science fiction','spark'),(53,'Thriller','explore'),(18,'Drama','film'),(35,'Comedy','star'),(28,'Action','arrow'),(27,'Horror','clock'),(16,'Animation','spark'),(10749,'Romance','heart')] %}
-                <a href="/discover/genres?genre={{ id }}"><span>{{ icon(symbol, 23) }}</span><strong>{{ t(name) }}</strong>{{ icon('arrow', 16) }}</a>
+                <a class="genre-portal genre-portal-{{ id }}" href="/discover/genres?genre={{ id }}"><span>{{ icon(symbol, 23) }}</span><strong>{{ t(name) }}</strong>{{ icon('arrow', 16) }}</a>
             {% endfor %}
         </div>
     </section>
-    <a class="discovery-personal-link" href="/recommendations"><span>{{ icon('spark', 23) }}</span><div><strong>{{ t("A little more you.") }}</strong><p>{{ t("Find films shaped by your personal taste.") }}</p></div>{{ icon('arrow', 20) }}</a>
+
+    <a class="discovery-personal-link" href="/recommendations">
+        <span>{{ icon('dial', 24) }}</span>
+        <div><strong>{{ t("A little more you.") }}</strong><p>{{ t("Find films shaped by your personal taste.") }}</p></div>
+        {{ icon('arrow', 20) }}
+    </a>
 </div>
 <script defer src="{{ url_for('static', filename='discovery.js', v=asset_version) }}"></script>

@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% set freq_map = {'familiar': '88.4 MHz', 'balanced': '96.2 MHz', 'explore': '104.8 MHz'} %}
 {% block title %}{{ t("For you · MyMovieList") }}{% endblock %}
 {% block content %}
     <header class="app-header">
@@ -8,7 +10,7 @@
             <p>{{ t("Your next watch, with a little room for discovery.") }}</p>
         </div>
         <a class="edit-link"
-           href="/taste">{{ t('Edit your picks' if onboarding == 'complete' else 'Choose films you love') }}</a>
+           href="/taste">{{ icon('spark', 15) }} <span>{{ t('Edit your picks' if onboarding == 'complete' else 'Choose films you love') }}</span></a>
     </header>
     {% if not profile.ready %}
         <section class="taste-invitation">
@@ -18,15 +20,53 @@
    href="/taste">{{ t("Pick a few favorites to get started →") }}</a>{% endif %}
         </section>
     {% endif %}
-    <div class="recommendation-toolbar"><form action="/recommendations/mode"
-          method="post"
-          class="recommendation-controls">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="discovery-mode">{{ t("In the mood for") }}</label>
-        <select id="discovery-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ t(label) }}</option>{% endfor %}</select>
-        <button type="submit" class="secondary-button" data-auto-hide>{{ t("Apply") }}</button>
-    </form>
-    <button type="button" id="refresh-recommendations" disabled>{{ t("New suggestions") }}</button></div>
+
+    <section class="discovery-tuner" data-discovery-tuner data-active-mode="{{ mode }}" aria-label="{{ t("Discovery frequency dial") }}">
+        <div class="tuner-dial-visual" aria-hidden="true">
+            <svg class="tuner-dial-svg" viewBox="0 0 120 120">
+                <circle class="tuner-ring-outer" cx="60" cy="60" r="54" fill="none" stroke-width="1.4"></circle>
+                <circle class="tuner-ticks" cx="60" cy="60" r="47" fill="none" stroke-width="4" stroke-dasharray="1.6 6.6"></circle>
+                <path class="tuner-arc-scale" d="M 21 83 A 45 45 0 1 1 99 83" fill="none" stroke-width="2.6" stroke-linecap="round"></path>
+                <circle class="tuner-station-dot" cx="25" cy="36" r="2.8"></circle>
+                <circle class="tuner-station-dot" cx="60" cy="15" r="2.8"></circle>
+                <circle class="tuner-station-dot" cx="95" cy="36" r="2.8"></circle>
+                <circle class="tuner-hub" cx="60" cy="60" r="25"></circle>
+                <circle class="tuner-hub-ring" cx="60" cy="60" r="20" fill="none" stroke-width="1"></circle>
+                <g class="tuner-needle">
+                    <polygon class="tuner-needle-blade" points="60,17 63.2,60 56.8,60"></polygon>
+                    <circle class="tuner-pivot-outer" cx="60" cy="60" r="6.2"></circle>
+                    <circle class="tuner-pivot-core" cx="60" cy="60" r="2.6"></circle>
+                </g>
+            </svg>
+            <span class="tuner-freq-readout" data-tuner-freq>{{ freq_map.get(mode, '96.2 MHz') }}</span>
+        </div>
+        <div class="tuner-stations" role="group" aria-label="{{ t("In the mood for") }}">
+            {% for key, freq, tag in [('familiar', '88.4 MHz', 'CH 01'), ('balanced', '96.2 MHz', 'CH 02'), ('explore', '104.8 MHz', 'CH 03')] %}
+                {% if key in modes %}
+                    <button type="button"
+                            class="tuner-station-btn"
+                            data-dial-mode="{{ key }}"
+                            data-dial-freq="{{ freq }}"
+                            aria-pressed="{{ 'true' if key == mode else 'false' }}">
+                        <span class="tuner-station-code">{{ tag }} · {{ freq }}</span>
+                        <strong>{{ t(modes[key]) }}</strong>
+                    </button>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="recommendation-toolbar">
+        <form action="/recommendations/mode"
+              method="post"
+              class="recommendation-controls">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="discovery-mode">{{ t("In the mood for") }}</label>
+            <select id="discovery-mode" name="mode">{% for key,label in modes.items() %}<option value="{{ key }}" {{ 'selected' if key == mode }}>{{ t(label) }}</option>{% endfor %}</select>
+            <button type="submit" class="secondary-button" data-auto-hide>{{ t("Apply") }}</button>
+        </form>
+        <button type="button" id="refresh-recommendations" disabled>{{ icon('spark', 15) }} <span>{{ t("New suggestions") }}</span></button>
+    </div>
     <p id="recommendation-status" role="status"></p>
     <section id="recommendation-results" aria-live="polite" aria-busy="true">
         <div class="loading-state"><span class="loading-orbit" aria-hidden="true"></span><h2>{{ t("Setting the scene…") }}</h2><p>{{ t("Finding a few films for you.") }}</p></div>

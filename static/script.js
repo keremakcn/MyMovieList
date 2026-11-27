@@ -2,7 +2,7 @@
 (() => {
     'use strict';
     const {t} = window.MovieListI18n;
-    // A missing/offline portrait leaves the local silhouette and name visible.
+    // A missing/offline portrait leaves the local noir silhouette and name visible.
     document.querySelectorAll('img[data-person-portrait]').forEach(img => {
         if (img.complete && !img.naturalWidth) img.hidden = true;
     });
@@ -54,6 +54,7 @@
         box.append(text);
         if (action) {
             const button = document.createElement('button');
+            button.type = 'button';
             button.textContent = actionLabel;
             button.addEventListener('click', async () => {
                 button.disabled = true;
@@ -69,12 +70,23 @@
             if (actionLabel === t('Undo')) lastUndo = button;
         }
         const close = document.createElement('button');
+        close.type = 'button';
         close.textContent = '×';
         close.setAttribute('aria-label', t('Dismiss notification'));
         close.addEventListener('click', dismiss);
         box.append(close);
+
+        if (!persistent) {
+            const timerBar = document.createElement('i');
+            timerBar.className = 'toast-timer-bar';
+            timerBar.setAttribute('aria-hidden', 'true');
+            box.append(timerBar);
+        }
+
         region.append(box);
         let timer;
+        let remaining = 10000;
+        let startedAt = Date.now();
 
         function dismiss() {
             if (box.contains(lastUndo)) lastUndo = null;
@@ -82,12 +94,21 @@
             box.remove();
         }
 
-        function startTimer() {
-            if (!persistent) timer = setTimeout(dismiss, 10000);
+        function pauseTimer() {
+            if (persistent) return;
+            clearTimeout(timer);
+            remaining = Math.max(1200, remaining - (Date.now() - startedAt));
         }
-        box.addEventListener('mouseenter', () => clearTimeout(timer));
+
+        function startTimer() {
+            if (!persistent) {
+                startedAt = Date.now();
+                timer = setTimeout(dismiss, remaining);
+            }
+        }
+        box.addEventListener('mouseenter', pauseTimer);
         box.addEventListener('mouseleave', startTimer);
-        box.addEventListener('focusin', () => clearTimeout(timer));
+        box.addEventListener('focusin', pauseTimer);
         box.addEventListener('focusout', startTimer);
         startTimer();
         return box;
@@ -110,24 +131,34 @@
             if (!fresh) throw new Error(t('Could not refresh your library. Please try again.'));
             document.getElementById('library-results').replaceWith(fresh);
         }
-        document.querySelector('.stats-grid')?.replaceWith(html.querySelector('.stats-grid'));
+        const freshStats = html.querySelector('.stats-grid');
+        if (freshStats) document.querySelector('.stats-grid')?.replaceWith(freshStats);
+        const freshGroup = html.querySelector('.filter-group');
+        if (freshGroup && document.querySelector('.filter-group')) {
+            document.querySelector('.filter-group').replaceWith(freshGroup);
+        }
         const status = document.getElementById('library-update-status');
         if (status) status.textContent = html.querySelector('.section-heading-meta > span, .section-heading > span')?.textContent || t('Library updated.');
         applyLibraryView();
+        window.MovieListCinema?.refreshSlidingPill?.();
         hydrateMetadata();
         return true;
     }
 
     let metadataEpoch = 0;
+    const VALID_VIEWS = new Set(['shelf', 'posters', 'cards']);
 
     function applyLibraryView(mode) {
         let active = mode;
         if (!active) {
             try { active = localStorage.getItem('mml-library-view') || 'cards'; } catch (_) { active = 'cards'; }
         }
-        if (active !== 'posters' && active !== 'cards') active = 'cards';
+        if (!VALID_VIEWS.has(active)) active = 'cards';
         const list = document.getElementById('movie-list');
-        if (list) list.classList.toggle('view-posters', active === 'posters');
+        if (list) {
+            list.classList.toggle('view-posters', active === 'posters');
+            list.classList.toggle('view-shelf', active === 'shelf');
+        }
         document.querySelectorAll('[data-library-view]').forEach(btn => {
             btn.setAttribute('aria-pressed', String(btn.dataset.libraryView === active));
         });
@@ -137,11 +168,39 @@
     document.addEventListener('click', event => {
         const viewBtn = event.target.closest('[data-library-view]');
         if (viewBtn) {
-            const next = viewBtn.dataset.libraryView === 'posters' ? 'posters' : 'cards';
+            const requested = viewBtn.dataset.libraryView;
+            const next = VALID_VIEWS.has(requested) ? requested : 'cards';
             try { localStorage.setItem('mml-library-view', next); } catch (_) {}
-            applyLibraryView(next);
+            const runSwitch = () => applyLibraryView(next);
+            if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.startViewTransition(runSwitch);
+            } else {
+                runSwitch();
+            }
             return;
         }
+
+        const filterLink = event.target.closest('.filter-group a');
+        if (filterLink && document.getElementById('library-results') && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+            event.preventDefault();
+            const targetUrl = new URL(filterLink.href, location.origin);
+            document.querySelectorAll('.filter-group a').forEach(a => {
+                const isTarget = a === filterLink;
+                a.classList.toggle('active-filter', isTarget);
+                if (isTarget) a.setAttribute('aria-current', 'page');
+                else a.removeAttribute('aria-current');
+            });
+            window.MovieListCinema?.refreshSlidingPill?.();
+            const statusHidden = document.querySelector('[data-library-filter] input[name="status"]');
+            if (statusHidden) statusHidden.value = targetUrl.searchParams.get('status') || 'all';
+            refreshLibrary(targetUrl).then(applied => {
+                if (applied) history.pushState(null, '', targetUrl);
+            }).catch(err => {
+                if (err.name !== 'AbortError') location.assign(targetUrl);
+            });
+            return;
+        }
+
         const editRateBtn = event.target.closest('[data-edit-rate]');
         if (editRateBtn) {
             const input = document.getElementById('rating');
@@ -155,6 +214,23 @@
                 btn.setAttribute('aria-pressed', String(selected));
             });
             input.dispatchEvent(new Event('change', {bubbles: true}));
+            return;
+        }
+
+        const cinemaCard = event.target.closest('.movie-list:not(.view-posters) .movie-card');
+        if (
+            cinemaCard
+            && !event.target.closest('a, button, form, input, select, textarea, label, .shelf-spine-face, .movie-card-quick-dock')
+            && !window.getSelection?.().toString()
+        ) {
+            const detailLink = cinemaCard.querySelector('.movie-card-body h2 a[href]');
+            if (detailLink) {
+                if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                    window.open(detailLink.href, '_blank', 'noopener');
+                } else if (event.button === 0) {
+                    detailLink.click();
+                }
+            }
         }
     });
 
@@ -170,6 +246,7 @@
             });
         });
     }
+
     let metadataController;
     let metadataTimer;
     function hydrateMetadata() {
@@ -197,12 +274,34 @@
                     if (!heading) continue;
                     heading.title = movie.title;
                     (heading.querySelector('a') || heading).textContent = movie.title;
+                    const spineTitle = card.querySelector('.shelf-spine-title');
+                    if (spineTitle) spineTitle.textContent = movie.title;
                     const poster = card.querySelector('.movie-card-poster');
                     if (poster) poster.alt = t('Poster for {title}', {title: movie.title});
                     const remove = card.querySelector('[data-delete] button');
                     if (remove) remove.setAttribute('aria-label', t('Remove {title}', {title: movie.title}));
                     const note = card.querySelector('.card-note-link');
                     if (note) note.setAttribute('aria-label', t('View note for {title}', {title: movie.title}));
+                    if (movie.backdrop_url) {
+                        card.classList.add('has-shelf-backdrop');
+                        let backdropImg = card.querySelector('.shelf-card-backdrop-img');
+                        if (!backdropImg) {
+                            const wrap = document.createElement('div');
+                            wrap.className = 'shelf-card-backdrop';
+                            wrap.setAttribute('aria-hidden', 'true');
+                            backdropImg = document.createElement('img');
+                            backdropImg.className = 'shelf-card-backdrop-img';
+                            backdropImg.alt = '';
+                            backdropImg.loading = 'lazy';
+                            backdropImg.decoding = 'async';
+                            wrap.appendChild(backdropImg);
+                            card.prepend(wrap);
+                        }
+                        if (backdropImg.src !== movie.backdrop_url) {
+                            backdropImg.src = movie.backdrop_url;
+                        }
+                        backdropImg.classList.remove('is-poster-fallback');
+                    }
                 }
                 if (data.movies.some(movie => movie.pending)) metadataTimer = setTimeout(update, 2000);
             } catch (_) {
@@ -268,6 +367,8 @@
                 const rated = result.rating;
                 const readout = document.querySelector('[data-rating-readout]');
                 if (readout) readout.textContent = rated ? `★ ${rated}/10` : t('No rating yet');
+                const hiddenVaultRating = document.querySelector('[data-vault-rating-sync]');
+                if (hiddenVaultRating) hiddenVaultRating.value = rated ? String(rated) : '';
                 form.querySelectorAll('button[name="value"]').forEach(btn => {
                     if (btn.classList.contains('rate-clear')) {
                         btn.hidden = !rated;
@@ -362,7 +463,6 @@
                         target?.focus();
                     }
                 } else {
-                    // Detail forms retain the editable note instead of reloading unsaved input.
                     const favoriteAction = form.action.includes('/favorite/');
                     if (favoriteAction) {
                         form.elements.value.value = result.favorite ? '0' : '1';
@@ -414,7 +514,6 @@
                 const applied = await refreshLibrary(url);
                 if (!applied) return;
                 history.replaceState(null, '', url);
-                // Preserve the existing instant filter, including searches across all pages.
                 document.querySelectorAll('.filter-group a').forEach(link => {
                     const target = new URL(link.href);
                     target.searchParams.set('q', input.value);
@@ -484,9 +583,7 @@
             [...list.children].forEach((option, i) => option.setAttribute('aria-selected', String(i === index)));
             if (index >= 0) {
                 input.setAttribute('aria-activedescendant', `suggestion-${index}`);
-                list.children[index].scrollIntoView({
-                    block: 'nearest'
-                });
+                list.children[index].scrollIntoView({block: 'nearest'});
             }
         }
 
@@ -537,16 +634,11 @@
                 input.setAttribute('aria-busy', 'true');
                 status.textContent = t('Loading suggestions…');
                 try {
-                    const response = await window.MovieListHTTP.fetch(`/api/suggestions?${params}`, {
-                        signal: controller.signal
-                    });
+                    const response = await window.MovieListHTTP.fetch(`/api/suggestions?${params}`, {signal: controller.signal});
                     const data = await response.json();
                     if (current !== revision) return;
                     if (!response.ok) throw new Error(data.error);
-                    cache.set(key, {
-                        items: data.results,
-                        expires: Date.now() + 60000
-                    });
+                    cache.set(key, {items: data.results, expires: Date.now() + 60000});
                     if (cache.size > 40) cache.delete(cache.keys().next().value);
                     render(data.results);
                 } catch (error) {
@@ -599,19 +691,12 @@
     }
 
     document.addEventListener('keydown', event => {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-            event.preventDefault();
-            const input = document.getElementById('discover-input') || document.getElementById('library-search-input');
-            if (input) {
-                input.focus();
-                input.select();
-            } else location.assign('/search');
-        }
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && lastUndo?.isConnected && !event.target.closest('input,textarea,[contenteditable]')) {
             event.preventDefault();
             lastUndo.click();
         }
     });
+
     document.addEventListener('error', event => {
         if (event.target instanceof HTMLImageElement) {
             if (event.target.matches('[data-person-portrait]')) {
@@ -631,7 +716,86 @@
             event.target.replaceWith(placeholder);
         }
     }, true);
+
     const updateBanner = document.getElementById('update-banner');
+    // Auto-save private notes (> 40 chars) without overwriting rating/status/date
+    document.querySelectorAll('textarea[data-autosave-url]').forEach(textarea => {
+        const MIN_AUTOSAVE_CHARS = 40;
+        const url = textarea.dataset.autosaveUrl;
+        const statusEl = textarea.closest('form')?.querySelector('[data-autosave-status]');
+        let lastSaved = textarea.value.trim();
+        let saveTimer = 0;
+        let inflight = null;
+
+        function setStatus(text, state = '') {
+            if (!statusEl) return;
+            statusEl.textContent = text;
+            statusEl.dataset.state = state;
+        }
+
+        async function flushAutosave(force = false) {
+            clearTimeout(saveTimer);
+            const trimmed = textarea.value.trim();
+            if (trimmed.length <= MIN_AUTOSAVE_CHARS) return;
+            if (!force && trimmed === lastSaved) return;
+            if (inflight) {
+                try { await inflight; } catch (_) {}
+                if (textarea.value.trim() === lastSaved) return;
+            }
+            const payload = textarea.value.trim();
+            if (payload.length <= MIN_AUTOSAVE_CHARS || payload === lastSaved) return;
+            setStatus(t('Auto-saving…'), 'saving');
+            const fd = new FormData();
+            fd.set('note', payload);
+            inflight = post(url, fd)
+                .then(() => {
+                    lastSaved = payload;
+                    setStatus(t('Auto-saved ✓'), 'saved');
+                    const noteDisplay = document.querySelector('.movie-note-block p');
+                    if (noteDisplay) {
+                        noteDisplay.textContent = payload;
+                        noteDisplay.classList.remove('muted');
+                    }
+                })
+                .catch(() => {
+                    setStatus(t('Not saved yet — press Save changes.'), 'error');
+                })
+                .finally(() => { inflight = null; });
+            return inflight;
+        }
+
+        textarea.addEventListener('input', () => {
+            clearTimeout(saveTimer);
+            const trimmed = textarea.value.trim();
+            if (trimmed.length > MIN_AUTOSAVE_CHARS && trimmed !== lastSaved) {
+                setStatus(t('Unsaved draft…'), 'dirty');
+                saveTimer = setTimeout(() => { flushAutosave(); }, 1100);
+            } else if (trimmed === lastSaved && statusEl?.dataset.state === 'dirty') {
+                setStatus('', '');
+            }
+        });
+
+        textarea.addEventListener('blur', () => { flushAutosave(); });
+
+        // Flush pending long note before clicking bottom quick-actions on edit page
+        document.querySelectorAll('.quick-actions button').forEach(btn => {
+            btn.addEventListener('pointerdown', () => { flushAutosave(); });
+        });
+
+        textarea.closest('form')?.addEventListener('submit', () => {
+            clearTimeout(saveTimer);
+            lastSaved = textarea.value.trim();
+        });
+
+        window.addEventListener('beforeunload', event => {
+            const trimmed = textarea.value.trim();
+            if (trimmed.length > MIN_AUTOSAVE_CHARS && trimmed !== lastSaved) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        });
+    });
+
     if (updateBanner) {
         window.MovieListHTTP.fetch('/api/update-check', {headers: {'Accept': 'application/json'}})
             .then(r => (r.ok ? r.json() : null))

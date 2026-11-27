@@ -297,7 +297,7 @@ def test_movie_and_catalog_movie_render_backdrop_only_when_valid(app, client):
     app.extensions["tmdb"].get = lambda path, **params: with_backdrop
 
     catalog_html = client.get("/catalog_movie/603").get_data(as_text=True)
-    assert 'class="detail-backdrop"' in catalog_html
+    assert 'class="page-cinema-backdrop"' in catalog_html
     assert (
         'src="https://image.tmdb.org/t/p/w1280/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg"'
         in catalog_html
@@ -306,7 +306,7 @@ def test_movie_and_catalog_movie_render_backdrop_only_when_valid(app, client):
     added = post(client, "/add_from_catalog", movie_id="603")
     movie_id = added.json["id"]
     movie_html = client.get(f"/movie/{movie_id}").get_data(as_text=True)
-    assert 'class="detail-backdrop"' in movie_html
+    assert 'class="page-cinema-backdrop"' in movie_html
     assert (
         'src="https://image.tmdb.org/t/p/w1280/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg"'
         in movie_html
@@ -318,7 +318,7 @@ def test_movie_and_catalog_movie_render_backdrop_only_when_valid(app, client):
         {"title": "Custom No Backdrop", "year": 2022, "status": "Watched"}
     )
     custom_html = client.get(f"/movie/{custom_id}").get_data(as_text=True)
-    assert 'class="detail-backdrop"' not in custom_html
+    assert 'class="page-cinema-backdrop"' not in custom_html
 
 
 def test_packaging_allowlists_include_cinema_stats():

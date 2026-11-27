@@ -100,6 +100,7 @@ class CatalogService:
                 and not force
                 and cached["details"].get("recommendation_features_version")
                 == RECOMMENDATION_FEATURES_VERSION
+                and "backdrop_url" in cached["details"]
             ):
                 return cached["details"]
             if not force and self.retry_at.get(tmdb_id, 0) > time.monotonic():
@@ -280,6 +281,11 @@ class CatalogService:
                         or canonical["overview"]
                         or movie.get("overview", "")
                     )
+            result["backdrop_url"] = safe_backdrop_url(
+                (payload["details"].get("backdrop_url") or payload["details"].get("backdrop_path"))
+                if payload
+                else (movie.get("backdrop_url") or movie.get("backdrop_path"))
+            )
             result["search_title"] = " ".join(
                 dict.fromkeys(alias for alias in aliases if alias)
             )
@@ -405,7 +411,7 @@ class CatalogService:
         with self.state_lock:
             for mid in dict.fromkeys(ids):
                 if (
-                    mid in cached
+                    (mid in cached and "backdrop_url" in cached[mid]["details"])
                     or mid in self.pending
                     or len(self.pending) >= 36
                     or self.retry_at.get(mid, 0) > time.monotonic()

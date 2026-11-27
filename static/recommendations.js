@@ -11,17 +11,41 @@
     const region = document.getElementById('recommendation-results');
     if (region) {
         const refreshButton = document.getElementById("refresh-recommendations");
+        const refreshLabel = refreshButton.querySelector('span') || refreshButton;
         const refreshStatus = document.getElementById("recommendation-status");
+        const modeSelect = document.getElementById("discovery-mode");
+        const modeForm = modeSelect?.closest('form');
+        const tuner = document.querySelector('[data-discovery-tuner]');
+        const freqMap = {familiar: '88.4 MHz', balanced: '96.2 MHz', explore: '104.8 MHz'};
         let loading = false, refreshPending = false, restorePickFocus = false;
+
+        function syncTunerVisual(nextMode) {
+            if (!tuner) return;
+            tuner.dataset.activeMode = nextMode;
+            const freqEl = tuner.querySelector('[data-tuner-freq]');
+            if (freqEl && freqMap[nextMode]) freqEl.textContent = freqMap[nextMode];
+            tuner.querySelectorAll('[data-dial-mode]').forEach(btn => {
+                btn.setAttribute('aria-pressed', String(btn.dataset.dialMode === nextMode));
+            });
+        }
+
         async function load(fresh = false) {
             if (loading) { refreshPending = true; return; }
             loading = true; region.setAttribute('aria-busy', 'true');
             refreshButton.disabled = true;
-            refreshButton.textContent = fresh ? t('Refreshing…') : t('New suggestions');
+            refreshLabel.textContent = fresh ? t('Refreshing…') : t('New suggestions');
             refreshStatus.textContent = '';
             try {
                 const data = await read(await window.MovieListHTTP.fetch(fresh ? '/api/recommendations/refresh' : '/api/recommendations', fresh ? {method: 'POST', headers: {'X-CSRF-Token': csrf}} : {}));
                 region.innerHTML = data.html; // Escaped same-origin Jinja fragment.
+                if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    region.querySelectorAll('.deal-card').forEach((card, idx) => {
+                        card.animate([
+                            {opacity: 0, transform: 'translateY(18px) rotate(-1.2deg) scale(0.96)'},
+                            {opacity: 1, transform: 'translateY(0) rotate(0deg) scale(1)'}
+                        ], {duration: 420, delay: Math.min(idx * 48, 360), easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'both'});
+                    });
+                }
                 if (restorePickFocus) {
                     const target = region.querySelector('.catalog-card h2 a') || refreshButton;
                     target.focus(); restorePickFocus = false;
@@ -33,9 +57,30 @@
                 region.replaceChildren(message, retry);
             } finally {
                 loading = false; region.setAttribute('aria-busy', 'false');
-                refreshButton.disabled = false; refreshButton.textContent = t('New suggestions');
+                refreshButton.disabled = false; refreshLabel.textContent = t('New suggestions');
                 if (refreshPending) { refreshPending = false; load(); }
             }
+        }
+
+        if (modeForm && modeSelect) {
+            modeSelect.addEventListener('change', () => modeForm.requestSubmit());
+            modeForm.addEventListener('submit', async event => {
+                event.preventDefault();
+                const nextMode = modeSelect.value;
+                syncTunerVisual(nextMode);
+                try {
+                    const fd = new FormData(modeForm);
+                    fd.set('ajax', '1');
+                    await read(await window.MovieListHTTP.fetch(modeForm.action, {
+                        method: 'POST',
+                        body: fd,
+                        headers: {'X-CSRF-Token': csrf, Accept: 'application/json'}
+                    }));
+                    load(false);
+                } catch (error) {
+                    refreshStatus.textContent = error.message;
+                }
+            });
         }
         refreshButton.addEventListener('click', () => { if (!loading) load(true); });
         document.addEventListener('library-movie-added', event => {
